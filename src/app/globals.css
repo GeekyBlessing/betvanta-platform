@@ -101,3 +101,11 @@ h1, h2, h3 { text-wrap: balance; }
 .stat-icon { background: rgba(196, 124, 82, .14); color: #D9956C; box-shadow: 0 0 0 1px rgba(196, 124, 82, .28) inset; }
 .feature-card { transition: border-color 200ms ease-out, transform 200ms ease-out; }
 .feature-card:hover { border-color: var(--accent); transform: translateY(-2px); }
+
+/* Payment assistant ------------------------------------------------------------------------------- */
+.chat-in { animation: bv-rise 260ms cubic-bezier(.2, .7, .2, 1) backwards; }
+.chat-panel { animation: bv-sheet 240ms cubic-bezier(.2, .7, .2, 1) backwards; }
+@keyframes bv-sheet { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
+.chat-launcher { transition: transform 160ms ease-out; } .chat-launcher:hover { transform: translateY(-2px); }
+.method-chip { transition: border-color 120ms ease-out, background-color 120ms ease-out; } .method-chip:hover { background: var(--accent-subtle); }
+.qr svg { width: 100%; height: 100%; display: block; }

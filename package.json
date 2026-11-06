@@ -25,13 +25,16 @@
   "dependencies": {
     "next": "^15.5.29",
     "pg": "^8.13.0",
+    "qrcode": "^1.5.4",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "zod": "^4.6.7"
   },
   "devDependencies": {
+    "@noble/hashes": "^1.8.0",
     "@types/node": "^20.16.11",
     "@types/pg": "^8.11.10",
+    "@types/qrcode": "^1.5.5",
     "@types/react": "^18.3.11",
     "@types/react-dom": "^18.3.1",
     "autoprefixer": "^10.4.20",

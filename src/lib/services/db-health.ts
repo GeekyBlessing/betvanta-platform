@@ -7,7 +7,7 @@ import { userFromToken } from "../session";
 import { listHomepageStats } from "./homepage-stats";
 
 /** The newest file in db/migrations. A unit test keeps this in step with the folder. */
-export const LATEST_MIGRATION = "010_homepage_stats.sql";
+export const LATEST_MIGRATION = "011_manual_payments.sql";
 
 export type CheckResult = { name: string; ok: boolean; ms: number; detail?: string; code?: string };
 
@@ -38,6 +38,7 @@ export async function runDbHealth(): Promise<{ ok: boolean; checks: CheckResult[
   await run("predictions list (free view)", async () => `${(await listPredictions("free", { upcoming: true, limit: 12 })).length} upcoming`);
   await run("settled predictions", async () => `${(await listPredictions("free", { settled: true, limit: 5 })).length} rows`);
   await run("homepage headline statistics", async () => `${(await listHomepageStats()).length} slots`);
+  await run("manual payment submissions", async () => { const r = await one<{ n: number }>("select count(*)::int n from manual_payments where status = 'pending_review'"); return `${r!.n} awaiting review`; });
   await run("testimonials", async () => `${(await approvedTestimonials(6)).length} approved`);
   await run("plans", async () => {
     const r = await q<{ code: string }>("select code from plans where active and currency = 'USD' order by level");

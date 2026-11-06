@@ -39,6 +39,12 @@ const schema = z.object({
   // Crypto stays OFF until legal and payment-provider approvals are confirmed for the merchant's jurisdiction.
   CRYPTO_PAYMENTS_ENABLED: z.enum(["true", "false"]).default("false"),
   CRON_SECRET: z.string().optional(),
+  // Manual crypto payments: the chain each 0x wallet receives on. Leave unset until the client confirms it;
+  // the payment assistant then tells customers to confirm the network with Tom before sending.
+  CRYPTO_ETH_NETWORK: z.string().trim().min(2).max(40).optional(),
+  CRYPTO_USDT_NETWORK: z.string().trim().min(2).max(40).optional(),
+  // Where "Contact Tom on Discord" goes: a discord.com channel, user or invite link. Falls back to DISCORD_INVITE_URL.
+  DISCORD_SUPPORT_URL: z.string().url().optional(),
 });
 
 export type Env = z.infer<typeof schema>;
@@ -55,6 +61,18 @@ export function discordInviteUrl(): string | null {
   const u = env().DISCORD_INVITE_URL;
   if (!u) return null;
   try { const x = new URL(u); return x.protocol === "https:" && (x.hostname === "discord.gg" || ((x.hostname === "discord.com" || x.hostname === "www.discord.com") && x.pathname.startsWith("/invite/"))) ? x.toString() : null; } catch { return null; }
+}
+/** Link for "Contact Tom on Discord": a Discord channel, user or invite link only; otherwise the community invite. */
+export function discordSupportUrl(): string | null {
+  const u = env().DISCORD_SUPPORT_URL;
+  if (u) {
+    try {
+      const x = new URL(u);
+      const okHost = x.protocol === "https:" && (x.hostname === "discord.gg" || x.hostname === "discord.com" || x.hostname === "www.discord.com");
+      if (okHost && (x.hostname === "discord.gg" || /^\/(invite|channels|users)\//.test(x.pathname))) return x.toString();
+    } catch { /* fall through */ }
+  }
+  return discordInviteUrl();
 }
 export const discordOAuthEnabled = () => Boolean(env().DISCORD_CLIENT_ID && env().DISCORD_CLIENT_SECRET && env().DISCORD_BOT_TOKEN && env().DISCORD_GUILD_ID);
 export const emailEnabled = () => Boolean(env().RESEND_API_KEY);

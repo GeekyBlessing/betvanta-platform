@@ -135,6 +135,52 @@ check("admin revokes a subscription", (await admin(`/api/admin/subscriptions/${s
 check("member cannot use admin subscription API", (await member("/api/admin/subscriptions", { method: "POST", json: { email: memberEmail, planCode: "premium_1y", days: 366, note: "self grant" } })).status === 403);
 check("sportsbook money tables stay locked", await db.query("insert into sportsbook.wallets(user_id) select id from users limit 1").then(() => false, (e) => /disabled/.test(e.message)));
 
+console.log("payment assistant: manual crypto and Discord-arranged payments");
+{
+  const payer = client(), payerEmail = `payer${stamp}@example.com`;
+  await payer("/api/auth/register", { method: "POST", json: { displayName: "Pat Payer", email: payerEmail, password: "payer passphrase long", confirmAge: true, acceptTerms: true } });
+  const co = await payer("/checkout/premium_1m");
+  check("checkout shows the payment assistant with every method", co.status === 200 && ["Pay with crypto, PayPal, Venmo and more", 'data-method="btc"', 'data-method="eth"', 'data-method="usdt"', 'data-method="paypal"', 'data-method="venmo"', 'data-method="chime"', 'data-method="apple_pay"', 'data-method="other"'].every((x) => co.body.includes(x)));
+  check("checkout carries the confirmed wallet addresses and QR codes", ["bc1qu2pq8h060lpu3g5yg8zzc39lr85mal3vpek4dv", "0x283bed6B2dB8b70FB245a9734fc6479C60C59E9C", "0x7EE5E8D5149A55c6049f7b1042834cDAEB2f246d"].every((a) => co.body.includes(a)) && (co.body.match(/crispEdges/g) ?? []).length >= 3);
+  check("checkout never shows a PayPal, Venmo or Chime account", !/paypal\.me|venmo\.com\/|\$cashtag|@[a-z0-9_]+ on venmo/i.test(co.body));
+  const png = Buffer.from("89504e470d0a1a0a0000000d4948445200000001000000010806000000", "hex");
+  const form = (o, file) => { const f = new FormData(); for (const [k, v] of Object.entries(o)) f.set(k, v); if (file) f.set("proof", new Blob([file.data], { type: file.type }), file.name); return f; };
+  const base = { planCode: "premium_1m", fullName: "Pat Payer", email: payerEmail, discordUsername: "pat_payer" };
+  check("anonymous visitors cannot submit payments", (await anon("/api/billing/manual", { method: "POST", raw: form({ ...base, method: "btc", reference: "x" }) })).status === 401);
+  check("submission without a reference or proof is refused", (await payer("/api/billing/manual", { method: "POST", raw: form({ ...base, method: "btc" }) })).status === 400);
+  check("a disguised file is refused", (await payer("/api/billing/manual", { method: "POST", raw: form({ ...base, method: "btc" }, { data: Buffer.from("<script>alert(1)</script>"), type: "image/png", name: "x.png" }) })).status === 400);
+  check("USDT needs the network while it is unconfirmed", (await payer("/api/billing/manual", { method: "POST", raw: form({ ...base, method: "usdt", reference: "0x" + "a".repeat(64) }) })).status === 400);
+  const sub = await payer("/api/billing/manual", { method: "POST", raw: form({ ...base, method: "btc", reference: "b".repeat(64) }, { data: png, type: "image/png", name: "wallet screenshot.png" }) });
+  check("member submits BTC payment proof and gets a reference", sub.status === 201 && /^BV-M-[0-9A-Z]{8}$/.test(sub.body.data?.reference) && sub.body.data.status === "pending_review", JSON.stringify(sub.body));
+  const ref = sub.body.data?.reference;
+  check("a pending submission grants no access", (await db.query("select count(*)::int n from subscriptions s join users u on u.id = s.user_id where u.email = $1", [payerEmail])).rows[0].n === 0);
+  check("a second submission for the same plan is refused while one is pending", (await payer("/api/billing/manual", { method: "POST", raw: form({ ...base, method: "paypal", reference: "PP-1" }) })).status === 409);
+  check("checkout shows the pending status", (await payer("/checkout/premium_1m")).body.includes(ref));
+  check("member sees pending verification in billing", (await payer("/dashboard/billing")).body.includes("Pending verification"));
+  check("member and admin were emailed", (await db.query("select count(*)::int n from email_outbox where template in ('manual_received','manual_to_review') and body_text like $1", [`%${ref}%`])).rows[0].n === 2);
+  const row = (await db.query("select m.id, f.id proof_id, f.mime from manual_payments m join manual_payment_proofs f on f.manual_payment_id = m.id where m.reference = $1", [ref])).rows[0];
+  check("proof is stored with its real type", row?.mime === "image/png");
+  check("members cannot open payment proofs", (await payer(`/api/admin/manual-payments/proofs/${row.proof_id}`)).status === 403);
+  const pf = await admin(`/api/admin/manual-payments/proofs/${row.proof_id}`);
+  check("admin opens the proof with safe headers", pf.status === 200 && pf.headers.get("x-content-type-options") === "nosniff" && /sandbox/.test(pf.headers.get("content-security-policy") ?? ""), `${pf.status} ${pf.headers.get("x-content-type-options")} ${pf.headers.get("content-security-policy")} ${String(pf.body).slice(0, 120)}`);
+  const list = await admin("/admin/manual-payments");
+  check("admin review queue lists the submission with an explorer link", list.status === 200 && list.body.includes(ref) && list.body.includes(`https://mempool.space/tx/${"b".repeat(64)}`));
+  check("members cannot approve payments", (await payer(`/api/admin/manual-payments/${row.id}`, { method: "POST", json: { action: "approve" } })).status === 403);
+  check("rejecting needs a reason", (await admin(`/api/admin/manual-payments/${row.id}`, { method: "POST", json: { action: "reject" } })).status === 422);
+  const ap = await admin(`/api/admin/manual-payments/${row.id}`, { method: "POST", json: { action: "approve", note: "received, 2 confirmations" } });
+  check("admin approves after verification and access is granted", ap.body.ok && (await db.query("select s.plan_level, s.source from subscriptions s join users u on u.id = s.user_id where u.email = $1 and s.status = 'active'", [payerEmail])).rows[0]?.plan_level === 1, JSON.stringify(ap.body));
+  check("a submission cannot be approved twice", (await admin(`/api/admin/manual-payments/${row.id}`, { method: "POST", json: { action: "approve" } })).status === 409);
+  check("approval is audited and a receipt is emailed", (await db.query("select count(*)::int n from audit_logs where action = 'admin.manual_payment_approved' and entity_id = $1", [ref])).rows[0].n === 1
+    && (await db.query("select count(*)::int n from email_outbox where template = 'receipt' and body_text like $1", [`%${ref}%`])).rows[0].n === 1);
+  const pp = await payer("/api/billing/manual", { method: "POST", raw: form({ ...base, planCode: "premium_3m", method: "other", methodOther: "Cash App", reference: "CA-12345" }) });
+  check("member submits a Discord-arranged payment", pp.status === 201, JSON.stringify(pp.body));
+  const ppId = (await db.query("select id from manual_payments where reference = $1", [pp.body.data?.reference])).rows[0]?.id;
+  check("admin rejects it with a reason the member can see", (await admin(`/api/admin/manual-payments/${ppId}`, { method: "POST", json: { action: "reject", note: "No Cash App payment found with this ID." } })).body.ok
+    && (await payer("/dashboard/billing")).body.includes("No Cash App payment found with this ID."));
+  check("a rejected submission grants nothing", (await db.query("select count(*)::int n from subscriptions s join users u on u.id = s.user_id where u.email = $1 and s.plan_level = 2", [payerEmail])).rows[0].n === 0);
+  check("admin manual payments page loads every tab", (await Promise.all(["pending_review", "approved", "rejected", "all"].map((t) => admin(`/admin/manual-payments?status=${t}`)))).every((x) => x.status === 200));
+}
+
 console.log("homepage sections, links, testimonials, Discord");
 const homePage = await anon("/");
 check("hero has Explore Predictions to /predictions", /href="\/predictions"[^>]*>[\s\S]{0,400}Explore Predictions/.test(homePage.body));

@@ -25,7 +25,11 @@ const nextConfig = {
   poweredByHeader: false,
   serverExternalPackages: ["pg"],
   async headers() {
-    return [{ source: "/(.*)", headers: securityHeaders }];
+    return [
+      { source: "/(.*)", headers: securityHeaders },
+      // Uploaded payment proofs (admin only): render as an inert document. Later rules override earlier ones for the same key.
+      { source: "/api/admin/manual-payments/proofs/:id", headers: [{ key: "Content-Security-Policy", value: "default-src 'none'; img-src 'self'; style-src 'unsafe-inline'; sandbox" }] },
+    ];
   },
 };
 export default nextConfig;
