@@ -1,8 +1,8 @@
 import type { ProviderCompetition, ProviderFixture, SportsProvider } from "./types";
 // Development and demo data. Fictional teams only, so no statistic can be mistaken for a real club's record.
 const TEAMS = [
-  ["Lagos Lions", "LAG"], ["Abuja Arrows", "ABU"], ["Kano Kestrels", "KAN"], ["Ibadan Ironmen", "IBA"], ["Enugu Eagles", "ENU"],
-  ["Port City FC", "PRT"], ["Benin Bulls", "BEN"], ["Jos Jaguars", "JOS"], ["Calabar Comets", "CAL"], ["Owerri Owls", "OWE"],
+  ["Harbor City FC", "HAR"], ["Summit United", "SUM"], ["Riverside Rovers", "RIV"], ["Ironwood Athletic", "IRO"], ["Lakeshore FC", "LAK"],
+  ["Granite Bay SC", "GRA"], ["Prairie Wolves", "PRA"], ["Bayview Mariners", "BAY"], ["Canyon Rangers", "CAN"], ["Northgate City", "NOR"],
 ] as const;
 function rng(seed: number) { return () => { seed = (seed * 1664525 + 1013904223) % 4294967296; return seed / 4294967296; }; }
 function goals(r: () => number, mean: number) { let g = 0, L = Math.exp(-mean), p = 1; do { g++; p *= r(); } while (p > L); return g - 1; }
@@ -20,7 +20,7 @@ export function buildMockCompetition(now = new Date()): ProviderCompetition {
       const kickoff = new Date(base + round * 3.5 * day + m * 2 * 3600000 + (round >= 0 ? day : 0));
       const done = kickoff.getTime() < now.getTime() - 2 * 3600000;
       fixtures.push({
-        ref: `mock-${round + 9}-${m}`, kickoff: kickoff.toISOString(), venue: `${TEAMS[h][0].split(" ")[0]} Stadium`,
+        ref: `mock-${round + 9}-${m}`, kickoff: kickoff.toISOString(), venue: `${TEAMS[h][0].split(" ")[0]} Park`,
         status: done ? "finished" : "scheduled",
         homeGoals: done ? goals(r, 1.45 * strength[h] / strength[a] ** 0.5) : null,
         awayGoals: done ? goals(r, 1.1 * strength[a] / strength[h] ** 0.5) : null,

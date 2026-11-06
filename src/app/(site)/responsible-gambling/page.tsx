@@ -9,9 +9,9 @@ export default function RG() {
         <li>Only stake what you can afford to lose, and set a limit before you start.</li>
         <li>Never chase losses or borrow money to bet.</li>
         <li>Take regular breaks, and stop if betting stops being enjoyable.</li>
-        <li>You must be 18 or older to use BETVANTA.</li>
+        <li>You must be 18 or older to use BETVANTA. Sports betting itself is legal only in some US states, usually at 21 or older; check the rules where you live.</li>
       </ul>
-      <p>If betting is affecting your life or someone close to you, speak to someone you trust and contact a local support service.</p>
+      <p>If betting is affecting your life or someone close to you, help is free and confidential: call or text <strong>1-800-GAMBLER</strong> (National Problem Gambling Helpline, United States).</p>
     </div>
   );
 }

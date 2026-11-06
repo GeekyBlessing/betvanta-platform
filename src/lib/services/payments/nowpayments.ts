@@ -1,4 +1,4 @@
-import { env } from "../../env";
+import { cryptoApproved, env } from "../../env";
 import { hmacSha512Hex, safeEqualHex } from "../../crypto";
 import { badRequest, unavailable } from "../../errors";
 import type { CryptoCurrency, PaymentProvider } from "./types";
@@ -19,7 +19,8 @@ export type NpPayment = { payment_id: number | string; payment_status: string; p
 
 export const nowpayments: PaymentProvider = {
   id: "nowpayments", label: "Crypto (BTC, ETH, USDT)", method: "crypto",
-  enabled: () => Boolean(env().NOWPAYMENTS_API_KEY && env().NOWPAYMENTS_IPN_SECRET),
+  // Requires keys AND an explicit approval flag (legal + provider sign-off for the merchant jurisdiction).
+  enabled: () => cryptoApproved() && Boolean(env().NOWPAYMENTS_API_KEY && env().NOWPAYMENTS_IPN_SECRET),
   async createCheckout(i) {
     if (!i.payCurrency || !COIN[i.payCurrency]) throw badRequest("Choose BTC, ETH or USDT.");
     const inv = await np<Invoice>("/v1/invoice", {

@@ -9,6 +9,7 @@
 | ADR-3 | Own session auth instead of a hosted auth provider | No extra vendor to set up today; scrypt, hashed session ids, single-use hashed tokens | SSO, MFA for members, or social login are required |
 | ADR-4 | One-off USD payments per period through a provider layer (Stripe, Paystack, NOWPayments), no auto-renew | Every provider is verified the same way on the server; renewal reminders by email | Recurring billing is wanted |
 | ADR-7 | Sportsbook kept in a separate `sportsbook` schema with a disabled operator adapter | Wager money can never mix with subscription payments; a DB trigger blocks wallet, ledger and bet writes while `real_money_enabled` is false (and a check constraint keeps it false) | A licensed operator is contracted and legal sign-off exists |
+| ADR-9 | US-targeted defaults, jurisdiction-neutral business config | Customers are in the US: USD, US Eastern display time, US helpline. The legal entity and merchant jurisdiction are unconfirmed, so processors and crypto are switched by configuration, not hard-coded | Entity and merchant registration are confirmed |
 | ADR-8 | Discord via OAuth (identify, guilds.join) + bot role sync | Roles follow the verified tier automatically, including expiry | n/a |
 | ADR-5 | Entitlements computed from verified subscriptions on every request | Access can never be granted by the browser or a redirect | n/a |
 | ADR-6 | Poisson goals model for drafts, human publish step | Transparent, explainable, testable; no invented numbers | A richer model (Elo, xG) or more data is available |

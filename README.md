@@ -4,6 +4,8 @@
 
 BETVANTA is a sports intelligence platform: fixtures, scores and statistics, data-driven match predictions with stated confidence, an open locked-at-kickoff track record, and Free, Premium and VIP subscriptions in USD (card or crypto).
 
+Target market: **United States**, priced in **USD**. Legal entity and merchant jurisdiction are to be confirmed; see `docs/COMPLIANCE.md`.
+
 ## Stack
 
 | Layer | Choice |
@@ -12,7 +14,7 @@ BETVANTA is a sports intelligence platform: fixtures, scores and statistics, dat
 | API | Next.js route handlers under `src/app/api` (REST, JSON, Zod validation) |
 | Database | PostgreSQL (Supabase, Neon or any Postgres 14+), SQL migrations in `db/migrations` |
 | Auth | Own implementation: scrypt password hashing, DB-backed sessions in an httpOnly cookie, email verification and reset tokens |
-| Payments | USD only: Stripe, Paystack and NOWPayments (BTC, ETH, USDT) behind one provider layer, all verified server-side with signed webhooks |
+| Payments | USD only: Stripe (default), optional Paystack, and NOWPayments crypto (BTC, ETH, USDT, off until approved) behind one provider layer, all verified server-side with signed webhooks |
 | Community | Discord OAuth linking, tier role sync, pick announcements |
 | Sportsbook | Integration points only (`src/lib/sportsbook`, `sportsbook` schema), hard-disabled |
 | Email | Resend (falls back to an admin-visible outbox) |

@@ -42,7 +42,7 @@ export default async function Pricing(props: { searchParams: Promise<{ interval?
           );
         })}
       </div>
-      <p className="mt-8 text-xs text-subtle">All prices in US dollars. Card payments are processed by Stripe or Paystack; crypto payments (BTC, ETH, USDT) by NOWPayments. {RG_LINE}</p>
+      <p className="mt-8 text-xs text-subtle">All prices in US dollars. Card payments are processed by our payment partners; card details never reach BETVANTA. {RG_LINE}</p>
     </div>
   );
 }

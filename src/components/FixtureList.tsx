@@ -1,11 +1,11 @@
 import Link from "next/link";
 import type { FixtureRow } from "@/lib/services/sports";
-import { Badge, SampleBadge } from "./ui";
+import { Badge, fmtDay, fmtTime, SampleBadge } from "./ui";
 
-const dayKey = (iso: string) => new Intl.DateTimeFormat("en-GB", { weekday: "long", day: "numeric", month: "long", timeZone: "Africa/Lagos" }).format(new Date(iso));
-const time = (iso: string) => new Intl.DateTimeFormat("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: "Africa/Lagos" }).format(new Date(iso));
+const dayKey = fmtDay;
+const time = fmtTime;
 
-/** Fixtures grouped by day. Times shown in WAT. */
+/** Fixtures grouped by day, in the app display timezone (US Eastern by default). */
 export function FixtureList({ rows, showCompetition = true }: { rows: FixtureRow[]; showCompetition?: boolean }) {
   const days = new Map<string, FixtureRow[]>();
   for (const r of rows) days.set(dayKey(r.kickoff_at), [...(days.get(dayKey(r.kickoff_at)) ?? []), r]);

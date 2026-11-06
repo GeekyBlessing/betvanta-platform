@@ -14,7 +14,7 @@ async function call<T>(path: string, init: RequestInit = {}): Promise<PsResponse
 }
 
 export const paystack: PaymentProvider = {
-  id: "paystack", label: "Card or bank (Paystack)", method: "card",
+  id: "paystack", label: "Card (Paystack)", method: "card",
   enabled: () => Boolean(env().PAYSTACK_SECRET_KEY),
   async createCheckout(i) {
     const r = await call<{ authorization_url: string; reference: string }>("/transaction/initialize", {

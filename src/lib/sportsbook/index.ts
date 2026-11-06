@@ -11,5 +11,7 @@ export const disabledOperator: SportsbookOperator = {
   wallet: { balance: off, deposit: off, withdraw: off },
   placeBet: off,
   settlement: { settle: off },
+  geolocation: { check: off },
+  jurisdiction: { isPermitted: async () => ({ permitted: false, minAge: null, reason: "No licensed operator is configured." }) },
 };
 export const sportsbook: SportsbookOperator = disabledOperator;

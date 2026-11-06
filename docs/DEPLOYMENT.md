@@ -7,4 +7,5 @@
 5. **Webhooks** (test mode first): Stripe `{APP_URL}/api/webhooks/stripe` (checkout.session.completed, checkout.session.expired); Paystack `{APP_URL}/api/webhooks/paystack`; NOWPayments sends IPNs to `{APP_URL}/api/webhooks/nowpayments` automatically (set the IPN secret in its dashboard). Discord OAuth redirect: `{APP_URL}/api/discord/callback`.
 6. **Resend:** verify your sending domain (SPF, DKIM).
 7. **First run:** register with an `ADMIN_EMAILS` address, verify email, then Admin > Sports data > Sync, Admin > Predictions > Generate drafts, publish.
-8. **Before live payments:** set real prices in Admin > Plans, finish legal pages, switch to `sk_live_...`, and re-run the end-to-end checklist.
+8. **Jurisdiction:** confirm the legal entity and merchant registration country first (see `COMPLIANCE.md`); choose payment processors accordingly. Leave `CRYPTO_PAYMENTS_ENABLED=false` until approvals exist.
+9. **Before live payments:** set real prices in Admin > Plans, finish legal pages, switch to `sk_live_...`, and re-run the end-to-end checklist.

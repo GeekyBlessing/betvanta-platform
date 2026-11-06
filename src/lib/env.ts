@@ -25,11 +25,15 @@ const schema = z.object({
   RESEND_API_KEY: z.string().optional(),
   EMAIL_FROM: z.string().default("BETVANTA <onboarding@resend.dev>"),
   API_FOOTBALL_KEY: z.string().optional(),
-  API_FOOTBALL_LEAGUES: z.string().default("39,140,135,78,61"),
+  API_FOOTBALL_LEAGUES: z.string().default("253,39,140,135,78,61"), // MLS, Premier League, La Liga, Serie A, Bundesliga, Ligue 1
   API_FOOTBALL_SEASON: z.coerce.number().int().default(2025),
   OPENAI_API_KEY: z.string().optional(),
   OPENAI_MODEL: z.string().default("gpt-4o-mini"),
   ALLOW_SAMPLE_DATA: z.enum(["true", "false"]).default("false"),
+  // US-targeted product: kickoff times display in this zone (IANA name). Members' own zones can come later.
+  APP_TIMEZONE: z.string().default("America/New_York"),
+  // Crypto stays OFF until legal and payment-provider approvals are confirmed for the merchant's jurisdiction.
+  CRYPTO_PAYMENTS_ENABLED: z.enum(["true", "false"]).default("false"),
   CRON_SECRET: z.string().optional(),
 });
 
@@ -45,5 +49,6 @@ export const paymentsEnabled = () => Boolean(env().PAYSTACK_SECRET_KEY || env().
 export const discordOAuthEnabled = () => Boolean(env().DISCORD_CLIENT_ID && env().DISCORD_CLIENT_SECRET && env().DISCORD_BOT_TOKEN && env().DISCORD_GUILD_ID);
 export const emailEnabled = () => Boolean(env().RESEND_API_KEY);
 export const aiEnabled = () => Boolean(env().OPENAI_API_KEY);
+export const cryptoApproved = () => env().CRYPTO_PAYMENTS_ENABLED === "true";
 export const sampleDataAllowed = () => env().ALLOW_SAMPLE_DATA === "true";
 export const adminEmails = () => env().ADMIN_EMAILS.split(",").map((s) => s.trim().toLowerCase()).filter(Boolean);

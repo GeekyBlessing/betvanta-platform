@@ -72,7 +72,11 @@ export function PageHeader({ eyebrow, title, children }: { eyebrow?: string; tit
   );
 }
 
-export const RG_LINE = "Predictions are analysis, not guarantees. 18+ only. Play responsibly.";
+export const RG_LINE = "Predictions are analysis, not guarantees. 18+ only. Gambling problem? Call 1-800-GAMBLER.";
+const TZ = () => process.env.APP_TIMEZONE || "America/New_York";
 export const fmtKickoff = (iso: string) =>
-  new Intl.DateTimeFormat("en-GB", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "Africa/Lagos" }).format(new Date(iso)) + " WAT";
-export const fmtDate = (iso: string) => new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "Africa/Lagos" }).format(new Date(iso));
+  new Intl.DateTimeFormat("en-US", { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit", timeZone: TZ(), timeZoneName: "short" }).format(new Date(iso));
+export const fmtDate = (iso: string) => new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: TZ() }).format(new Date(iso));
+export const fmtTime = (iso: string) => new Intl.DateTimeFormat("en-US", { hour: "numeric", minute: "2-digit", timeZone: TZ() }).format(new Date(iso));
+export const fmtDay = (iso: string) => new Intl.DateTimeFormat("en-US", { weekday: "long", month: "long", day: "numeric", timeZone: TZ() }).format(new Date(iso));
+export const tzLabel = () => new Intl.DateTimeFormat("en-US", { timeZone: TZ(), timeZoneName: "long" }).formatToParts(new Date()).find((p) => p.type === "timeZoneName")?.value ?? TZ();

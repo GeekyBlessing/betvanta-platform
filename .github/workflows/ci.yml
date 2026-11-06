@@ -43,6 +43,7 @@ jobs:
       NOWPAYMENTS_API_KEY: np_ci
       NOWPAYMENTS_IPN_SECRET: np_ipn_ci
       NOWPAYMENTS_API_BASE: http://127.0.0.1:4599
+      CRYPTO_PAYMENTS_ENABLED: "true" # test only; production default is false
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

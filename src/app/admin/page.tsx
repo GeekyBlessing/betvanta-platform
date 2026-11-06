@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { one } from "@/lib/db";
-import { aiEnabled, emailEnabled, sampleDataAllowed, env, discordOAuthEnabled } from "@/lib/env";
+import { aiEnabled, emailEnabled, sampleDataAllowed, env, discordOAuthEnabled, cryptoApproved } from "@/lib/env";
 import { formatMoney } from "@/lib/services/billing";
 import { Badge, PageHeader, Stat } from "@/components/ui";
 export const metadata: Metadata = { title: "Admin" };
@@ -23,7 +23,7 @@ export default async function AdminHome() {
     <section className="card p-6 max-w-[640px] text-sm"><h2 className="font-semibold text-[17px] mb-3">Integrations</h2>
       {flag(Boolean(env().STRIPE_SECRET_KEY), `Stripe ${env().STRIPE_SECRET_KEY?.startsWith("sk_live") ? "(live)" : "(test mode)"}`, "Not configured")}
       {flag(Boolean(env().PAYSTACK_SECRET_KEY), `Paystack USD ${env().PAYSTACK_SECRET_KEY?.startsWith("sk_live") ? "(live)" : "(test mode)"}`, "Not configured")}
-      {flag(Boolean(env().NOWPAYMENTS_API_KEY && env().NOWPAYMENTS_IPN_SECRET), "NOWPayments crypto (BTC, ETH, USDT)", "Not configured")}
+      {flag(cryptoApproved() && Boolean(env().NOWPAYMENTS_API_KEY && env().NOWPAYMENTS_IPN_SECRET), "NOWPayments crypto (BTC, ETH, USDT)", cryptoApproved() ? "Keys missing" : "Off: awaiting legal and provider approval")}
       {flag(discordOAuthEnabled(), "Discord role sync", "Not configured")}
       {flag(Boolean(env().DISCORD_WEBHOOK_URL), "Discord announcements", "Not configured")}
       {flag(emailEnabled(), "Resend email", "Logging to outbox")}

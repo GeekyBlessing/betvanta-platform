@@ -1,6 +1,6 @@
 # Phase 1 status
 
-Verified by 35 unit/integration tests against Postgres and 73 end-to-end HTTP checks against a production build (`tests/e2e/smoke.mjs`), with payment and Discord APIs replaced by local stand-ins.
+Verified by 38 unit/integration tests against Postgres and 73 end-to-end HTTP checks against a production build (`tests/e2e/smoke.mjs`), with payment and Discord APIs replaced by local stand-ins.
 
 | # | Requirement | Status | Evidence / note |
 | --- | --- | --- | --- |
@@ -11,8 +11,8 @@ Verified by 35 unit/integration tests against Postgres and 73 end-to-end HTTP ch
 | 5 | Fixtures, schedules, scores, statistics | Done | `/fixtures` (schedule, live, results), `/leagues/[id]` table, match stats and head to head |
 | 6 | AI match analysis and predictions | Done, AI needs key | Poisson engine always on; OpenAI analysis grounded on stored numbers when `OPENAI_API_KEY` is set |
 | 7 | Free, Premium, VIP tiers | Done | server-side gating tests |
-| 8 | USD subscription checkout | Done, needs keys | Stripe (cards), Paystack (USD, needs approval); prices are USD placeholders |
-| 9 | Crypto payment architecture (BTC, ETH, USDT) | Done, needs keys | NOWPayments invoices + signed IPN + API confirmation; legal check required before enabling |
+| 8 | USD subscription checkout | Done, needs keys | Stripe (cards) is the default; Paystack optional depending on merchant entity; prices are USD placeholders |
+| 9 | Crypto payment architecture (BTC, ETH, USDT) | Built, OFF by default | NOWPayments invoices + signed IPN + API confirmation; enable with `CRYPTO_PAYMENTS_ENABLED=true` only after legal and provider approval |
 | 10 | Other approved payment methods | Done | Paystack card/bank in USD |
 | 11 | Prediction history and performance | Done | settles from final scores; record starts empty (no back-filled history) |
 | 12 | Email notifications | Done, needs key | verify, reset, password changed, receipt, cancellation, expiry reminder; logged in Admin > Emails until `RESEND_API_KEY` is set |
@@ -21,7 +21,7 @@ Verified by 35 unit/integration tests against Postgres and 73 end-to-end HTTP ch
 | 15 | User and subscription management | Done | roles, suspend, grant/extend/revoke access (audited) |
 | 16 | Prediction publishing and management | Done | drafts, tier choice, publish, discard, settle, AI analysis |
 | 17 | Responsive mobile and desktop | Done | screenshots at 390px and 1280px, light and dark |
-| Sportsbook | Integration points only, disabled | Done | separate schema, DB guard, disabled operator adapter, tests |
+| Sportsbook | Integration points only, disabled | Done | separate schema, DB guard, disabled operator adapter, US state licensing table and geolocation/jurisdiction interfaces, tests |
 
 ## Needs your credentials before it runs against the real service
 
@@ -31,7 +31,8 @@ GitHub push access, a Postgres database, API-Football key, Stripe test keys (and
 
 - USD plan prices (Premium $19 / $49 / $179, VIP $49 / $129 / $449).
 - Terms, privacy and responsible-gambling pages are drafts for legal review.
-- Crypto acceptance needs legal confirmation for your markets (Nigeria: SEC and CBN rules).
+- Legal entity and merchant registration jurisdiction are not confirmed yet; payment processors, terms and privacy depend on them (see `docs/COMPLIANCE.md`).
+- Crypto stays off until legal sign-off for that jurisdiction and the US states served, plus provider approval.
 
 ## Not built in Phase 1
 

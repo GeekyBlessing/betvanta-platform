@@ -15,6 +15,12 @@ export interface WalletService {
   withdraw(userId: string, amountMinor: number, idempotencyKey: string): Promise<{ status: "pending" }>;
 }
 export interface SettlementService { settle(betId: string): Promise<"won" | "lost" | "void"> }
+/** Where the player physically is, from a certified geolocation provider (not IP alone). */
+export type GeoCheck = { stateCode: string | null; country: string | null; passed: boolean; provider: string; checkedAt: string };
+export interface GeolocationProvider { check(userId: string, sessionToken: string): Promise<GeoCheck> }
+/** Real-money actions are allowed only in US states where the operator holds a licence (sportsbook.licensed_jurisdictions). */
+export interface JurisdictionPolicy { isPermitted(stateCode: string, operator: string): Promise<{ permitted: boolean; minAge: number | null; reason?: string }> }
+
 export interface SportsbookOperator {
   id: string;
   enabled(): boolean;
@@ -22,4 +28,6 @@ export interface SportsbookOperator {
   wallet: WalletService;
   placeBet(req: BetRequest): Promise<BetReceipt>;
   settlement: SettlementService;
+  geolocation: GeolocationProvider;
+  jurisdiction: JurisdictionPolicy;
 }

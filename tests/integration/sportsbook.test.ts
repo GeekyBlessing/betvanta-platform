@@ -15,3 +15,9 @@ describe("sportsbook integration points stay disabled", () => {
     await expect(sportsbook.wallet.balance("u")).rejects.toThrow(/not available/);
   });
 });
+describe("US jurisdiction policy", () => {
+  it("permits no state until a licensed operator is configured", async () => {
+    expect((await sportsbook.jurisdiction.isPermitted("NJ", "any")).permitted).toBe(false);
+    await expect(q("insert into sportsbook.licensed_jurisdictions(operator, state_code, licence_ref) values ('op','New Jersey','x')")).rejects.toThrow(/check/);
+  });
+});

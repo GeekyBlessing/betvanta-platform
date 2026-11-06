@@ -5,7 +5,7 @@ import { currentUser } from "@/lib/session";
 import { q } from "@/lib/db";
 import { listCompetitions, listFixtures } from "@/lib/services/sports";
 import { FixtureList } from "@/components/FixtureList";
-import { Notice, PageHeader } from "@/components/ui";
+import { Notice, PageHeader, tzLabel } from "@/components/ui";
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Fixtures and scores", description: "Match schedules, live scores and results across BETVANTA's covered leagues." };
 const MODES = { upcoming: "Schedule", live: "Live", results: "Results" } as const;
@@ -20,7 +20,7 @@ export default async function Fixtures(props: { searchParams: Promise<{ mode?: s
   const href = (o: Record<string, string | undefined>) => "/fixtures?" + new URLSearchParams(Object.entries({ mode, league, mine: sp.mine, ...o }).filter(([, v]) => v) as [string, string][]).toString();
   return (
     <div className="wrap py-10">
-      <PageHeader eyebrow="Fixtures" title="Fixtures and scores">Times shown in West Africa Time (WAT).</PageHeader>
+      <PageHeader eyebrow="Fixtures" title="Fixtures and scores">Times shown in {tzLabel()}.</PageHeader>
       <div className="flex flex-wrap gap-3 mb-6 items-center">
         <div className="inline-flex p-1 gap-1 bg-sunken rounded-full border border-line" role="group" aria-label="View">
           {Object.entries(MODES).map(([k, v]) => <Link key={k} href={href({ mode: k })} aria-pressed={k === mode} className={`px-4 py-1.5 rounded-full text-sm font-semibold ${k === mode ? "bg-surface text-ink shadow-sm" : "text-muted"}`}>{v}</Link>)}

@@ -40,7 +40,7 @@ export function SiteFooter() {
         <div className="grid gap-3 content-start">
           <div className="flex items-center gap-2.5"><LogoMark size={24} /><span className="display font-bold tracking-[.06em]">BETVANTA</span></div>
           <p className="text-sm text-muted">Smarter Insights. Better Decisions.</p>
-          <p className="text-xs text-subtle max-w-[48ch]">{RG_LINE} If gambling stops being fun, take a break and seek support.</p>
+          <p className="text-xs text-subtle max-w-[48ch]">{RG_LINE} If betting stops being fun, take a break and seek support.</p>
         </div>
         <div className="grid gap-2 content-start text-sm"><span className="eyebrow">Product</span>
           <Link href="/predictions" className="text-muted hover:text-ink">Predictions</Link><Link href="/performance" className="text-muted hover:text-ink">Performance</Link><Link href="/pricing" className="text-muted hover:text-ink">Pricing</Link><Link href="/faq" className="text-muted hover:text-ink">FAQ</Link>

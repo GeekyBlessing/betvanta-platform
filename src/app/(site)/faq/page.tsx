@@ -9,6 +9,7 @@ const QA = [
   ["How do I cancel?", "Go to Dashboard, then Billing, then Cancel. You keep access until the end of the period you paid for."],
   ["When does my access start?", "As soon as Paystack confirms the payment to our server. We never unlock access from the payment page alone."],
   ["Is BETVANTA a bookmaker?", "No. We do not take bets or hold funds. We publish analysis only. You must be 18 or older to use BETVANTA."],
+  ["Which currency do you charge in?", "All prices are in US dollars."],
 ];
 export default function Faq() {
   return (

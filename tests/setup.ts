@@ -21,3 +21,4 @@ process.env.DISCORD_PREMIUM_ROLE_ID = "role-premium";
 process.env.DISCORD_VIP_ROLE_ID = "role-vip";
 process.env.DISCORD_API_BASE = "http://127.0.0.1:4597";
 process.env.DISCORD_WEBHOOK_URL = "http://127.0.0.1:4597/webhook";
+process.env.CRYPTO_PAYMENTS_ENABLED = "true";
