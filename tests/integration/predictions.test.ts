@@ -11,12 +11,12 @@ describe("sports data and predictions", () => {
   beforeEach(resetDb);
   it("syncs sample fixtures marked as mock and builds team stats", async () => {
     const r = await syncSportsData(mockProvider);
-    expect(r.fixtures).toBe(55);
+    expect(r.fixtures).toBe(187); // 55 soccer + 44 each for the sample gridiron, hoops and diamond leagues
     expect((await q("select distinct data_source from fixtures")).map((x) => x.data_source)).toEqual(["mock"]);
     const [s] = await q("select sum(home_played) n from team_stats");
     expect(Number(s.n)).toBeGreaterThan(30);
     await syncSportsData(mockProvider); // idempotent
-    expect((await q("select count(*)::int n from fixtures"))[0].n).toBe(55);
+    expect((await q("select count(*)::int n from fixtures"))[0].n).toBe(187);
   });
   it("generates drafts for upcoming fixtures only, and never duplicates", async () => {
     const a = await admin();

@@ -2,7 +2,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 /** One-click API action (publish, sync, re-verify). Shows the server's message and refreshes the page data. */
-export function ActionButton({ action, method = "POST", payload, label, variant = "secondary", confirmText }: { action: string; method?: "POST" | "PATCH"; payload?: Record<string, unknown>; label: string; variant?: string; confirmText?: string }) {
+export function ActionButton({ action, method = "POST", payload, label, variant = "secondary", confirmText }: { action: string; method?: "POST" | "PATCH" | "DELETE"; payload?: Record<string, unknown>; label: string; variant?: string; confirmText?: string }) {
   const r = useRouter();
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ ok: boolean; t: string } | null>(null);

@@ -1,9 +1,15 @@
 import { q } from "../db";
 
-export const SPORTS: { id: string; name: string }[] = [
-  { id: "football", name: "Football" }, { id: "basketball", name: "Basketball" }, { id: "tennis", name: "Tennis" },
-  { id: "american_football", name: "American football" }, { id: "baseball", name: "Baseball" },
+/** US naming: "football" in the database is association football, shown as Soccer. */
+export type SportInfo = { id: string; slug: string; name: string; predictions: boolean; blurb: string };
+export const SPORTS: SportInfo[] = [
+  { id: "american_football", slug: "american-football", name: "American Football", predictions: false, blurb: "Schedules, scores and team records" },
+  { id: "football", slug: "soccer", name: "Soccer", predictions: true, blurb: "Predictions, analysis, tables and form" },
+  { id: "basketball", slug: "basketball", name: "Basketball", predictions: false, blurb: "Schedules, scores and team records" },
+  { id: "baseball", slug: "baseball", name: "Baseball", predictions: false, blurb: "Schedules, scores and team records" },
 ];
+export const sportBySlug = (slug: string) => SPORTS.find((s) => s.slug === slug);
+export const sportById = (id: string) => SPORTS.find((s) => s.id === id);
 
 export type Competition = { id: string; name: string; country: string; season: number; sport: string; data_source: string; upcoming: number; favourite: boolean };
 export async function listCompetitions(userId: string | null, sport?: string) {

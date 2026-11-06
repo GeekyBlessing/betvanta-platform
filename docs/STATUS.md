@@ -1,13 +1,13 @@
 # Phase 1 status
 
-Verified by 45 unit/integration tests against Postgres and 80 end-to-end HTTP checks against a production build (`tests/e2e/smoke.mjs`), with payment and Discord APIs replaced by local stand-ins.
+Verified by 53 unit/integration tests against Postgres and 105 end-to-end HTTP checks against a production build (`tests/e2e/smoke.mjs`), with payment and Discord APIs replaced by local stand-ins.
 
 | # | Requirement | Status | Evidence / note |
 | --- | --- | --- | --- |
-| 1 | Premium responsive homepage | Done | e2e page checks, desktop/mobile/dark screenshots |
+| 1 | Premium responsive homepage | Done | Hero with Get Premium Picks and Join Discord, live statistics, four sport categories, this week's picks, member reviews, community band; every homepage link checked by the e2e suite |
 | 2 | Registration, login, authentication | Done | auth tests, e2e |
 | 3 | User dashboard | Done | overview filtered by favourite leagues, predictions, history, billing, settings |
-| 4 | Sports and league selection | Done | `/sports`, favourites API, "My leagues" filters. Only football has a data feed; other sports are listed as not connected |
+| 4 | Sports and league selection | Done | `/sports` and `/sports/{american-football, soccer, basketball, baseball}`, favourites, "My leagues". Real data feed: soccer (API-Football). Other sports use labelled sample leagues until their feeds are connected; predictions are soccer-only because the model is built for soccer scoring |
 | 5 | Fixtures, schedules, scores, statistics | Done | `/fixtures` (schedule, live, results), `/leagues/[id]` table, match stats and head to head |
 | 6 | AI match analysis and predictions | Done, AI needs key | Poisson engine always on; OpenAI analysis grounded on stored numbers when `OPENAI_API_KEY` is set |
 | 7 | Membership plans | Done | Free account plus five client-confirmed paid plans: Monthly $50, 3 Month $100, 6 Month $150, 1 Year $300 (best value), Lifetime $600. Access is by plan level; VIP-exclusive picks from 6 Month. See "Plan features" below |
@@ -16,7 +16,7 @@ Verified by 45 unit/integration tests against Postgres and 80 end-to-end HTTP ch
 | 10 | Other approved payment methods | Done | Paystack card/bank in USD |
 | 11 | Prediction history and performance | Done | settles from final scores; record starts empty (no back-filled history) |
 | 12 | Email notifications | Done, needs key | verify, reset, password changed, receipt, cancellation, expiry reminder; logged in Admin > Emails until `RESEND_API_KEY` is set |
-| 13 | Discord community | Done, needs keys | OAuth link, auto role by tier (incl. expiry), pick announcements, invite link |
+| 13 | Discord community | Done, needs invite + keys | Join Discord buttons (hero, community band, footer, /community) open `DISCORD_INVITE_URL` in a new tab, or /community until it is set; only discord.gg / discord.com/invite links are accepted. OAuth link, auto roles, announcements |
 | 14 | Complete admin dashboard | Done | overview, predictions, sports data, users, subscriptions, payments, plans, emails, messages, audit |
 | 15 | User and subscription management | Done | roles, suspend, grant/extend/revoke access (audited) |
 | 16 | Prediction publishing and management | Done | drafts, tier choice, publish, discard, settle, AI analysis |
@@ -52,3 +52,8 @@ Plans are ordered levels 1 to 5; each includes everything below it. Subscription
 | Giveaways, lotto selections, live and private video, bankroll strategies and consultations, priority support, custom strategies | Various | Delivered by the BETVANTA team (Discord, email, calls). The app shows each member which of these they are entitled to; it does not run them |
 
 Legal review needed before launch: in the US, giveaways tied to a paid subscription can fall under state sweepstakes and lottery rules (typically requiring a free alternative entry and official rules), and "lotto selections" marketing should be checked against state lottery advertising rules.
+
+## Homepage statistics and testimonials
+
+- Statistics come straight from the database: active member accounts, settled predictions (won, lost, void), sports with fixtures in the feed. The win rate stays hidden ("Building") until at least 20 picks have settled. When any figure includes sample data, a "Sample data" label is shown under the panel.
+- Testimonials: no reviews are seeded. Only signed-in members can submit, they must tick an explicit publication consent (stored with the review), an admin must approve, and the member can withdraw at any time. Reviews from suspended or deleted accounts are hidden. Paid members are labelled "Verified subscriber".

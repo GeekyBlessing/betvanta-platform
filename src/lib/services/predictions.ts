@@ -45,7 +45,7 @@ function modelAnalysis(names: { home: string; away: string }, m: Awaited<ReturnT
 /** Generate draft predictions for upcoming fixtures that have enough data. Never overwrites published picks. */
 export async function runEngine(actorId: string | null, days = 7) {
   const fixtures = await q<{ id: string }>(
-    `select id from fixtures where status = 'scheduled' and kickoff_at > now() and kickoff_at < now() + ($1 || ' days')::interval order by kickoff_at`, [String(days)]);
+    `select f.id from fixtures f join competitions c on c.id = f.competition_id where c.sport = 'football' and f.status = 'scheduled' and f.kickoff_at > now() and f.kickoff_at < now() + ($1 || ' days')::interval order by f.kickoff_at`, [String(days)]);
   let created = 0, skipped = 0;
   for (const f of fixtures) {
     const m = await matchModelInput(f.id);

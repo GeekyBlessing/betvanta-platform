@@ -18,14 +18,14 @@ export async function syncSportsData(provider: SportsProvider = activeProvider()
   for (const comp of comps) {
     await tx(async (c) => {
       const cr = await one<{ id: string }>(
-        `insert into competitions(name, country, season, provider_ref, data_source) values ($1,$2,$3,$4,$5)
-         on conflict (provider_ref) do update set name = excluded.name returning id`, [comp.name, comp.country, comp.season, comp.ref, provider.source], c);
+        `insert into competitions(name, country, season, provider_ref, data_source, sport) values ($1,$2,$3,$4,$5,$6)
+         on conflict (provider_ref) do update set name = excluded.name, sport = excluded.sport returning id`, [comp.name, comp.country, comp.season, comp.ref, provider.source, comp.sport ?? "football"], c);
       const teamIds = new Map<string, string>();
       for (const f of comp.fixtures) for (const t of [f.home, f.away]) {
         if (teamIds.has(t.ref)) continue;
         const tr = await one<{ id: string }>(
           `insert into teams(name, short_name, provider_ref, data_source) values ($1,$2,$3,$4)
-           on conflict (provider_ref) do update set name = excluded.name returning id`, [t.name, t.short, t.ref, provider.source], c);
+           on conflict (provider_ref) do update set name = excluded.name, short_name = excluded.short_name returning id`, [t.name, t.short, t.ref, provider.source], c);
         teamIds.set(t.ref, tr!.id);
       }
       for (const f of comp.fixtures) {

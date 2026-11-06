@@ -16,7 +16,7 @@ export const apiFootballProvider: SportsProvider = {
       if (!j.response.length) continue;
       const lg = j.response[0].league;
       out.push({
-        ref: `af-${lg.id}-${lg.season}`, name: lg.name, country: lg.country, season: lg.season,
+        ref: `af-${lg.id}-${lg.season}`, name: lg.name, country: lg.country, season: lg.season, sport: "football",
         fixtures: j.response.map((f) => ({
           ref: `af-${f.fixture.id}`, kickoff: f.fixture.date, venue: f.fixture.venue?.name ?? null, status: STATUS[f.fixture.status.short] ?? "scheduled",
           homeGoals: f.goals.home, awayGoals: f.goals.away,

@@ -47,6 +47,8 @@ h1, h2, h3 { text-wrap: balance; }
 .btn-secondary { background: transparent; color: var(--ink); border-color: var(--border-strong); } .btn-secondary:hover:not(:disabled) { background: var(--surface-sunken); }
 .btn-ghost { background: transparent; color: var(--link); } .btn-ghost:hover:not(:disabled) { background: var(--teal-subtle); }
 .btn-danger { background: transparent; color: var(--danger); border-color: var(--danger); }
+/* Outline button for use on the teal brand surface (hero, community band). */
+.btn-onbrand { background: transparent; color: #EAE1D4; border-color: rgba(234, 225, 212, .55); } .btn-onbrand:hover { background: rgba(234, 225, 212, .08); }
 .btn-sm { padding: 6px 12px; font-size: 13px; } .btn-lg { padding: 13px 20px; font-size: 15px; }
 .input { width: 100%; font-size: 15px; color: var(--ink); background: var(--surface); border: 1px solid var(--border-strong); border-radius: 8px; padding: 10px 12px; }
 .input::placeholder { color: var(--ink-subtle); }

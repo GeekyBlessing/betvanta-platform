@@ -24,11 +24,15 @@ export default async function League(props: { params: Promise<{ id: string }> })
   return (
     <div className="wrap py-10 grid gap-8">
       <div className="flex flex-wrap justify-between gap-4 items-start">
-        <PageHeader eyebrow={`${c.country} · ${c.season}`} title={c.name}>{c.data_source === "mock" ? "Sample league with fictional teams, used until a live data feed is connected." : "Data from API-Football."}</PageHeader>
+        <PageHeader eyebrow={`${c.country} · ${c.season}`} title={c.name}>{c.data_source === "mock" ? "Sample league with fictional teams, used until a live data feed is connected." : "Data from our licensed data provider."}</PageHeader>
         <div className="flex gap-2 items-center">{c.data_source === "mock" && <SampleBadge />}{u && <FavouriteToggle competitionId={c.id} initial={fav} />}</div>
       </div>
-      <section className="grid gap-3"><h2 className="font-semibold text-[17px]">Table</h2>
-        {table.length ? <div className="card overflow-x-auto relative"><table className="table"><thead><tr><th>#</th><th>Team</th><th className="text-right">P</th><th className="text-right">W</th><th className="text-right">D</th><th className="text-right">L</th><th className="text-right">GF</th><th className="text-right">GA</th><th className="text-right">GD</th><th className="text-right">Pts</th><th>Form</th></tr></thead><tbody>
+      <section className="grid gap-3"><h2 className="font-semibold text-[17px]">{c.sport === "football" ? "Table" : "Standings"}</h2>
+        {table.length && c.sport !== "football" ? (
+          <div className="card overflow-x-auto relative"><table className="table"><thead><tr><th>#</th><th>Team</th><th className="text-right">W</th><th className="text-right">L</th><th className="text-right">Pct</th><th className="text-right">PF</th><th className="text-right">PA</th><th className="text-right">Diff</th></tr></thead><tbody>
+            {[...table].sort((a, b) => b.w / b.p - a.w / a.p || b.gd - a.gd).map((t, i) => <tr key={t.team_id}><td className="num">{i + 1}</td><td className="font-medium whitespace-nowrap">{t.team}</td><td className="num text-right">{t.w}</td><td className="num text-right">{t.l}</td><td className="num text-right">{(t.w / t.p).toFixed(3).replace(/^0/, "")}</td><td className="num text-right">{t.gf}</td><td className="num text-right">{t.ga}</td><td className="num text-right">{t.gd > 0 ? `+${t.gd}` : t.gd}</td></tr>)}
+          </tbody></table></div>
+        ) : table.length ? <div className="card overflow-x-auto relative"><table className="table"><thead><tr><th>#</th><th>Team</th><th className="text-right">P</th><th className="text-right">W</th><th className="text-right">D</th><th className="text-right">L</th><th className="text-right">GF</th><th className="text-right">GA</th><th className="text-right">GD</th><th className="text-right">Pts</th><th>Form</th></tr></thead><tbody>
           {table.map((t, i) => <tr key={t.team_id}><td className="num">{i + 1}</td><td className="font-medium whitespace-nowrap">{t.team}</td>{[t.p, t.w, t.d, t.l, t.gf, t.ga, t.gd > 0 ? `+${t.gd}` : t.gd].map((v, k) => <td key={k} className="num text-right">{v}</td>)}<td className="num text-right font-semibold">{t.pts}</td><td className="num text-xs tracking-[.08em] text-subtle">{t.form ?? ""}</td></tr>)}
         </tbody></table></div> : <Notice>No completed matches yet.</Notice>}
       </section>

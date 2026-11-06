@@ -46,6 +46,12 @@ export function env(): Env {
 export function resetEnvCache() { cached = null; }
 export const isProd = () => process.env.NODE_ENV === "production";
 export const paymentsEnabled = () => Boolean(env().PAYSTACK_SECRET_KEY || env().STRIPE_SECRET_KEY || env().NOWPAYMENTS_API_KEY);
+/** Only a real Discord invite is accepted (discord.gg/... or discord.com/invite/...). Anything else is ignored. */
+export function discordInviteUrl(): string | null {
+  const u = env().DISCORD_INVITE_URL;
+  if (!u) return null;
+  try { const x = new URL(u); return x.protocol === "https:" && (x.hostname === "discord.gg" || ((x.hostname === "discord.com" || x.hostname === "www.discord.com") && x.pathname.startsWith("/invite/"))) ? x.toString() : null; } catch { return null; }
+}
 export const discordOAuthEnabled = () => Boolean(env().DISCORD_CLIENT_ID && env().DISCORD_CLIENT_SECRET && env().DISCORD_BOT_TOKEN && env().DISCORD_GUILD_ID);
 export const emailEnabled = () => Boolean(env().RESEND_API_KEY);
 export const aiEnabled = () => Boolean(env().OPENAI_API_KEY);

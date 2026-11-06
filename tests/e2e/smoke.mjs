@@ -130,6 +130,38 @@ check("admin revokes a subscription", (await admin(`/api/admin/subscriptions/${s
 check("member cannot use admin subscription API", (await member("/api/admin/subscriptions", { method: "POST", json: { email: memberEmail, planCode: "premium_1y", days: 366, note: "self grant" } })).status === 403);
 check("sportsbook money tables stay locked", await db.query("insert into sportsbook.wallets(user_id) select id from users limit 1").then(() => false, (e) => /disabled/.test(e.message)));
 
+console.log("homepage sections, links, testimonials, Discord");
+const homePage = await anon("/");
+check("hero has Get Premium Picks to /pricing", /href="\/pricing"[^>]*>[\s\S]{0,400}Get Premium Picks/.test(homePage.body));
+const invite = process.env.DISCORD_INVITE_URL;
+check("Join Discord opens the configured invite in a new tab", invite ? homePage.body.includes(`href="${invite}" target="_blank" rel="noopener noreferrer"`) : homePage.body.includes('href="/community"'));
+check("homepage shows the four statistics", ["Members", "Prediction win rate", "Settled predictions", "Sports covered"].every((s) => homePage.body.includes(s)));
+const memberCount = (await db.query("select count(*)::int n from users where role='member' and status='active'")).rows[0].n;
+check("member statistic matches the database", homePage.body.includes(`>${new Intl.NumberFormat("en-US").format(memberCount)}<`));
+check("sports coverage links to all four sports", ["/sports/american-football", "/sports/soccer", "/sports/basketball", "/sports/baseball"].every((h) => homePage.body.includes(`href="${h}"`)));
+const links = [...new Set([...homePage.body.matchAll(/href="(\/[^"#]*)"/g)].map((m) => m[1].replace(/&amp;/g, "&")))].filter((h) => !h.startsWith("/_next") && !h.startsWith("/api/"));
+const broken = [];
+for (const h of links) { const x = await anon(h); if (x.status >= 400) broken.push(`${h} ${x.status}`); }
+check(`every homepage link resolves (${links.length} links)`, broken.length === 0, broken.join(", "));
+for (const s of ["american-football", "soccer", "basketball", "baseball"]) {
+  const x = await anon(`/sports/${s}`); check(`sport page /sports/${s} renders with scores`, x.status === 200 && x.body.includes("Latest scores"));
+}
+check("soccer page shows predictions; basketball says predictions are not live", (await anon("/sports/soccer")).body.includes("Predictions and analysis") && (await anon("/sports/basketball")).body.includes("Predictions for this sport are not live yet"));
+check("American football standings use W/L/Pct", await (async () => { const id = (await db.query("select id from competitions where sport='american_football' limit 1")).rows[0].id; const x = await anon(`/leagues/${id}`); return x.body.includes(">Pct<") && x.body.includes("Standings"); })());
+check("community page renders", (await anon("/community")).status === 200);
+check("no reviews are shown before approval", homePage.body.includes("Reviews from verified members will appear here"));
+check("anonymous visitors cannot post reviews", (await anon("/api/testimonials", { method: "POST", json: { displayName: "X", rating: 5, body: "A long enough review body.", consent: true } })).status === 401);
+check("review without consent is rejected", (await member("/api/testimonials", { method: "POST", json: { displayName: "Mia", rating: 5, body: "Clear, honest analysis every week.", consent: false } })).status === 422);
+r = await member("/api/testimonials", { method: "POST", json: { displayName: "Mia", location: "Denver, CO", rating: 5, body: "Clear, honest analysis every week.", consent: true } });
+check("member submits a review with consent", r.body.ok, JSON.stringify(r.body));
+check("pending review is not public", !(await anon("/")).body.includes("Clear, honest analysis every week."));
+const tid = (await db.query("select t.id from testimonials t join users u on u.id=t.user_id where u.email=$1 order by t.created_at desc limit 1", [memberEmail])).rows[0].id;
+check("member cannot approve their own review", (await member(`/api/admin/testimonials/${tid}`, { method: "PATCH", json: { action: "approve" } })).status === 403);
+check("admin approves the review", (await admin(`/api/admin/testimonials/${tid}`, { method: "PATCH", json: { action: "approve" } })).body.ok);
+const withReview = (await anon("/")).body;
+check("approved review shows with name, rating and verified badge", withReview.includes("Clear, honest analysis every week.") && withReview.includes("Mia") && withReview.includes("5 out of 5 stars") && withReview.includes("Verified subscriber"));
+check("member withdraws the review and it disappears", (await member(`/api/testimonials/${tid}`, { method: "DELETE" })).body.ok && !(await anon("/")).body.includes("Clear, honest analysis every week."));
+
 console.log("account and cron");
 check("settings save", (await member("/api/account", { method: "PATCH", json: { displayName: "Member Two", notifyPredictions: false, notifyBilling: true } })).body.ok);
 check("password change requires current password", (await member("/api/account/password", { method: "POST", json: { currentPassword: "nope", newPassword: "another long passphrase" } })).status === 400);
@@ -140,10 +172,10 @@ check("logout clears session", (await member("/api/auth/logout", { method: "POST
 console.log("headers and pages");
 const h = (await anon("/")).headers;
 check("security headers present", h.get("content-security-policy")?.includes("frame-ancestors 'none'") && h.get("x-frame-options") === "DENY" && h.get("x-content-type-options") === "nosniff" && !h.get("x-powered-by"));
-for (const p of ["/sports", "/fixtures", "/fixtures?mode=live", "/", "/pricing", "/performance", "/about", "/faq", "/contact", "/legal/terms", "/legal/privacy", "/responsible-gambling", "/login", "/register", "/forgot-password"]) {
+for (const p of ["/community", "/sports/soccer", "/sports", "/fixtures", "/fixtures?mode=live", "/", "/pricing", "/performance", "/about", "/faq", "/contact", "/legal/terms", "/legal/privacy", "/responsible-gambling", "/login", "/register", "/forgot-password"]) {
   const x = await anon(p); check(`page ${p} renders with BETVANTA title`, x.status === 200 && /<title>[^<]*BETVANTA/.test(x.body));
 }
-for (const p of ["/admin/subscriptions", "/admin", "/admin/predictions", "/admin/users", "/admin/payments", "/admin/plans", "/admin/audit", "/admin/data", "/admin/emails"]) check(`admin page ${p}`, (await admin(p)).status === 200);
+for (const p of ["/admin/testimonials", "/admin/subscriptions", "/admin", "/admin/predictions", "/admin/users", "/admin/payments", "/admin/plans", "/admin/audit", "/admin/data", "/admin/emails"]) check(`admin page ${p}`, (await admin(p)).status === 200);
 check("rate limit kicks in on repeated failed logins", await (async () => { let last; for (let i = 0; i < 10; i++) last = await anon("/api/auth/login", { method: "POST", json: { email: "ratelimit@example.com", password: "wrong" } }); return last.status === 429; })());
 await db.end();
 console.log(`\n${pass} passed, ${fail} failed`);
