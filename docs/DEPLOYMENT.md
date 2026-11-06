@@ -1,7 +1,7 @@
 # Deployment (Vercel + Postgres)
 
 1. **Database.** Supabase project (US East) is created. Follow `docs/SUPABASE.md`: add the GitHub secrets and run the **Supabase check** workflow until every check passes.
-2. **Vercel project.** Import the GitHub repo `betvanta-platform`. Framework: Next.js. The build command `npm run build` runs migrations first.
+2. **Vercel project.** Import the GitHub repo `betvanta-platform`. Framework: Next.js. Build command: `next build` (set in `vercel.json`; it needs no database). If the Vercel dashboard has a Build Command override, clear it. Migrations are **never** run by the build; run them with the Supabase check workflow (see `SUPABASE.md`).
 3. **Environment variables** (Production): see `.env.example`. Minimum: `DATABASE_URL`, `APP_URL`, `ADMIN_EMAILS`, `CRON_SECRET`, `RESEND_API_KEY` + `EMAIL_FROM`, either `API_FOOTBALL_KEY` or `ALLOW_SAMPLE_DATA=true`, and at least one payment provider (Stripe recommended for USD cards). Optional: Paystack (USD-approved), NOWPayments (crypto), Discord, OpenAI.
 4. **Deploy**, then open `/api/health` (expects `{"ok":true,"db":"up"}`).
 5. **Webhooks** (test mode first): Stripe `{APP_URL}/api/webhooks/stripe` (checkout.session.completed, checkout.session.expired); Paystack `{APP_URL}/api/webhooks/paystack`; NOWPayments sends IPNs to `{APP_URL}/api/webhooks/nowpayments` automatically (set the IPN secret in its dashboard). Discord OAuth redirect: `{APP_URL}/api/discord/callback`.

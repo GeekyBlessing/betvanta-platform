@@ -65,3 +65,7 @@ Code, migrations and checks are ready (`docs/SUPABASE.md`). **Not yet verified a
 ## Customer support
 
 Email betvanta098@gmail.com, phone (314) 343-6703 (`SUPPORT_EMAIL`, `SUPPORT_PHONE`). Shown on the contact page, footer, FAQ, terms and privacy pages, in every email footer, and in the site's structured data. Emails are sent with Reply-To set to the support address. Contact-form messages are stored for admins and forwarded to the support inbox with Reply-To set to the customer.
+
+## Build and migrations
+
+`npm run build` / Vercel runs `next build` only and needs no database (verified by building with no environment variables and with unreachable database URLs). Migrations are a separate step: the Supabase check workflow or `npm run db:migrate`.

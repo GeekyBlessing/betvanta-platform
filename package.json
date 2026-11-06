@@ -5,8 +5,7 @@
   "description": "BETVANTA: sports intelligence, match predictions and analytics. Smarter Insights. Better Decisions.",
   "scripts": {
     "dev": "next dev",
-    "build": "node scripts/migrate.mjs && next build",
-    "build:nomigrate": "next build",
+    "build": "next build",
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
@@ -16,7 +15,8 @@
     "test:e2e": "playwright test",
     "db:check": "node scripts/db-check.mjs",
     "db:app-role": "node scripts/db-app-role.mjs",
-    "check:bundle": "node scripts/check-client-bundle.mjs"
+    "check:bundle": "node scripts/check-client-bundle.mjs",
+    "db:migrate": "node scripts/migrate.mjs"
   },
   "engines": {
     "node": ">=20"

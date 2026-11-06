@@ -37,12 +37,34 @@ RLS is enabled on every table in `public` and `sportsbook`. The test suite fails
 - Never copy the `service_role` / secret key into BETVANTA, GitHub or Vercel. Nothing needs it.
 - Optional: Data API settings, remove `public` from exposed schemas (RLS already blocks it; this removes the surface entirely).
 
-## Vercel (when deploying)
+## Vercel environment variables
 
-| Variable | Value |
-| --- | --- |
-| `DATABASE_URL` | `postgresql://betvanta_app.<ref>:<APP_DB_PASSWORD>@aws-0-us-east-1.pooler.supabase.com:6543/postgres` |
-| `MIGRATION_DATABASE_URL` | the admin session-pooler URI from step 1 (build runs migrations with it) |
-| `DATABASE_CA_CERT` | optional, as above |
+The Vercel build (`next build`) needs **no** database and no Supabase variables. At runtime the server needs exactly one database variable:
 
-Neither is prefixed `NEXT_PUBLIC_`, so they stay on the server. CI also scans the built browser bundle and fails if any secret value or connection string appears in it (`scripts/check-client-bundle.mjs`).
+| Variable | Needed? | Value |
+| --- | --- | --- |
+| `DATABASE_URL` | **Yes, server-side only** | Transaction pooler string for the app role: `postgresql://betvanta_app.<ref>:<APP_DB_PASSWORD>@aws-0-us-east-1.pooler.supabase.com:6543/postgres` |
+| `DATABASE_CA_CERT` | Optional | PEM from Supabase SSL settings (full certificate verification) |
+| `MIGRATION_DATABASE_URL` | **No, remove it from Vercel** | Migrations do not run on Vercel any more |
+| `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Not used | The browser never talks to Supabase directly (BETVANTA uses its own server-side auth). Setting them is harmless because both are public by design, but nothing reads them. If set, the anon key must be the **anon/publishable** key, never `service_role`; CI fails the build check if a service_role key appears |
+| Supabase `service_role` / secret key | **Never** | Not needed anywhere |
+
+`DATABASE_URL` is never prefixed `NEXT_PUBLIC_`, so it stays on the server.
+
+### Getting the right connection strings
+
+In the Supabase dashboard, open your project and click **Connect** (top bar):
+
+- **Transaction pooler** (port **6543**): use for the app's `DATABASE_URL`. Replace the user `postgres.<ref>` with `betvanta_app.<ref>` and the password with your `APP_DB_PASSWORD`.
+- **Session pooler** (port **5432**, host `aws-0-us-east-1.pooler.supabase.com`): use for migrations (`SUPABASE_ADMIN_DB_URL` GitHub secret, or `MIGRATION_DATABASE_URL` when running locally), with your database password.
+- **Direct connection** (`db.<ref>.supabase.co`): **do not use**. It is IPv6-only; Vercel and GitHub runners are IPv4, which is exactly what causes `connect ENETUNREACH ... :5432`.
+
+If the password has special characters, URL-encode them (or reset it to letters and digits).
+
+## Running migrations (separate, controlled step)
+
+- **Recommended:** GitHub > Actions > **Supabase check** > Run workflow (with "Apply pending migrations" ticked). It migrates, then verifies the database.
+- **From your Mac:** `MIGRATION_DATABASE_URL='<session pooler string>' npm run db:migrate`.
+- Migrations are idempotent and serialised with an advisory lock; run them **before** deploying code that needs new tables.
+
+If the live site shows errors, open `https://<your-site>/api/health`. It reports `db: "up"`, or a non-secret error code plus which kind of host is configured (for example `supabase direct (IPv6-only, unsupported)`).

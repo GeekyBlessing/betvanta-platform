@@ -3,9 +3,11 @@ import fs from "node:fs";
 import path from "node:path";
 import pg from "pg";
 
-import { sslFor, stripSslMode } from "./pg-ssl.mjs";
+import { connectionHint, sslFor, stripSslMode } from "./pg-ssl.mjs";
 // Migrations run as the schema owner (Supabase: the postgres role via the session pooler, port 5432).
 // The running app uses DATABASE_URL with the least-privilege betvanta_app role.
+// Migrations are a separate, deliberate step: they never run during `next build` / Vercel builds.
+// Run them with the GitHub Actions "Supabase check" workflow or `npm run db:migrate` (see docs/SUPABASE.md).
 const url = process.env.MIGRATION_DATABASE_URL || process.env.DATABASE_URL;
 if (!url) {
   if (process.env.SKIP_MIGRATIONS === "1") { console.log("migrate: skipped (no DATABASE_URL)"); process.exit(0); }
@@ -13,7 +15,11 @@ if (!url) {
 }
 const client = new pg.Client({ connectionString: stripSslMode(url), ssl: sslFor(url) });
 const dir = path.join(process.cwd(), "db", "migrations");
-await client.connect();
+try { await client.connect(); } catch (e) {
+  console.error(`migrate: cannot connect (${e.code ?? e.message})`);
+  const hint = connectionHint(e, url); if (hint) console.error(`migrate: ${hint}`);
+  process.exit(1);
+}
 try {
   await client.query("select pg_advisory_lock(727274)");
   await client.query("create table if not exists schema_migrations (version text primary key, applied_at timestamptz not null default now())");

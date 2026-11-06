@@ -44,7 +44,7 @@ npm run build && npm start & node tests/e2e/smoke.mjs   # end-to-end over HTTP
 ## Project layout
 
 ```
-db/migrations/        SQL schema, applied in order by scripts/migrate.mjs (also runs on every build)
+db/migrations/        SQL schema, applied in order by `npm run db:migrate` (a separate step, never part of the build)
 scripts/              migrate, local Paystack stub
 src/app/(site)/       public pages        src/app/(auth)/   login, register, reset, verify
 src/app/dashboard/    member dashboard    src/app/admin/    admin console
