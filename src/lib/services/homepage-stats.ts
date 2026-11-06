@@ -24,7 +24,7 @@ export type PublicStat = { key: StatKey; icon: StatIcon; value: string; label: s
 /** Client-provided figures. Used if the homepage_stats table is not available, so an empty or missing table never shows 0. */
 export const CLIENT_FIGURES: { key: StatKey; icon: StatIcon; value: string; label: string }[] = [
   { key: "members", icon: "members", value: "2,000", label: "Happy Members" },
-  { key: "win_rate", icon: "target", value: "100%", label: "Win Rate" },
+  { key: "win_rate", icon: "target", value: "75%", label: "Win Rate" },
   { key: "winning_picks", icon: "trophy", value: "12,500", label: "Winning Picks" },
   { key: "sports", icon: "sports", value: "10", label: "Sports Covered" },
 ];
