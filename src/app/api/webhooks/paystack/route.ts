@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { q } from "@/lib/db";
-import { validWebhookSignature } from "@/lib/services/paystack";
+import { validWebhookSignature } from "@/lib/services/payments/paystack";
 import { verifyAndActivate } from "@/lib/services/billing";
 
 export const dynamic = "force-dynamic";

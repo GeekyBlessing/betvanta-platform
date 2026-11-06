@@ -5,6 +5,7 @@ import { canAccess, type Tier } from "./entitlements";
 import { badRequest, notFound } from "../errors";
 import { aiEnabled } from "../env";
 import { generateAiAnalysis } from "./ai";
+import { announcePrediction } from "./discord";
 
 const DEFAULT_TIER: Record<string, Tier> = { "1X2": "free", BTTS: "premium", OU25: "vip" };
 
@@ -68,6 +69,7 @@ export async function publishPrediction(id: string, actorId: string, accessTier?
      from fixtures f where p.id = $1 and f.id = p.fixture_id and p.status = 'draft' and f.kickoff_at > now() returning p.id`, [id, accessTier ?? null]);
   if (!row) throw badRequest("Only drafts for matches that have not started can be published.");
   await audit(actorId, "prediction.publish", "prediction", id, { accessTier });
+  await announcePrediction(id);
 }
 
 export async function updateDraft(id: string, actorId: string, patch: { selection?: string; confidence?: string; accessTier?: Tier; analysis?: string }) {
