@@ -22,7 +22,7 @@ beforeAll(async () => {
     if (m) { const ref = decodeURIComponent(m[1]); const t = ps[ref]; return res.end(JSON.stringify(t ? { status: true, message: "ok", data: { ...t, reference: ref, paid_at: new Date().toISOString() } } : { status: false, message: "not found" })); }
     res.statusCode = 404; res.end("{}");
   });
-  await new Promise<void>((r) => server.listen(4599, "127.0.0.1", r));
+  await new Promise<void>((r) => server.listen(4598, "127.0.0.1", r));
 });
 afterAll(() => new Promise<void>((r) => server.close(() => r())));
 

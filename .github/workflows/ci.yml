@@ -1,0 +1,50 @@
+name: CI
+on: [push, pull_request]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env: { POSTGRES_PASSWORD: postgres, POSTGRES_DB: betvanta_test }
+        ports: ["5432:5432"]
+        options: --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      TEST_DATABASE_URL: postgres://postgres:postgres@localhost:5432/betvanta_test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: DATABASE_URL=$TEST_DATABASE_URL npm test
+      - run: npm audit --omit=dev --audit-level=high
+  e2e:
+    runs-on: ubuntu-latest
+    needs: test
+    services:
+      postgres:
+        image: postgres:16
+        env: { POSTGRES_PASSWORD: postgres, POSTGRES_DB: betvanta }
+        ports: ["5432:5432"]
+        options: --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/betvanta
+      APP_URL: http://localhost:3000
+      ADMIN_EMAILS: admin@betvanta.test
+      ALLOW_SAMPLE_DATA: "true"
+      PAYSTACK_SECRET_KEY: sk_test_ci_stub
+      PAYSTACK_BASE_URL: http://127.0.0.1:4599
+      CRON_SECRET: ci-cron-secret
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci
+      - run: npm run build
+      - run: |
+          node scripts/paystack-stub.mjs &
+          npx next start -p 3000 &
+          npx wait-on -t 60000 http://localhost:3000/api/health
+          node tests/e2e/smoke.mjs

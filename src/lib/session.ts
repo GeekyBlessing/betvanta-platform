@@ -15,7 +15,7 @@ export async function createSession(userId: string, ip: string | null, ua: strin
   const days = env().SESSION_TTL_DAYS;
   await q("insert into sessions(id, user_id, expires_at, ip, user_agent) values ($1,$2, now() + ($3 || ' days')::interval, $4, $5)",
     [sha256(token), userId, String(days), ip, ua?.slice(0, 300) ?? null]);
-  cookies().set(SESSION_COOKIE, token, { httpOnly: true, secure: isProd(), sameSite: "lax", path: "/", maxAge: days * 86400 });
+  (await cookies()).set(SESSION_COOKIE, token, { httpOnly: true, secure: isProd(), sameSite: "lax", path: "/", maxAge: days * 86400 });
   return token;
 }
 
@@ -29,21 +29,22 @@ export async function userFromToken(token: string | undefined): Promise<SessionU
 }
 
 export async function currentUser(): Promise<SessionUser | null> {
-  return userFromToken(cookies().get(SESSION_COOKIE)?.value);
+  return userFromToken((await cookies()).get(SESSION_COOKIE)?.value);
 }
 
 export async function destroySession() {
-  const t = cookies().get(SESSION_COOKIE)?.value;
+  const jar = await cookies();
+  const t = jar.get(SESSION_COOKIE)?.value;
   if (t) await q("delete from sessions where id = $1", [sha256(t)]);
-  cookies().delete(SESSION_COOKIE);
+  jar.delete(SESSION_COOKIE);
 }
 
 export async function destroyAllSessions(userId: string, exceptToken?: string) {
   await q("delete from sessions where user_id = $1 and ($2::text is null or id <> $2)", [userId, exceptToken ? sha256(exceptToken) : null]);
 }
 
-export function clientIp(): string | null {
-  const h = headers();
+export async function clientIp(): Promise<string | null> {
+  const h = await headers();
   return h.get("x-forwarded-for")?.split(",")[0]?.trim() || h.get("x-real-ip") || null;
 }
-export const currentToken = () => cookies().get(SESSION_COOKIE)?.value;
+export const currentToken = async () => (await cookies()).get(SESSION_COOKIE)?.value;

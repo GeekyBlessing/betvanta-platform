@@ -1,0 +1,59 @@
+@import url("https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@100..125,400..800&family=Instrument+Sans:wght@400..700&family=JetBrains+Mono:wght@400..700&display=swap");
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* BETVANTA tokens. Source of truth: the BETVANTA Design System. */
+:root {
+  --bg: #F6F2EC; --surface: #FFFFFF; --surface-raised: #FFFFFF; --surface-sunken: #EAE1D4; --surface-brand: #123D3B;
+  --ink: #172322; --ink-muted: #4F5E5B; --ink-subtle: #5E6A67; --ink-on-brand: #EAE1D4; --ink-on-accent: #172322;
+  --border: #D8CFC2; --border-strong: #828B87; --primary: #123D3B; --primary-hover: #0C2B2A; --link: #123D3B;
+  --accent: #C47C52; --accent-hover: #D08B62; --accent-text: #94522C; --accent-subtle: #F3E6DC; --teal-subtle: #E3EFEC; --focus: #94522C;
+  --success: #2E6B47; --success-subtle: #E6F1EA; --danger: #A63A2C; --danger-subtle: #F8E7E3; --warning: #7F5A00; --warning-subtle: #F6EDD6;
+  --chart-grid: #E4DDD2;
+  --font-display: "Archivo", "Arial Narrow", system-ui, sans-serif;
+  --font-sans: "Instrument Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, Menlo, monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #121B1A; --surface: #172322; --surface-raised: #1F2E2D; --surface-sunken: #0E1615; --ink: #EAE1D4; --ink-muted: #B4BAB3; --ink-subtle: #8E9893;
+    --border: #2E403E; --border-strong: #6A7E7A; --primary: #1E5A55; --primary-hover: #246A64; --link: #7DB8AE; --accent-text: #D9956C; --accent-subtle: #33261E;
+    --teal-subtle: #183634; --focus: #D9956C; --success: #74C394; --success-subtle: #173328; --danger: #EE8B7C; --danger-subtle: #3A1F1B;
+    --warning: #E0B456; --warning-subtle: #352A12; --chart-grid: #253533; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #121B1A; --surface: #172322; --surface-raised: #1F2E2D; --surface-sunken: #0E1615; --ink: #EAE1D4; --ink-muted: #B4BAB3; --ink-subtle: #8E9893;
+  --border: #2E403E; --border-strong: #6A7E7A; --primary: #1E5A55; --primary-hover: #246A64; --link: #7DB8AE; --accent-text: #D9956C; --accent-subtle: #33261E;
+  --teal-subtle: #183634; --focus: #D9956C; --success: #74C394; --success-subtle: #173328; --danger: #EE8B7C; --danger-subtle: #3A1F1B;
+  --warning: #E0B456; --warning-subtle: #352A12; --chart-grid: #253533; color-scheme: dark;
+}
+html { background: var(--bg); }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-sans); font-size: 15px; line-height: 1.55; -webkit-font-smoothing: antialiased; }
+h1, h2, h3 { text-wrap: balance; }
+:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.num { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.display { font-family: var(--font-display); font-stretch: 112%; font-variation-settings: "wdth" 112; }
+.eyebrow { font-family: var(--font-display); font-size: 12px; line-height: 16px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--ink-subtle); }
+.wrap { max-width: 1200px; margin-inline: auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+@media (min-width: 768px) { .wrap { padding-left: 24px; padding-right: 24px; } }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; }
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; font-weight: 600; font-size: 14px; line-height: 20px; border-radius: 8px; border: 1px solid transparent; padding: 10px 16px; transition: background-color 120ms ease-out; white-space: nowrap; cursor: pointer; }
+.btn:disabled { opacity: .55; cursor: not-allowed; }
+.btn-accent { background: var(--accent); color: var(--ink-on-accent); } .btn-accent:hover:not(:disabled) { background: var(--accent-hover); }
+.btn-primary { background: var(--primary); color: var(--ink-on-brand); } .btn-primary:hover:not(:disabled) { background: var(--primary-hover); }
+.btn-secondary { background: transparent; color: var(--ink); border-color: var(--border-strong); } .btn-secondary:hover:not(:disabled) { background: var(--surface-sunken); }
+.btn-ghost { background: transparent; color: var(--link); } .btn-ghost:hover:not(:disabled) { background: var(--teal-subtle); }
+.btn-danger { background: transparent; color: var(--danger); border-color: var(--danger); }
+.btn-sm { padding: 6px 12px; font-size: 13px; } .btn-lg { padding: 13px 20px; font-size: 15px; }
+.input { width: 100%; font-size: 15px; color: var(--ink); background: var(--surface); border: 1px solid var(--border-strong); border-radius: 8px; padding: 10px 12px; }
+.input::placeholder { color: var(--ink-subtle); }
+.input:focus { outline: 2px solid var(--focus); outline-offset: 1px; border-color: var(--focus); }
+.label { font-size: 14px; font-weight: 600; }
+.table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.table th { text-align: left; font-size: 12px; letter-spacing: .04em; text-transform: uppercase; color: var(--ink-muted); background: var(--surface-sunken); padding: 10px 14px; white-space: nowrap; font-weight: 600; }
+.table td { padding: 11px 14px; border-top: 1px solid var(--border); vertical-align: top; }
+.prose-bv p + p { margin-top: 12px; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
