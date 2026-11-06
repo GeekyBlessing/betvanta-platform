@@ -109,3 +109,7 @@ h1, h2, h3 { text-wrap: balance; }
 .chat-launcher { transition: transform 160ms ease-out; } .chat-launcher:hover { transform: translateY(-2px); }
 .method-chip { transition: border-color 120ms ease-out, background-color 120ms ease-out; } .method-chip:hover { background: var(--accent-subtle); }
 .qr svg { width: 100%; height: 100%; display: block; }
+
+/* The phone menu opens on a light panel even under the dark overlay header. */
+.on-dark .menu-panel .btn-secondary { color: var(--ink); border-color: var(--border-strong); }
+.on-dark .menu-panel .btn-secondary:hover:not(:disabled) { background: var(--surface-sunken); }

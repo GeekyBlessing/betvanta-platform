@@ -5,6 +5,11 @@ import { tierFor } from "@/lib/services/entitlements";
 import { listPredictions } from "@/lib/services/predictions";
 import { publicHomepageStats, type PublicStat, type StatIcon } from "@/lib/services/homepage-stats";
 import { approvedTestimonials } from "@/lib/services/testimonials";
+import { listFixtures } from "@/lib/services/sports";
+import { formatMoney, periodLabel, type Plan } from "@/lib/services/billing";
+import { cardFeatures } from "@/lib/services/plans";
+import { FAQ } from "@/lib/content/faq";
+import { FixtureList } from "@/components/FixtureList";
 import { SPORTS } from "@/lib/services/sports";
 import { FixtureCard, groupByFixture } from "@/components/PredictionCard";
 import { JoinDiscordButton } from "@/components/Discord";
@@ -31,7 +36,7 @@ function StatGlyph({ icon }: { icon: StatIcon }) {
   }
 }
 const STATUS: Record<PublicStat["status"], { text: string; color: string }> = {
-  unverified: { text: "Unverified", color: "#E0B456" }, verified: { text: "Verified", color: "#74C394" }, live: { text: "Live record", color: "#7DB8AE" },
+  verified: { text: "Verified", color: "#74C394" }, live: { text: "Live record", color: "#7DB8AE" },
 };
 function StatTile({ s, i }: { s: PublicStat; i: number }) {
   const st = STATUS[s.status];
@@ -70,17 +75,20 @@ function FeatureVisual({ kind }: { kind: (typeof FEATURES)[number]["visual"] }) 
 export default async function Home() {
   const user = await currentUser();
   const tier = await tierFor(user);
-  const [upcoming, { stats: heroStats, live: stats }, reviews, coverage] = await Promise.all([
+  const [upcoming, { stats: heroStats, live: stats }, reviews, coverage, nextFixtures, plans] = await Promise.all([
     listPredictions(tier, { upcoming: true, limit: 12 }),
     publicHomepageStats(),
     approvedTestimonials(6),
     q<{ sport: string; upcoming: number; leagues: number }>(
       `select c.sport, count(distinct c.id)::int leagues, count(f.id) filter (where f.status = 'scheduled' and f.kickoff_at > now())::int upcoming
        from competitions c left join fixtures f on f.competition_id = c.id where c.active group by c.sport`),
+    listFixtures({ mode: "upcoming", limit: 6 }),
+    q<Plan>("select * from plans where active order by level"),
   ]);
+  const start = user ? (user.role === "member" ? "/dashboard" : "/admin") : "/register";
+  const planHref = (p: Plan) => (user ? `/checkout/${p.code}` : `/register?next=/checkout/${p.code}`);
   const fixtures = groupByFixture(upcoming).slice(0, 4);
   const cov = (id: string) => coverage.find((c) => c.sport === id);
-  const unverified = heroStats.some((x) => x.status === "unverified");
 
   return (
     <>
@@ -104,12 +112,15 @@ export default async function Home() {
               <strong className="font-semibold text-sand">Smarter Insights. Better Decisions.</strong> Expert predictions and AI-assisted analysis of form, scoring and head-to-head data, with the probability, confidence and data limits behind every pick.
             </p>
             <div className="hero-in flex flex-col sm:flex-row gap-3 pt-1" style={{ animationDelay: "280ms" }}>
-              <Link href="/predictions" className="btn btn-accent btn-lg w-full sm:w-auto">
+              <Link href={start} className="btn btn-accent btn-lg w-full sm:w-auto">{user ? "Open your dashboard" : "Get Started Now"}</Link>
+              <Link href="/predictions" className="btn btn-lg btn-onbrand w-full sm:w-auto backdrop-blur-sm">
                 <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 14l5-5 4 4 7-7M14 6h6v6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
-                Explore Predictions
+                View Predictions
               </Link>
-              <JoinDiscordButton label="Join Our Community" className="btn btn-lg btn-onbrand w-full sm:w-auto backdrop-blur-sm" />
             </div>
+            <p className="hero-in text-sm text-sand/80" style={{ animationDelay: "320ms" }}>
+              Free account, free picks. <Link href="/pricing" className="font-semibold text-sand underline underline-offset-4 decoration-copper hover:decoration-2">Premium Picks</Link> from {plans[0] ? formatMoney(plans[0].amount_minor) : "$50"}.
+            </p>
             <p className="hero-in text-xs text-sand/70" style={{ animationDelay: "340ms" }}>{RG_LINE}</p>
           </div>
 
@@ -120,7 +131,7 @@ export default async function Home() {
               {heroStats.map((s, i) => <StatTile key={s.key} s={s} i={i} />)}
             </div>
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-sand/70">
-              {unverified && <span><span style={{ color: "#E0B456" }} className="font-semibold">Unverified</span> figures are supplied by BETVANTA and have not yet been independently verified.</span>}
+              <span>Figures come from BETVANTA&apos;s own records{heroStats.some((x) => x.status === "verified") ? " or are independently verified" : ""}.</span>
               {stats.sampleData && <><SampleBadge /><span>Live figures include development sample data until the live data feed is connected.</span></>}
               <Link href="/performance" className="font-semibold text-sand underline-offset-4 hover:underline sm:ml-auto">See every graded pick</Link>
             </div>
@@ -128,8 +139,38 @@ export default async function Home() {
         </div>
       </section>
 
+      {/* Sports coverage */}
+      <section aria-labelledby="sports-h" className="wrap pt-16 md:pt-24 pb-14 md:pb-20 grid gap-6">
+        <div className="grid gap-2"><span className="eyebrow">Coverage</span><h2 id="sports-h" className="display text-[26px] leading-8 md:text-[32px] md:leading-[38px] font-bold">Built for the sports you follow</h2></div>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
+          {SPORTS.map((s) => {
+            const c = cov(s.id);
+            return (
+              <Link key={s.id} href={`/sports/${s.slug}`} className="group card p-5 md:p-6 grid gap-4 content-start transition-colors hover:border-[var(--accent)] focus-visible:border-[var(--accent)]">
+                <span className="h-14 w-14 md:h-16 md:w-16 rounded-full bg-teal-subtle text-link grid place-items-center group-hover:bg-brand group-hover:text-[#EAE1D4] transition-colors"><SportIcon sport={s.id} size={30} /></span>
+                <div className="grid gap-1">
+                  <span className="font-semibold text-[17px]">{s.name}</span>
+                  <span className="text-sm text-muted">{s.blurb}</span>
+                </div>
+                <span className="text-xs text-subtle">{c ? `${c.upcoming} upcoming games` : "Feed coming soon"}{s.predictions ? " · predictions" : ""}</span>
+              </Link>
+            );
+          })}
+        </div>
+      </section>
+
+      {/* Upcoming fixtures */}
+      <section aria-labelledby="fixtures-h" className="wrap pb-14 md:pb-20 grid gap-6">
+        <div className="flex items-end justify-between gap-4 flex-wrap">
+          <div className="grid gap-2"><span className="eyebrow">Fixtures</span><h2 id="fixtures-h" className="display font-bold text-[26px] leading-8 md:text-[32px] md:leading-[38px]">Upcoming matches</h2>
+            <p className="text-muted max-w-[60ch]">Kickoff times in US Eastern. Open a match for form, scoring records, head-to-head and our picks.</p></div>
+          <Link href="/fixtures" className="text-sm font-semibold text-link hover:underline">All fixtures and scores</Link>
+        </div>
+        {nextFixtures.length ? <FixtureList rows={nextFixtures} /> : <Notice tone="info">No upcoming fixtures are loaded yet. Results and schedules appear here once the data feed syncs.</Notice>}
+      </section>
+
       {/* Platform introduction */}
-      <section aria-labelledby="platform-h" className="wrap py-16 md:py-24 grid gap-10 lg:grid-cols-12 lg:gap-12">
+      <section aria-labelledby="platform-h" className="wrap pb-16 md:pb-24 pt-2 grid gap-10 lg:grid-cols-12 lg:gap-12">
         <div className="lg:col-span-5 grid gap-5 content-start">
           <span className="eyebrow">The platform</span>
           <h2 id="platform-h" className="display font-bold text-[30px] leading-[36px] md:text-[40px] md:leading-[46px] tracking-[-.01em]">Your Smarter Sports Intelligence Platform</h2>
@@ -155,35 +196,93 @@ export default async function Home() {
         </div>
       </section>
 
-      {/* Sports coverage */}
-      <section aria-labelledby="sports-h" className="wrap py-14 md:py-20 grid gap-6">
-        <div className="grid gap-2"><span className="eyebrow">Coverage</span><h2 id="sports-h" className="display text-[26px] leading-8 md:text-[32px] md:leading-[38px] font-bold">Built for the sports you follow</h2></div>
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
-          {SPORTS.map((s) => {
-            const c = cov(s.id);
-            return (
-              <Link key={s.id} href={`/sports/${s.slug}`} className="group card p-5 md:p-6 grid gap-4 content-start transition-colors hover:border-[var(--accent)] focus-visible:border-[var(--accent)]">
-                <span className="h-14 w-14 md:h-16 md:w-16 rounded-full bg-teal-subtle text-link grid place-items-center group-hover:bg-brand group-hover:text-[#EAE1D4] transition-colors"><SportIcon sport={s.id} size={30} /></span>
-                <div className="grid gap-1">
-                  <span className="font-semibold text-[17px]">{s.name}</span>
-                  <span className="text-sm text-muted">{s.blurb}</span>
-                </div>
-                <span className="text-xs text-subtle">{c ? `${c.upcoming} upcoming games` : "Feed coming soon"}{s.predictions ? " · predictions" : ""}</span>
-              </Link>
-            );
-          })}
-        </div>
-      </section>
-
       {/* Featured fixtures */}
       <section className="bg-surface border-y border-line">
         <div className="wrap py-14 md:py-20 grid gap-6">
           <div className="flex items-end justify-between gap-4 flex-wrap">
-            <div className="grid gap-2"><span className="eyebrow">Upcoming</span><h2 className="display text-[26px] leading-8 md:text-[32px] md:leading-[38px] font-bold">This week&apos;s picks</h2></div>
-            <Link href="/predictions" className="text-sm font-semibold text-link hover:underline">All predictions</Link>
+            <div className="grid gap-2"><span className="eyebrow">Predictions</span><h2 className="display text-[26px] leading-8 md:text-[32px] md:leading-[38px] font-bold">Predictions and match analysis</h2></div>
+            <Link href="/predictions" className="btn btn-primary btn-sm">View Predictions</Link>
           </div>
           {fixtures.length ? <div className="grid gap-4 md:grid-cols-2">{fixtures.map((g) => <FixtureCard key={g[0].fixture_id} preds={g} />)}</div>
             : <Notice tone="info">No predictions are published yet. Check back before the next matchday.</Notice>}
+        </div>
+      </section>
+
+      {/* Premium picks and plans */}
+      <section aria-labelledby="plans-h" className="bg-brand text-on-brand on-dark">
+        <div className="wrap py-14 md:py-20 grid gap-8">
+          <div className="flex items-end justify-between gap-4 flex-wrap">
+            <div className="grid gap-2 max-w-[62ch]"><span className="eyebrow" style={{ color: "#C47C52" }}>Premium Picks</span>
+              <h2 id="plans-h" className="display font-bold text-[26px] leading-8 md:text-[32px] md:leading-[38px]">Choose how long you want full access</h2>
+              <p className="text-sand/80">Every premium pick, full written analysis and member tools. One-time payments in US dollars, no automatic renewal.</p></div>
+            <Link href="/pricing" className="btn btn-secondary">Compare all features</Link>
+          </div>
+          {plans.length ? <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+            {plans.map((p) => (
+              <li key={p.id} className={`relative rounded-xl p-5 grid gap-4 content-between ${p.best_value ? "bg-[#F4EEE5] text-charcoal" : "bg-white/[.06] border border-sand/15"}`}>
+                {p.best_value && <span className="absolute -top-3 left-5 rounded-full bg-copper text-charcoal text-xs font-semibold px-3 py-1">Best value</span>}
+                <div className="grid gap-1">
+                  <h3 className="display text-[13px] font-bold tracking-[.12em] uppercase">{p.name}</h3>
+                  <p className="flex items-baseline gap-1.5"><span className="display num text-[30px] leading-9 font-bold">{formatMoney(p.amount_minor)}</span><span className={`text-xs ${p.best_value ? "text-[#4F5E5B]" : "text-sand/70"}`}>{periodLabel(p)}</span></p>
+                </div>
+                <ul className={`grid gap-1.5 text-[13px] ${p.best_value ? "text-[#2c3a38]" : "text-sand/85"}`}>{cardFeatures(p.level).slice(0, 3).map((f) => <li key={f} className="flex gap-2"><span aria-hidden className="text-copper">&#10003;</span>{f}</li>)}</ul>
+                <Link href={planHref(p)} className={`btn w-full ${p.best_value ? "btn-accent" : "btn-onbrand"}`}>Choose {p.name.replace(/ Premium$/, "")}</Link>
+              </li>))}
+          </ul> : <Notice tone="info">Plans are being updated. See the pricing page for details.</Notice>}
+          <p className="text-xs text-sand/70">Pay by card, crypto, or with help from our team in Discord. Access starts once the payment is verified. {RG_LINE}</p>
+        </div>
+      </section>
+
+      {/* How it works */}
+      <section aria-labelledby="how-h" className="wrap py-14 md:py-20 grid gap-8">
+        <div className="grid gap-2 max-w-[60ch]"><span className="eyebrow">How it works</span><h2 id="how-h" className="display font-bold text-[26px] leading-8 md:text-[32px] md:leading-[38px]">From sign-up to sharper picks in three steps</h2></div>
+        <ol className="grid gap-4 md:grid-cols-3">
+          {[
+            { n: "1", t: "Create your free account", d: "Register with your email, confirm you are 18 or older and verify your address. Free members see free picks and the full results record.", href: start, cta: user ? "Open your dashboard" : "Get Started Now" },
+            { n: "2", t: "Explore predictions", d: "Browse upcoming matches with the probability and confidence behind every pick, plus form, tables and head-to-head data.", href: "/predictions", cta: "View Predictions" },
+            { n: "3", t: "Subscribe for Premium Picks", d: "Pick a plan to unlock every premium selection, full analysis and member roles in Discord. No automatic renewal.", href: "/pricing", cta: "Premium Picks" },
+          ].map((s) => (
+            <li key={s.n} className="card p-6 grid gap-4 content-between">
+              <div className="grid gap-3">
+                <span aria-hidden className="h-10 w-10 rounded-full bg-brand text-sand grid place-items-center display font-bold">{s.n}</span>
+                <h3 className="display font-bold text-[19px] leading-7">{s.t}</h3>
+                <p className="text-sm text-muted">{s.d}</p>
+              </div>
+              <Link href={s.href} className="text-sm font-semibold text-link hover:underline">{s.cta} <span aria-hidden>&rarr;</span></Link>
+            </li>))}
+        </ol>
+      </section>
+
+      {/* Member dashboard preview */}
+      <section aria-labelledby="dash-h" className="bg-surface border-y border-line">
+        <div className="wrap py-14 md:py-20 grid gap-10 lg:grid-cols-12 lg:items-center">
+          <div className="lg:col-span-5 grid gap-4 content-start">
+            <span className="eyebrow">Member dashboard</span>
+            <h2 id="dash-h" className="display font-bold text-[26px] leading-8 md:text-[32px] md:leading-[38px]">Everything you follow, in one place</h2>
+            <p className="text-muted">Your picks for the day, your plan and renewal date, saved leagues, settled results and billing, on desktop and phone.</p>
+            <ul className="grid gap-2 text-sm">{["Today's picks with probability and confidence", "Saved leagues and their upcoming matches", "Your pick history, graded against final scores", "Plan status, receipts and payment verification"].map((t) => <li key={t} className="flex gap-2"><span aria-hidden className="text-[var(--accent-text)]">&#10003;</span>{t}</li>)}</ul>
+            <div className="flex flex-wrap gap-3 pt-1"><Link href={user ? "/dashboard" : "/register?next=/dashboard"} className="btn btn-primary">{user ? "Open your dashboard" : "Create a free account"}</Link></div>
+          </div>
+          <figure className="lg:col-span-7 grid gap-2">
+            <div aria-hidden className="rounded-xl border border-line bg-bg shadow-xl overflow-hidden">
+              <div className="flex items-center gap-2 px-4 py-2.5 border-b border-line bg-surface"><span className="h-2.5 w-2.5 rounded-full bg-[var(--chart-grid)]" /><span className="h-2.5 w-2.5 rounded-full bg-[var(--chart-grid)]" /><span className="h-2.5 w-2.5 rounded-full bg-[var(--chart-grid)]" /><span className="ml-3 text-xs text-subtle">betvanta / dashboard</span></div>
+              <div className="grid sm:grid-cols-[160px_1fr]">
+                <div className="hidden sm:grid content-start gap-1 p-3 border-r border-line bg-surface text-sm">{["Overview", "Predictions", "History", "Billing", "Settings"].map((t, i) => <span key={t} className={`rounded-md px-3 py-2 ${i === 0 ? "bg-teal-subtle text-link font-semibold" : "text-muted"}`}>{t}</span>)}</div>
+                <div className="p-4 grid gap-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2"><span className="font-semibold">Good evening, Alex</span><span className="rounded-sm bg-accent-subtle text-accent-text px-2 py-0.5 text-xs font-semibold">Premium · active</span></div>
+                  <div className="grid gap-2">
+                    {[["Harbor City FC", "Summit United", "Home win", "58%", "medium"], ["Granite Bay SC", "Prairie Wolves", "Both teams score", "64%", "medium"], ["Riverside Rovers", "Northgate Athletic", "Over 2.5 goals", "71%", "high"]].map(([h, a, pick, pr, c]) => (
+                      <div key={h} className="card p-3 grid grid-cols-[1fr_auto] gap-x-3 gap-y-1 items-center">
+                        <span className="text-sm font-medium truncate">{h} <span className="text-subtle">v</span> {a}</span><span className="num text-sm font-semibold">{pr}</span>
+                        <span className="text-xs text-muted">Pick: {pick}</span><Confidence band={c} />
+                      </div>))}
+                  </div>
+                  <div className="grid grid-cols-3 gap-2 text-center">{[["Saved leagues", "3"], ["Picks this week", "12"], ["Access until", "Dec 6"]].map(([l, v]) => <div key={l} className="rounded-md bg-sunken p-2 grid"><span className="num font-semibold">{v}</span><span className="text-[11px] text-muted">{l}</span></div>)}</div>
+                </div>
+              </div>
+            </div>
+            <figcaption className="text-xs text-subtle">Preview with example teams and data. Your dashboard shows your own picks and plan.</figcaption>
+          </figure>
         </div>
       </section>
 
@@ -214,6 +313,14 @@ export default async function Home() {
             </div>
           )}
         </div>
+      </section>
+
+      {/* FAQ */}
+      <section aria-labelledby="faq-h" className="wrap py-14 md:py-20 grid gap-6 lg:grid-cols-12">
+        <div className="lg:col-span-4 grid gap-3 content-start"><span className="eyebrow">FAQ</span><h2 id="faq-h" className="display font-bold text-[26px] leading-8 md:text-[32px] md:leading-[38px]">Questions, answered</h2>
+          <p className="text-muted">Still unsure? <Link href="/contact" className="text-link font-semibold hover:underline">Contact us</Link> or read the <Link href="/faq" className="text-link font-semibold hover:underline">full FAQ</Link>.</p></div>
+        <div className="lg:col-span-8 grid gap-3">{FAQ.filter(([q]) => ["How are predictions made?", "Can a prediction change after kickoff?", "Do plans renew automatically?", "When does my access start?", "Is BETVANTA a bookmaker?"].includes(q)).map(([q, a]) => (
+          <details key={q} className="card px-5 py-4 group"><summary className="font-semibold cursor-pointer">{q}</summary><p className="mt-2 text-muted">{a}</p></details>))}</div>
       </section>
 
       {/* Community */}

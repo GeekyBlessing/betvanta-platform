@@ -73,7 +73,7 @@ Email betvanta098@gmail.com, phone (314) 343-6703 (`SUPPORT_EMAIL`, `SUPPORT_PHO
 ## Homepage hero and statistics (migration 010)
 - Hero: original stadium artwork rendered by `scripts/artwork/render-stadium.cjs` (no third-party image licence involved), dark scrim, overlay header, Explore Predictions and Join Our Community.
   To use a licensed photo instead, replace `public/images/hero/stadium-wide.webp` (desktop, about 2560x1440) and `stadium-tall.webp` (mobile, about 1200x2000). Do not use photos of identifiable players or crowds without a model release.
-- Statistics: four slots in `homepage_stats`, edited in Admin > Homepage. Client figures (2,000+, 100%, 12,500+, 10) are seeded as **Unverified** and labelled so on the site. An admin can switch a slot to the live figure from BETVANTA's records, or mark it verified, which requires a written note on how it was verified (also enforced by a database constraint). Every change is in the audit log.
+- Statistics: four slots in `homepage_stats`, edited in Admin > Homepage. Client figures (2,000+, 100%, 12,500+, 10) are seeded as **Unverified** and are **never shown publicly**: the homepage shows the live figure from BETVANTA's records until an admin marks a figure verified with evidence. An admin can switch a slot to the live figure from BETVANTA's records, or mark it verified, which requires a written note on how it was verified (also enforced by a database constraint). Every change is in the audit log.
 - Production needs migration 010: run Supabase check in `inspect`, then `apply`. Until then the homepage shows live figures only and logs `homepage_stats table is missing`.
 
 ## Payment assistant ("Chat with us", migration 011)
@@ -85,3 +85,6 @@ Email betvanta098@gmail.com, phone (314) 343-6703 (`SUPPORT_EMAIL`, `SUPPORT_PHO
 - Every submission records full name, email, Discord username, the customer's transaction or payment reference, an optional proof (PNG, JPG, WebP or PDF up to 4 MB, type checked from the file bytes, stored in Postgres, viewable by admins only) and a BETVANTA reference (BV-M-XXXXXXXX). Status: pending verification.
 - Admin > Manual payments: review queue with proof, block-explorer link when the network is known, approve (grants the plan in the same transaction, emails a receipt, syncs the Discord role) or reject with a reason the member sees. Decisions are final (database trigger), audited, and nothing grants access before approval.
 - Separate from provider payments (`payments`) and from sportsbook wallets (`sportsbook` schema).
+
+## Homepage sections (current)
+Hero (Get Started Now to /register, View Predictions to /predictions, Premium Picks to /pricing), live statistics, sports coverage, upcoming matches, platform features, predictions and match analysis, Premium Picks plans (all five, each to checkout or registration), how it works, member dashboard preview (example data, labelled), testimonials, FAQ, community and footer (contact, Discord, legal). Phones get a Menu button listing every page. The e2e suite checks every section and that all homepage links resolve.

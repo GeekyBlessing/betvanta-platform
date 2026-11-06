@@ -14,8 +14,8 @@ export type HomepageStatRow = {
   visible: boolean; updated_at: string; updated_by_name: string | null;
 };
 
-/** What the homepage renders. `status` drives the label shown next to every figure. */
-export type PublicStat = { key: StatKey; icon: StatIcon; value: string; label: string; status: "live" | "verified" | "unverified"; note?: string };
+/** What the homepage renders. `status` drives the label shown next to every figure. Unverified figures are never public. */
+export type PublicStat = { key: StatKey; icon: StatIcon; value: string; label: string; status: "live" | "verified"; note?: string };
 
 const fmt = (n: number) => new Intl.NumberFormat("en-US").format(n);
 
@@ -55,8 +55,10 @@ export async function publicHomepageStats(): Promise<{ stats: PublicStat[]; live
     return { live, configMissing: true, stats: STAT_KEYS.map((k) => ({ key: k, ...LIVE_DEFAULTS[k], ...liveValue(k, live), status: "live" as const })) };
   }
   const stats = rows.filter((r) => r.visible).map((r): PublicStat => {
-    if (r.source === "live") return { key: r.key, icon: r.icon, label: r.label, ...liveValue(r.key, live), status: "live" };
-    return { key: r.key, icon: r.icon, label: r.label, value: r.value_text, status: r.verification };
+    // Only live figures and figures an admin has verified (with recorded evidence) reach the public page.
+    // An unverified entered figure is never shown; the live figure from our own records stands in for it.
+    if (r.source === "live" || r.verification !== "verified") return { key: r.key, icon: r.icon, label: r.verification !== "verified" && r.source === "manual" ? LIVE_DEFAULTS[r.key].label : r.label, ...liveValue(r.key, live), status: "live" };
+    return { key: r.key, icon: r.icon, label: r.label, value: r.value_text, status: "verified" };
   });
   return { stats, live, configMissing: false };
 }

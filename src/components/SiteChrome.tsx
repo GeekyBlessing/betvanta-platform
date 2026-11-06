@@ -4,9 +4,11 @@ import { Logo, LogoMark, RG_LINE } from "./ui";
 import { ThemeToggle } from "./ThemeToggle";
 import { LogoutButton } from "./LogoutButton";
 import { HeaderScrollState } from "./HeaderScrollState";
+import { MobileMenu } from "./MobileMenu";
+import { discordInviteUrl } from "@/lib/env";
 import { support } from "@/lib/support";
 
-const NAV = [{ href: "/predictions", label: "Predictions" }, { href: "/sports", label: "Sports" }, { href: "/fixtures", label: "Scores" }, { href: "/performance", label: "Performance" }, { href: "/pricing", label: "Pricing" }, { href: "/community", label: "Community" }];
+const NAV = [{ href: "/predictions", label: "Predictions" }, { href: "/sports", label: "Sports" }, { href: "/fixtures", label: "Fixtures" }, { href: "/performance", label: "Performance" }, { href: "/pricing", label: "Pricing" }, { href: "/community", label: "Community" }];
 
 /** `overlay` sits on top of the homepage hero image: transparent at first, solid once the page scrolls. */
 export async function SiteHeader({ overlay = false }: { overlay?: boolean }) {
@@ -26,16 +28,14 @@ export async function SiteHeader({ overlay = false }: { overlay?: boolean }) {
           <span className="hidden sm:inline-flex"><ThemeToggle /></span>
           {u ? (<>
             <Link href={u.role === "member" ? "/dashboard" : "/admin"} className="btn btn-secondary btn-sm">{u.role === "member" ? "Dashboard" : "Admin"}</Link>
-            <LogoutButton />
+            <span className="hidden md:inline-flex"><LogoutButton /></span>
           </>) : (<>
-            <Link href="/login" className="btn btn-ghost btn-sm">Log in</Link>
-            <Link href="/register" className="btn btn-accent btn-sm">Join free</Link>
+            <span className="hidden md:inline-flex"><Link href="/login" className="btn btn-ghost btn-sm">Log in</Link></span>
+            <Link href="/register" className="btn btn-accent btn-sm">Get started</Link>
           </>)}
+          <MobileMenu nav={NAV} signedIn={Boolean(u)} accountHref={u ? (u.role === "member" ? "/dashboard" : "/admin") : "/register"} accountLabel={u ? (u.role === "member" ? "Open dashboard" : "Open admin") : "Get started"} onDark={overlay} />
         </div>
       </div>
-      <nav aria-label="Main mobile" className="md:hidden wrap flex gap-1 overflow-x-auto pb-2 -mt-1">
-        {NAV.map((n) => <Link key={n.href} href={n.href} className={`px-3 py-1.5 rounded-md text-sm font-medium whitespace-nowrap ${overlay ? link : "text-muted hover:bg-sunken"}`}>{n.label}</Link>)}
-      </nav>
     </header>
   );
 }
@@ -55,10 +55,10 @@ export function SiteFooter() {
           <p className="text-xs text-subtle max-w-[48ch]">{RG_LINE} If betting stops being fun, take a break and seek support.</p>
         </div>
         <div className="grid gap-2 content-start text-sm"><span className="eyebrow">Product</span>
-          <Link href="/predictions" className="text-muted hover:text-ink">Predictions</Link><Link href="/performance" className="text-muted hover:text-ink">Performance</Link><Link href="/pricing" className="text-muted hover:text-ink">Pricing</Link><Link href="/faq" className="text-muted hover:text-ink">FAQ</Link>
+          <Link href="/predictions" className="text-muted hover:text-ink">Predictions</Link><Link href="/fixtures" className="text-muted hover:text-ink">Fixtures and scores</Link><Link href="/sports" className="text-muted hover:text-ink">Sports</Link><Link href="/performance" className="text-muted hover:text-ink">Performance</Link><Link href="/pricing" className="text-muted hover:text-ink">Pricing</Link><Link href="/faq" className="text-muted hover:text-ink">FAQ</Link>
         </div>
         <div className="grid gap-2 content-start text-sm"><span className="eyebrow">Company</span>
-          <Link href="/about" className="text-muted hover:text-ink">About</Link><Link href="/community" className="text-muted hover:text-ink">Discord community</Link><Link href="/contact" className="text-muted hover:text-ink">Contact</Link><Link href="/legal/terms" className="text-muted hover:text-ink">Terms</Link><Link href="/legal/privacy" className="text-muted hover:text-ink">Privacy</Link><Link href="/responsible-gambling" className="text-muted hover:text-ink">Responsible gambling</Link>
+          <Link href="/about" className="text-muted hover:text-ink">About</Link>{discordInviteUrl() ? <a href={discordInviteUrl()!} target="_blank" rel="noopener noreferrer" className="text-muted hover:text-ink">Join our Discord<span className="sr-only"> (opens in a new tab)</span></a> : <Link href="/community" className="text-muted hover:text-ink">Discord community</Link>}<Link href="/contact" className="text-muted hover:text-ink">Contact</Link><Link href="/legal/terms" className="text-muted hover:text-ink">Terms</Link><Link href="/legal/privacy" className="text-muted hover:text-ink">Privacy</Link><Link href="/responsible-gambling" className="text-muted hover:text-ink">Responsible gambling</Link>
         </div>
       </div>
       <div className="wrap pb-8 text-xs text-subtle">© {new Date().getFullYear()} BETVANTA. All rights reserved.</div>

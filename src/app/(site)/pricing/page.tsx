@@ -23,7 +23,8 @@ export default async function Pricing() {
   const href = (p: Plan) => (user ? `/checkout/${p.code}` : `/register?next=/checkout/${p.code}`);
   const methods = [
     { label: "Card", detail: "Visa, Mastercard, Amex via Stripe", on: PROVIDERS.stripe.enabled() || PROVIDERS.paystack.enabled() },
-    { label: "Crypto", detail: "BTC, ETH, USDT", on: PROVIDERS.nowpayments.enabled(), pending: !cryptoApproved() },
+    { label: "Crypto", detail: "BTC, ETH, USDT", on: PROVIDERS.nowpayments.enabled() || cryptoApproved(), pending: !cryptoApproved() },
+    { label: "PayPal, Venmo, Chime, Apple Pay", detail: "Instructions from Tom in our Discord, verified by our team", on: true },
   ];
 
   return (

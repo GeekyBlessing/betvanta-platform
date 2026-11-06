@@ -13,10 +13,14 @@ beforeEach(async () => {
 afterAll(closePool);
 
 describe("homepage statistics", () => {
-  it("seeds the four client figures as unverified placeholders, in order", async () => {
+  it("seeds the client figures as unverified, and never shows an unverified figure publicly", async () => {
+    const rows = await listHomepageStats();
+    expect(rows.map((r) => [r.value_text, r.label, r.verification])).toEqual(PLACEHOLDERS.map(([, v, l]) => [v, l, "unverified"]));
     const { stats, configMissing } = await publicHomepageStats();
     expect(configMissing).toBe(false);
-    expect(stats.map((s) => [s.value, s.label, s.status])).toEqual(PLACEHOLDERS.map(([, v, l]) => [v, l, "unverified"]));
+    expect(stats.every((s) => s.status === "live")).toBe(true);
+    expect(stats.map((s) => s.value)).not.toEqual(expect.arrayContaining(["100%"]));
+    expect(stats.find((s) => s.key === "win_rate")).toMatchObject({ value: "Building", label: "Win rate" });
   });
 
   it("refuses to mark a figure verified without evidence, in the service and in the database", async () => {
@@ -34,6 +38,7 @@ describe("homepage statistics", () => {
     expect(row).toMatchObject({ value_text: "58.4%", verification: "verified", verification_note: note, verified_by_name: "Ada" });
     expect((await publicHomepageStats()).stats.find((s) => s.key === "win_rate")!.status).toBe("verified");
     await updateHomepageStat(id, "win_rate", { ...base, value: "100%", verification: "unverified" });
+    expect((await publicHomepageStats()).stats.find((s) => s.key === "win_rate")).toMatchObject({ status: "live", value: "Building" });
     row = (await listHomepageStats()).find((r) => r.key === "win_rate")!;
     expect(row).toMatchObject({ verification: "unverified", verification_note: null, verified_at: null });
     const logs = await q<{ details: { after: { value: string } } }>("select details from audit_logs where action = 'admin.update_homepage_stat' order by id");

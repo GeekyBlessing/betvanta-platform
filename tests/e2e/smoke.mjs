@@ -183,16 +183,21 @@ console.log("payment assistant: manual crypto and Discord-arranged payments");
 
 console.log("homepage sections, links, testimonials, Discord");
 const homePage = await anon("/");
-check("hero has Explore Predictions to /predictions", /href="\/predictions"[^>]*>[\s\S]{0,400}Explore Predictions/.test(homePage.body));
-check("hero has Join Our Community", homePage.body.includes("Join Our Community"));
+check("hero Get Started Now opens registration", /href="\/register"[^>]*>Get Started Now</.test(homePage.body));
+check("hero View Predictions opens predictions", /href="\/predictions"[^>]*>[\s\S]{0,400}View Predictions/.test(homePage.body));
+check("Premium Picks opens the subscription page", /href="\/pricing"[^>]*>Premium Picks</.test(homePage.body));
 check("hero uses the stadium artwork for desktop and mobile", homePage.body.includes("/images/hero/stadium-wide.webp") && homePage.body.includes("/images/hero/stadium-tall.webp") && (await anon("/images/hero/stadium-tall.webp")).status === 200);
+for (const [name, text] of [["sports coverage", "Built for the sports you follow"], ["upcoming fixtures", "Upcoming matches"], ["predictions and analysis", "Predictions and match analysis"], ["premium plans", "Choose how long you want full access"], ["how it works", "From sign-up to sharper picks in three steps"], ["dashboard preview", "Everything you follow, in one place"], ["testimonials", "What members say"], ["FAQ", "Questions, answered"], ["community", "Talk the game with other members"]])
+  check(`homepage section: ${name}`, homePage.body.includes(text));
+check("homepage plans link to checkout or registration for all five plans", ["premium_1m", "premium_3m", "premium_6m", "premium_1y", "premium_lifetime"].every((c) => homePage.body.includes(`/register?next=/checkout/${c}`)));
+check("footer has contact, Discord and legal links", ["mailto:", "/contact", "/legal/terms", "/legal/privacy", "/responsible-gambling"].every((x) => homePage.body.includes(x)) && /Discord/.test(homePage.body));
 check("platform section is present", homePage.body.includes("Your Smarter Sports Intelligence Platform"));
 const invite = process.env.DISCORD_INVITE_URL;
 check("Join Discord opens the configured invite in a new tab", invite ? homePage.body.includes(`href="${invite}" target="_blank" rel="noopener noreferrer"`) : homePage.body.includes('href="/community"'));
 const textOf = (html) => html.replace(/<[^>]+>/g, " ").replace(/&nbsp;/g, " ").replace(/\s+/g, " ");
 const homeText = textOf(homePage.body);
-check("homepage shows the four client statistics, each labelled Unverified", ["2,000+ Happy Members Unverified", "100% Win Rate Unverified", "12,500+ Winning Picks Unverified", "10 Sports Covered Unverified"].every((s) => homeText.includes(s)));
-check("homepage explains what Unverified means", homeText.includes("have not yet been independently verified"));
+check("homepage never shows unverified client figures", !["100% Win Rate", "12,500+", "2,000+", "10 Sports Covered", ">100%<"].some((x) => homeText.includes(x) || homePage.body.includes(x)));
+check("homepage statistics come from records and say so", homeText.includes("Live record") && homeText.includes("Figures come from BETVANTA"));
 check("member cannot edit homepage statistics", (await member("/api/admin/homepage-stats/members", { method: "PATCH", json: { value: "9", label: "x", source: "manual", verification: "unverified", visible: true } })).status === 403);
 check("admin cannot mark a figure verified without evidence", (await admin("/api/admin/homepage-stats/win_rate", { method: "PATCH", json: { value: "100%", label: "Win Rate", source: "manual", verification: "verified", visible: true } })).status === 400);
 check("admin switches members to the live figure", (await admin("/api/admin/homepage-stats/members", { method: "PATCH", json: { value: "2,000+", label: "Members", source: "live", verification: "unverified", visible: true } })).body.ok);
