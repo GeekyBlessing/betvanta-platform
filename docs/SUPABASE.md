@@ -28,7 +28,7 @@ RLS is enabled on every table in `public` and `sportsbook`. The test suite fails
    | `SUPABASE_ANON_KEY` | step 3, anon/publishable key |
    | `DATABASE_CA_CERT` | step 4 (optional) |
 
-6. **Run the check.** Actions > **Supabase check** > Run workflow. It applies migrations, enables `betvanta_app` login, then reports PASS/FAIL for: connection as `betvanta_app`, TLS, migrations, RLS on every table, app-role restrictions, anon/authenticated privileges, the Supabase REST API returning no rows for `users`, `payments`, `sessions`, `plans`, and an auth round-trip (create user, verify password, resolve session, write audit row) inside a transaction that is rolled back.
+6. **Run the check.** Actions > **Supabase check** > Run workflow: first with mode `inspect` (read-only report), then with mode `apply`. Apply refuses to start if a pending migration would collide with an existing table, then applies migrations, enables `betvanta_app` login, then reports PASS/FAIL for: connection as `betvanta_app`, TLS, migrations, RLS on every table, app-role restrictions, anon/authenticated privileges, the Supabase REST API returning no rows for `users`, `payments`, `sessions`, `plans`, and an auth round-trip (create user, verify password, resolve session, write audit row) inside a transaction that is rolled back.
 
 ## Dashboard hardening
 
@@ -63,8 +63,22 @@ If the password has special characters, URL-encode them (or reset it to letters 
 
 ## Running migrations (separate, controlled step)
 
-- **Recommended:** GitHub > Actions > **Supabase check** > Run workflow (with "Apply pending migrations" ticked). It migrates, then verifies the database.
-- **From your Mac:** `MIGRATION_DATABASE_URL='<session pooler string>' npm run db:migrate`.
-- Migrations are idempotent and serialised with an advisory lock; run them **before** deploying code that needs new tables.
+- **Recommended:** GitHub > Actions > **Supabase check** > Run workflow.
+  - Mode **inspect** (default) is read-only: the session is set to `read only`, so it cannot change anything. It prints the connected user and Postgres version, every migration as `applied` or `PENDING`, every BETVANTA table with its row count and RLS state, any conflict, and every difference from `db/schema.expected.json` (tables, columns and types, constraints and foreign keys, indexes, functions, triggers, RLS, policies).
+  - Mode **apply** runs the same report with a pre-flight that stops the job if a pending migration creates a table that already exists (a partial or hand-made schema). Otherwise it applies pending migrations (each in its own transaction, rolled back on any error), enables the `betvanta_app` login, runs `db-check`, and re-inspects with `--strict`, which fails on any remaining difference.
+  - No migration drops a table or column, truncates, or deletes rows. The only data updates are to the seed `plans` rows (prices, `active`, `level`) and a backfill of plan details onto existing `subscriptions` rows.
+- **From your Mac:** `MIGRATION_DATABASE_URL='<session pooler string>' npm run db:inspect`, then `npm run db:migrate`.
+- Run migrations **before** deploying code that needs new tables. `db/schema.expected.json` is regenerated with `npm run db:inspect -- --write-expected` against a freshly migrated database whenever a migration is added; a test fails if it is stale.
 
-If the live site shows errors, open `https://<your-site>/api/health`. It reports `db: "up"`, or a non-secret error code plus which kind of host is configured (for example `supabase direct (IPv6-only, unsupported)`).
+## Diagnosing production
+
+- `https://<your-site>/api/health` (public): `db: "up"`, or a non-secret error code plus which kind of host is configured (for example `supabase direct (IPv6-only, unsupported)`).
+- `https://<your-site>/api/health/deep` (needs `Authorization: Bearer <CRON_SECRET>`): runs the app's real reads (homepage statistics, predictions, testimonials, plans, competitions and standings, fixtures, the session lookup used by sign-in) and reports each as ok or with its Postgres error code, plus the connected user and the latest applied migration. Example: `curl -H "Authorization: Bearer $CRON_SECRET" https://<your-site>/api/health/deep`.
+
+### `relation "users" does not exist` (or predictions, testimonials)
+
+The app reached a database that has no BETVANTA tables. Either migrations were never applied to it, or Vercel's `DATABASE_URL` points at a different database or project than the one migrated.
+
+1. Run **Supabase check** in mode `inspect`. If it shows `schema_migrations table: MISSING` and every migration `PENDING`, run it again in mode `apply`.
+2. Call `/api/health/deep`. If `migrations` is ok but the site still fails, Vercel's `DATABASE_URL` is not the project the workflow migrated: compare the project ref in both strings (the part after `postgres.` or `betvanta_app.` in the user name).
+3. Once `apply` passes, set Vercel's `DATABASE_URL` to the `betvanta_app` transaction-pooler string and redeploy. `/api/health/deep` should then report `connected as betvanta_app` and every check ok.

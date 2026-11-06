@@ -60,7 +60,7 @@ Legal review needed before launch: in the US, giveaways tied to a paid subscript
 
 ## Supabase
 
-Code, migrations and checks are ready (`docs/SUPABASE.md`). **Not yet verified against the live Supabase project**: that happens when the "Supabase check" workflow runs with the project's secrets.
+Code, migrations and checks are ready (`docs/SUPABASE.md`). Production logged `relation "users" does not exist`: the production database has not been migrated. The **Supabase check** workflow now has a read-only `inspect` mode and a guarded `apply` mode, and `/api/health/deep` runs the app's real queries. **Not yet verified against the live Supabase project**: that happens when the workflow runs with the project's secrets.
 
 ## Customer support
 

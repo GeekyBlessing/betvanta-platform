@@ -1,16 +1,25 @@
 name: Supabase check
 # Manual: Actions > Supabase check > Run workflow.
-# Applies migrations to the BETVANTA Supabase database, enables the least-privilege app role,
-# then verifies connectivity, TLS, RLS, privileges, Supabase API lockdown and an auth round-trip (rolled back).
+#
+#   mode = inspect  (default) Read-only. Lists applied and pending migrations, existing tables with row counts,
+#                   conflicts, and every difference from db/schema.expected.json. Changes nothing.
+#   mode = apply    Runs the same inspection, refuses to continue if a pending migration would collide with an
+#                   existing table, then applies pending migrations (each in its own transaction), enables the
+#                   betvanta_app login, runs the security and auth checks, and re-inspects, failing on any drift.
+#                   Migrations only add objects; none drops or deletes data.
 on:
   workflow_dispatch:
     inputs:
-      apply_migrations:
-        description: "Apply pending migrations before checking"
-        type: boolean
-        default: true
+      mode:
+        description: "inspect (read-only) or apply (apply pending migrations, then verify)"
+        type: choice
+        options: [inspect, apply]
+        default: inspect
 permissions:
   contents: read
+concurrency:
+  group: supabase-production
+  cancel-in-progress: false
 jobs:
   supabase:
     runs-on: ubuntu-latest
@@ -28,10 +37,17 @@ jobs:
       - run: npm ci
       - name: Derive connection strings (masked)
         run: node scripts/supabase-urls.mjs
-      - name: Apply migrations
-        if: ${{ inputs.apply_migrations }}
+      - name: Inspect live schema (read-only)
+        run: node scripts/db-inspect.mjs ${{ inputs.mode == 'apply' && '--preflight' || '' }}
+      - name: Apply pending migrations
+        if: ${{ inputs.mode == 'apply' }}
         run: node scripts/migrate.mjs
       - name: Enable app role login
+        if: ${{ inputs.mode == 'apply' }}
         run: node scripts/db-app-role.mjs
-      - name: Database and auth checks
+      - name: Database, security and auth checks
+        if: ${{ inputs.mode == 'apply' }}
         run: node scripts/db-check.mjs
+      - name: Re-inspect (must match the migrations exactly)
+        if: ${{ inputs.mode == 'apply' }}
+        run: node scripts/db-inspect.mjs --strict

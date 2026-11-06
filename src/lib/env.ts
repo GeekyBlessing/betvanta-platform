@@ -1,7 +1,8 @@
 import { z } from "zod";
 
 const schema = z.object({
-  DATABASE_URL: z.string().min(1),
+  // Required when the app touches the database (checked in lib/db.ts), not for rendering pages that never query it.
+  DATABASE_URL: z.string().min(1).optional(),
   APP_URL: z.string().url().default("http://localhost:3000"),
   SESSION_TTL_DAYS: z.coerce.number().int().positive().default(14),
   ADMIN_EMAILS: z.string().default(""),

@@ -25,6 +25,10 @@ const stamp = Date.now();
 const admin = client(), member = client(), anon = client();
 console.log("auth");
 check("health endpoint reports database up", (await anon("/api/health")).body.db === "up");
+check("deep health refuses without the cron secret", (await anon("/api/health/deep")).status === 401);
+{ const d = await anon("/api/health/deep", { headers: { authorization: `Bearer ${process.env.CRON_SECRET}` } });
+  check("deep health: every real app query succeeds", d.status === 200 && d.body.ok, JSON.stringify(d.body.checks?.filter((c) => !c.ok)));
+  check("deep health: app runs as the least-privilege role", d.body.checks?.find((c) => c.name === "connection")?.detail === `connected as ${process.env.E2E_EXPECT_DB_USER ?? "betvanta_app"}`, d.body.checks?.[0]?.detail); }
 let r = await admin("/api/auth/register", { method: "POST", json: { displayName: "Admin", email: "admin@betvanta.test", password: "admin passphrase long", confirmAge: true, acceptTerms: true } });
 if (r.status === 409) r = await admin("/api/auth/login", { method: "POST", json: { email: "admin@betvanta.test", password: "admin passphrase long" } });
 check("admin can register or log in", r.body.ok, JSON.stringify(r.body));

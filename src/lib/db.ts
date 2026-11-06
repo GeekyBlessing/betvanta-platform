@@ -18,6 +18,7 @@ const stripSslMode = (url: string) => url.replace(/([?&])sslmode=[^&]*&?/, "$1")
 const isSupabaseDirectHost = (url: string) => { try { return /^db\.[a-z0-9]+\.supabase\.co$/.test(new URL(url).hostname); } catch { return false; } };
 function makePool() {
   const url = env().DATABASE_URL;
+  if (!url) throw Object.assign(new Error("DATABASE_URL is not set"), { code: "NO_DATABASE_URL" });
   if (isSupabaseDirectHost(url)) console.error("[db] DATABASE_URL uses Supabase's IPv6-only direct host (db.<ref>.supabase.co); Vercel cannot reach it. Use the Transaction pooler string (…pooler.supabase.com:6543). See docs/SUPABASE.md.");
   return new Pool({ connectionString: stripSslMode(url), ssl: sslFor(url), max: 3, idleTimeoutMillis: 10_000, connectionTimeoutMillis: 10_000 });
 }
