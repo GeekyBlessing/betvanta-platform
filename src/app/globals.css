@@ -57,3 +57,6 @@ h1, h2, h3 { text-wrap: balance; }
 .table td { padding: 11px 14px; border-top: 1px solid var(--border); vertical-align: top; }
 .prose-bv p + p { margin-top: 12px; }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+.table tbody th { text-transform: none; letter-spacing: normal; background: var(--surface); font-size: 14px; font-weight: 500; color: var(--ink); padding: 11px 14px; border-top: 1px solid var(--border); text-align: left; }
+/* Grid items default to min-width:auto, which lets a wide table push the page sideways on phones. */
+.grid > * { min-width: 0; }

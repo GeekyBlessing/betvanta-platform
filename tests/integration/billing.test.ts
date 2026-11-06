@@ -23,22 +23,23 @@ async function user(verified = true) {
 describe("subscription checkout in USD", () => {
   beforeEach(resetDb);
   it("prices every plan in USD and formats as dollars", async () => {
-    const plans = await q("select currency, amount_minor from plans");
+    const plans = await q("select currency, amount_minor from plans where active");
     expect(plans.every((p) => p.currency === "USD")).toBe(true);
-    expect(formatMoney(1900)).toBe("$19");
+    expect(formatMoney(5000)).toBe("$50");
     expect(formatMoney(1950)).toBe("$19.50");
+    expect(plans.length).toBeGreaterThan(0);
   });
   it("requires a verified email and a configured provider", async () => {
-    await expect(startCheckout(await user(false), "premium_monthly", "stripe")).rejects.toThrow(/Verify your email/);
-    await expect(startCheckout(await user(), "premium_monthly", "nowpayments")).rejects.toThrow(/Choose BTC, ETH or USDT/);
+    await expect(startCheckout(await user(false), "premium_1m", "stripe")).rejects.toThrow(/Verify your email/);
+    await expect(startCheckout(await user(), "premium_1m", "nowpayments")).rejects.toThrow(/Choose BTC, ETH or USDT/);
   });
 
   it("Stripe: grants access only after Stripe reports the session paid", async () => {
     const u = await user();
-    const r = await startCheckout(u, "premium_monthly", "stripe");
+    const r = await startCheckout(u, "premium_1m", "stripe");
     expect(r.authorizationUrl).toContain("checkout.stripe.com");
     const p = await one("select * from payments where reference = $1", [r.reference]);
-    expect([p.provider, p.currency, Number(p.amount_minor)]).toEqual(["stripe", "USD", 1900]);
+    expect([p.provider, p.currency, Number(p.amount_minor)]).toEqual(["stripe", "USD", 5000]);
     expect((await verifyAndActivate(r.reference, "callback")).outcome).toBe("pending");
     expect(await tierFor(u)).toBe("free");
     state.stripe.get(p.provider_session_id)!.payment_status = "paid";
@@ -49,7 +50,7 @@ describe("subscription checkout in USD", () => {
   });
   it("Stripe: flags an amount mismatch", async () => {
     const u = await user();
-    const r = await startCheckout(u, "vip_monthly", "stripe");
+    const r = await startCheckout(u, "premium_6m", "stripe");
     const p = await one("select provider_session_id from payments where reference = $1", [r.reference]);
     Object.assign(state.stripe.get(p.provider_session_id)!, { payment_status: "paid", amount_total: 100 });
     expect((await verifyAndActivate(r.reference, "webhook")).outcome).toBe("flagged");
@@ -58,28 +59,28 @@ describe("subscription checkout in USD", () => {
 
   it("Paystack (USD): activates only on verified success", async () => {
     const u = await user();
-    const r = await startCheckout(u, "vip_monthly", "paystack");
-    state.paystack.set(r.reference, { status: "failed", amount: 4900, currency: "USD" });
+    const r = await startCheckout(u, "premium_6m", "paystack");
+    state.paystack.set(r.reference, { status: "failed", amount: 15000, currency: "USD" });
     expect((await verifyAndActivate(r.reference, "callback")).outcome).toBe("failed");
-    const r2 = await startCheckout(u, "vip_monthly", "paystack");
-    state.paystack.set(r2.reference, { status: "success", amount: 4900, currency: "USD" });
+    const r2 = await startCheckout(u, "premium_6m", "paystack");
+    state.paystack.set(r2.reference, { status: "success", amount: 15000, currency: "USD" });
     expect((await verifyAndActivate(r2.reference, "callback")).outcome).toBe("activated");
     expect(await tierFor(u)).toBe("vip");
   });
   it("Paystack: rejects a payment in the wrong currency", async () => {
     const u = await user();
-    const r = await startCheckout(u, "premium_monthly", "paystack");
-    state.paystack.set(r.reference, { status: "success", amount: 1900, currency: "NGN" });
+    const r = await startCheckout(u, "premium_1m", "paystack");
+    state.paystack.set(r.reference, { status: "success", amount: 5000, currency: "NGN" });
     expect((await verifyAndActivate(r.reference, "webhook")).outcome).toBe("flagged");
   });
 
   it("Crypto (NOWPayments): records the coin, waits for confirmation, activates on 'finished'", async () => {
     const u = await user();
-    const r = await startCheckout(u, "premium_monthly", "nowpayments", "USDT");
+    const r = await startCheckout(u, "premium_1m", "nowpayments", "USDT");
     const p = await one("select * from payments where reference = $1", [r.reference]);
     expect([p.method, p.pay_currency, p.currency]).toEqual(["crypto", "USDT", "USD"]);
     expect((await verifyAndActivate(r.reference, "callback")).outcome).toBe("pending"); // no payment id yet
-    state.np.set("555", { payment_status: "confirming", price_amount: 19, price_currency: "usd", order_id: r.reference });
+    state.np.set("555", { payment_status: "confirming", price_amount: 50, price_currency: "usd", order_id: r.reference });
     expect((await verifyAndActivate(r.reference, "webhook", { providerPaymentId: "555" })).outcome).toBe("pending");
     expect(await tierFor(u)).toBe("free");
     state.np.get("555")!.payment_status = "finished";
@@ -88,14 +89,14 @@ describe("subscription checkout in USD", () => {
   });
   it("Crypto: partial payments are flagged, not activated", async () => {
     const u = await user();
-    const r = await startCheckout(u, "premium_monthly", "nowpayments", "BTC");
-    state.np.set("777", { payment_status: "partially_paid", price_amount: 19, price_currency: "usd", order_id: r.reference });
+    const r = await startCheckout(u, "premium_1m", "nowpayments", "BTC");
+    state.np.set("777", { payment_status: "partially_paid", price_amount: 50, price_currency: "usd", order_id: r.reference });
     expect((await verifyAndActivate(r.reference, "webhook", { providerPaymentId: "777" })).outcome).toBe("flagged");
     expect(await tierFor(u)).toBe("free");
   });
   it("Crypto: an IPN pointing at another order's payment cannot unlock this order", async () => {
     const u = await user();
-    const r = await startCheckout(u, "vip_annual", "nowpayments", "ETH");
+    const r = await startCheckout(u, "premium_1y", "nowpayments", "ETH");
     state.np.set("888", { payment_status: "finished", price_amount: 19, price_currency: "usd", order_id: "BV-SOMEONE-ELSE" });
     expect((await verifyAndActivate(r.reference, "webhook", { providerPaymentId: "888" })).outcome).toBe("flagged");
   });
@@ -103,8 +104,8 @@ describe("subscription checkout in USD", () => {
   it("renewals extend; cancellation keeps access to period end; maintenance expires", async () => {
     const u = await user();
     for (let i = 0; i < 2; i++) {
-      const r = await startCheckout(u, "premium_monthly", "paystack");
-      state.paystack.set(r.reference, { status: "success", amount: 1900, currency: "USD" });
+      const r = await startCheckout(u, "premium_1m", "paystack");
+      state.paystack.set(r.reference, { status: "success", amount: 5000, currency: "USD" });
       await verifyAndActivate(r.reference, "callback");
     }
     const [{ days }] = await q("select extract(day from max(current_period_end) - now())::int days from subscriptions where user_id = $1", [u.id]);

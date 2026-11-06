@@ -18,7 +18,7 @@ export default async function Performance() {
       <div className="grid gap-3 grid-cols-2 md:grid-cols-4">
         <Stat label="Settled" value={String(w + l + Number(total?.void ?? 0))} /><Stat label="Won" value={String(w)} /><Stat label="Lost" value={String(l)} /><Stat label="Hit rate" value={rate(w, l)} foot="Settled picks only" />
       </div>
-      {byMarket.length > 0 && <div className="card overflow-x-auto"><table className="table"><thead><tr><th>Market</th><th className="text-right">Won</th><th className="text-right">Lost</th><th className="text-right">Hit rate</th></tr></thead>
+      {byMarket.length > 0 && <div className="card overflow-x-auto relative"><table className="table"><thead><tr><th>Market</th><th className="text-right">Won</th><th className="text-right">Lost</th><th className="text-right">Hit rate</th></tr></thead>
         <tbody>{byMarket.map((r) => <tr key={r.market}><td>{MARKET_LABEL[r.market]}</td><td className="num text-right">{r.won}</td><td className="num text-right">{r.lost}</td><td className="num text-right">{rate(+r.won, +r.lost)}</td></tr>)}</tbody></table></div>}
       <section className="grid gap-4"><h2 className="font-semibold text-[17px]">Recently settled</h2>
         {recent.length ? <div className="grid gap-4 md:grid-cols-2">{recent.map((g) => <FixtureCard key={g[0].fixture_id} preds={g} />)}</div> : <Notice>No predictions have settled yet.</Notice>}</section>

@@ -14,7 +14,7 @@ export default async function Users(props: { searchParams: Promise<{ q?: string 
   return (<>
     <PageHeader eyebrow="Admin" title="Users" />
     <form className="mb-4 flex gap-2 max-w-[420px]"><input name="q" defaultValue={term} placeholder="Search name or email" className="input" aria-label="Search users" /><button className="btn btn-secondary">Search</button></form>
-    <div className="card overflow-x-auto"><table className="table"><thead><tr><th>Member</th><th>Joined</th><th>Plan</th><th>Role</th><th>Status</th><th>Actions</th></tr></thead><tbody>
+    <div className="card overflow-x-auto relative"><table className="table"><thead><tr><th>Member</th><th>Joined</th><th>Plan</th><th>Role</th><th>Status</th><th>Actions</th></tr></thead><tbody>
       {rows.map((u) => <tr key={u.id}>
         <td><div className="font-semibold">{u.display_name}</div><div className="text-xs text-subtle">{u.email}{!u.email_verified_at && " · unverified"}</div></td>
         <td className="num whitespace-nowrap">{fmtDate(u.created_at)}</td><td className="capitalize">{u.tier ?? "free"}</td><td className="capitalize">{u.role}</td>

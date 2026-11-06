@@ -38,7 +38,7 @@ describe("Discord integration", () => {
     expect(url.searchParams.get("scope")).toBe("identify guilds.join");
     const state = url.searchParams.get("state")!;
     await expect(completeDiscordLink(id, "good", "forged-state")).rejects.toThrow(/expired/);
-    const plan = await one("select id from plans where code = 'vip_monthly'");
+    const plan = await one("select id from plans where code = 'premium_6m'");
     await tx((c) => grantAccess(c, id, plan.id, "admin_grant", null, "test"));
     await completeDiscordLink(id, "good", state);
     expect((await one("select discord_user_id, discord_synced_tier from users where id = $1", [id]))).toEqual({ discord_user_id: "d123", discord_synced_tier: "vip" });
@@ -48,7 +48,7 @@ describe("Discord integration", () => {
   it("removes the role when access ends and on unlink", async () => {
     const id = await member();
     await q("update users set discord_user_id = 'd123' where id = $1", [id]);
-    const plan = await one("select id from plans where code = 'premium_monthly'");
+    const plan = await one("select id from plans where code = 'premium_1m'");
     await tx((c) => grantAccess(c, id, plan.id, "admin_grant", null, "test"));
     await syncDiscordRole(id);
     expect([...roles]).toEqual(["role-premium"]);

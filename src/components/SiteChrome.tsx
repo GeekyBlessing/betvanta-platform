@@ -16,7 +16,7 @@ export async function SiteHeader() {
           {NAV.map((n) => <Link key={n.href} href={n.href} className="px-3 py-2 rounded-md text-sm font-medium text-muted hover:text-ink hover:bg-sunken">{n.label}</Link>)}
         </nav>
         <div className="flex items-center gap-2 ml-auto">
-          <ThemeToggle />
+          <span className="hidden sm:inline-flex"><ThemeToggle /></span>
           {u ? (<>
             <Link href={u.role === "member" ? "/dashboard" : "/admin"} className="btn btn-secondary btn-sm">{u.role === "member" ? "Dashboard" : "Admin"}</Link>
             <LogoutButton />

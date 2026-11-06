@@ -4,6 +4,7 @@ import { pageUser } from "@/lib/auth";
 import { one } from "@/lib/db";
 import { enabledProviders } from "@/lib/services/payments";
 import { formatMoney, type Plan } from "@/lib/services/billing";
+import { cardFeatures } from "@/lib/services/plans";
 import { ApiForm } from "@/components/ApiForm";
 import { Notice, PageHeader, RG_LINE } from "@/components/ui";
 export const dynamic = "force-dynamic";
@@ -11,7 +12,7 @@ export const metadata = { title: "Checkout" };
 export default async function Checkout(props: { params: Promise<{ plan: string }> }) {
   const { plan: code } = await props.params;
   const user = await pageUser(`/checkout/${code}`);
-  if (!/^[a-z_]{3,40}$/.test(code)) notFound();
+  if (!/^[a-z0-9_]{3,40}$/.test(code)) notFound();
   const plan = await one<Plan>("select * from plans where code = $1 and active", [code]);
   if (!plan) notFound();
   const providers = enabledProviders();
@@ -19,9 +20,10 @@ export default async function Checkout(props: { params: Promise<{ plan: string }
   const crypto = providers.find((p) => p.method === "crypto");
   return (
     <div className="wrap py-10 max-w-[720px] grid gap-6">
-      <PageHeader eyebrow="Checkout" title={`${plan.name} ${plan.interval}`}>
-        <span className="num text-ink text-[20px] font-semibold">{formatMoney(plan.amount_minor)}</span> for {plan.duration_days} days. One-off payment, no automatic renewal.
+      <PageHeader eyebrow="Checkout" title={plan.name}>
+        <span className="num text-ink text-[20px] font-semibold">{formatMoney(plan.amount_minor)}</span> {plan.is_lifetime ? "one-time payment for lifetime access." : `for ${plan.duration_days} days. One-time payment, no automatic renewal.`}
       </PageHeader>
+      <section className="card p-5 grid gap-2"><h2 className="font-semibold">What you get</h2><ul className="grid gap-1.5 text-sm sm:grid-cols-2">{cardFeatures(plan.level).map((f) => <li key={f}>✓ {f}</li>)}</ul></section>
       {!user.email_verified_at && <Notice tone="warning" title="Verify your email first.">Check your inbox for the verification link, then come back here.</Notice>}
       {!providers.length && <Notice tone="warning" title="Checkout is not switched on yet.">No payment provider is connected. Please check back soon.</Notice>}
       {card.length > 0 && <section className="card p-6 grid gap-4"><h2 className="font-semibold text-[17px]">Pay by card</h2>

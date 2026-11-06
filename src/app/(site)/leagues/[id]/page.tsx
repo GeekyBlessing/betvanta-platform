@@ -28,7 +28,7 @@ export default async function League(props: { params: Promise<{ id: string }> })
         <div className="flex gap-2 items-center">{c.data_source === "mock" && <SampleBadge />}{u && <FavouriteToggle competitionId={c.id} initial={fav} />}</div>
       </div>
       <section className="grid gap-3"><h2 className="font-semibold text-[17px]">Table</h2>
-        {table.length ? <div className="card overflow-x-auto"><table className="table"><thead><tr><th>#</th><th>Team</th><th className="text-right">P</th><th className="text-right">W</th><th className="text-right">D</th><th className="text-right">L</th><th className="text-right">GF</th><th className="text-right">GA</th><th className="text-right">GD</th><th className="text-right">Pts</th><th>Form</th></tr></thead><tbody>
+        {table.length ? <div className="card overflow-x-auto relative"><table className="table"><thead><tr><th>#</th><th>Team</th><th className="text-right">P</th><th className="text-right">W</th><th className="text-right">D</th><th className="text-right">L</th><th className="text-right">GF</th><th className="text-right">GA</th><th className="text-right">GD</th><th className="text-right">Pts</th><th>Form</th></tr></thead><tbody>
           {table.map((t, i) => <tr key={t.team_id}><td className="num">{i + 1}</td><td className="font-medium whitespace-nowrap">{t.team}</td>{[t.p, t.w, t.d, t.l, t.gf, t.ga, t.gd > 0 ? `+${t.gd}` : t.gd].map((v, k) => <td key={k} className="num text-right">{v}</td>)}<td className="num text-right font-semibold">{t.pts}</td><td className="num text-xs tracking-[.08em] text-subtle">{t.form ?? ""}</td></tr>)}
         </tbody></table></div> : <Notice>No completed matches yet.</Notice>}
       </section>

@@ -7,7 +7,9 @@ import { PROVIDERS, type CryptoCurrency, type PaymentRecord, type ProviderId } f
 import type { Db } from "../db";
 import { resyncDiscordRoles, syncDiscordRoleSafe } from "./discord";
 
-export type Plan = { id: string; code: string; name: string; tier: "premium" | "vip"; interval: string; duration_days: number; amount_minor: string; currency: string; features: string[]; active: boolean };
+export type Plan = { id: string; code: string; name: string; tier: "premium" | "vip"; interval: string; duration_days: number | null; amount_minor: string; currency: string; features: string[]; active: boolean; level: number; is_lifetime: boolean; best_value: boolean; tagline: string | null };
+export const MONTHS: Record<string, number> = { monthly: 1, quarterly: 3, semiannual: 6, annual: 12 };
+export const periodLabel = (p: Pick<Plan, "interval" | "is_lifetime">) => (p.is_lifetime ? "one-time payment" : p.interval === "monthly" ? "per month" : `for ${MONTHS[p.interval]} months`);
 export const formatMoney = (minor: number | string, currency = "USD") =>
   new Intl.NumberFormat("en-US", { style: "currency", currency, minimumFractionDigits: Number(minor) % 100 ? 2 : 0 }).format(Number(minor) / 100);
 
@@ -22,7 +24,7 @@ export async function startCheckout(user: { id: string; email: string; email_ver
   const reference = `BV-${Date.now().toString(36).toUpperCase()}-${randomToken(6).replace(/[^A-Za-z0-9]/g, "").toUpperCase()}`;
   await q("insert into payments(user_id, plan_id, reference, amount_minor, currency, provider, method, pay_currency) values ($1,$2,$3,$4,'USD',$5,$6,$7)",
     [user.id, plan.id, reference, plan.amount_minor, provider.id, provider.method, provider.method === "crypto" ? payCurrency : null]);
-  const r = await provider.createCheckout({ reference, amountMinor: Number(plan.amount_minor), currency: "USD", email: user.email, planLabel: `${plan.name} ${plan.interval}`, payCurrency, userId: user.id, planCode: plan.code });
+  const r = await provider.createCheckout({ reference, amountMinor: Number(plan.amount_minor), currency: "USD", email: user.email, planLabel: plan.name, payCurrency, userId: user.id, planCode: plan.code });
   if (r.providerSessionId) await q("update payments set provider_session_id = $2 where reference = $1", [reference, r.providerSessionId]);
   await audit(user.id, "billing.checkout_started", "payment", reference, { plan: plan.code, provider: provider.id, payCurrency });
   return { reference, authorizationUrl: r.redirectUrl };
@@ -69,31 +71,41 @@ export async function verifyAndActivate(reference: string, via: "callback" | "we
   if (r.outcome === "activated") {
     const x = r as typeof r & { userId: string; planLabel: string; amount: string };
     const u = await one<{ email: string; display_name: string }>("select email, display_name from users where id = $1", [x.userId]);
-    if (u) await sendEmail({ to: u.email, ...templates.receipt(u.display_name, x.planLabel, x.amount, reference, new Date(x.until!).toUTCString()) });
+    if (u) await sendEmail({ to: u.email, ...templates.receipt(u.display_name, x.planLabel, x.amount, reference, x.until === "lifetime" ? "Lifetime" : new Date(x.until!).toUTCString()) });
     await syncDiscordRoleSafe(x.userId);
     return { outcome: "activated", reference, until: x.until };
   }
   return r;
 }
 
-/** Creates a subscription period. Same-tier renewals extend from the current end; a different tier starts now. */
+/**
+ * Creates a subscription period and records level, price, currency and duration.
+ * A renewal at the same level extends from the current end; a different level starts now (access = highest active level).
+ * Lifetime plans end at 'infinity'.
+ */
 export async function grantAccess(c: Db, userId: string, planId: string, source: "payment" | "admin_grant", grantedBy: string | null, note: string | null, days?: number) {
-  const plan = await one<{ id: string; tier: "premium" | "vip"; duration_days: number; name: string; interval: string }>("select * from plans where id = $1", [planId], c);
+  const plan = await one<{ id: string; tier: "premium" | "vip"; duration_days: number | null; name: string; level: number; is_lifetime: boolean; amount_minor: string; currency: string }>("select * from plans where id = $1", [planId], c);
   if (!plan) throw notFound("Plan not found.");
+  const lifetime = plan.is_lifetime && days === undefined;
+  const length = lifetime ? null : days ?? plan.duration_days!;
   const cur = await one<{ end: string }>(
-    `select max(current_period_end) as end from subscriptions where user_id = $1 and tier = $2 and status in ('active','cancelled') and current_period_end > now()`, [userId, plan.tier], c);
+    `select max(current_period_end) as end from subscriptions where user_id = $1 and plan_level = $2 and status in ('active','cancelled') and current_period_end > now()`, [userId, plan.level], c);
   const sub = await one<{ id: string; current_period_end: string }>(
-    `insert into subscriptions(user_id, plan_id, tier, status, current_period_start, current_period_end, source, granted_by, note)
-     values ($1, $2, $3, 'active', greatest(now(), coalesce($4::timestamptz, now())), greatest(now(), coalesce($4::timestamptz, now())) + ($5 || ' days')::interval, $6, $7, $8)
-     returning id, current_period_end`, [userId, plan.id, plan.tier, cur?.end ?? null, String(days ?? plan.duration_days), source, grantedBy, note], c);
-  return { ...sub!, planLabel: `${plan.name} ${plan.interval}` };
+    `insert into subscriptions(user_id, plan_id, tier, status, current_period_start, current_period_end, source, granted_by, note, plan_level, price_minor, currency, duration_days, is_lifetime)
+     values ($1, $2, $3, 'active', now(),
+             case when $9 then 'infinity'::timestamptz else greatest(now(), coalesce($4::timestamptz, now())) + ($5::int || ' days')::interval end,
+             $6, $7, $8, $10, $11, $12, $5, $9)
+     returning id, current_period_end`,
+    [userId, plan.id, plan.tier, cur?.end ?? null, length, source, grantedBy, note, lifetime, plan.level, source === "payment" ? plan.amount_minor : 0, plan.currency], c);
+  return { id: sub!.id, current_period_end: lifetime ? "lifetime" : new Date(sub!.current_period_end).toISOString(), isLifetime: lifetime, planLabel: plan.name };
 }
 
 export async function cancelSubscription(userId: string) {
+  const lifetime = await one("select 1 from subscriptions where user_id = $1 and is_lifetime and status = 'active'", [userId]);
   const subs = await q<{ id: string; current_period_end: string }>(
     `update subscriptions set cancel_at_period_end = true, status = 'cancelled', updated_at = now()
-     where user_id = $1 and status = 'active' and current_period_end > now() returning id, current_period_end`, [userId]);
-  if (!subs.length) throw badRequest("You have no active subscription to cancel.");
+     where user_id = $1 and status = 'active' and not is_lifetime and current_period_end > now() returning id, current_period_end`, [userId]);
+  if (!subs.length) throw badRequest(lifetime ? "Lifetime access never renews, so there is nothing to cancel." : "You have no active subscription to cancel.");
   await audit(userId, "billing.cancel", "subscription", subs[0].id);
   const u = await one<{ email: string; display_name: string }>("select email, display_name from users where id = $1", [userId]);
   const until = subs.map((s) => new Date(s.current_period_end)).sort((a, b) => +b - +a)[0];
@@ -103,10 +115,10 @@ export async function cancelSubscription(userId: string) {
 
 /** Daily job: expire lapsed subscriptions and remind members 3 days before their access ends. */
 export async function runSubscriptionMaintenance() {
-  const expired = await q("update subscriptions set status = 'expired', updated_at = now() where status in ('active','cancelled') and current_period_end <= now() returning id");
+  const expired = await q("update subscriptions set status = 'expired', updated_at = now() where status in ('active','cancelled') and not is_lifetime and current_period_end <= now() returning id");
   const due = await q<{ id: string; email: string; display_name: string; name: string; current_period_end: string }>(
     `select s.id, u.email, u.display_name, p.name, s.current_period_end from subscriptions s join users u on u.id = s.user_id join plans p on p.id = s.plan_id
-     where s.status = 'active' and s.reminded_at is null and s.current_period_end between now() and now() + interval '3 days' and u.notify_billing`);
+     where s.status = 'active' and not s.is_lifetime and s.reminded_at is null and s.current_period_end between now() and now() + interval '3 days' and u.notify_billing`);
   for (const d of due) {
     await sendEmail({ to: d.email, ...templates.expiring(d.display_name, d.name, new Date(d.current_period_end).toUTCString()) });
     await q("update subscriptions set reminded_at = now() where id = $1", [d.id]);

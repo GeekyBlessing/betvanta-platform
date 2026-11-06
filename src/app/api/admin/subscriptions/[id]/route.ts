@@ -14,7 +14,7 @@ export const PATCH = route(async (req: Request, { params }: { params: Promise<{ 
   ]));
   const row = b.action === "extend"
     ? await one<{ user_id: string }>("update subscriptions set current_period_end = greatest(current_period_end, now()) + ($2 || ' days')::interval, status = 'active', updated_at = now() where id = $1 and status <> 'expired' returning user_id", [id, String(b.days)])
-    : await one<{ user_id: string }>("update subscriptions set status = 'expired', current_period_end = least(current_period_end, now()), updated_at = now() where id = $1 and status <> 'expired' returning user_id", [id]);
+    : await one<{ user_id: string }>("update subscriptions set status = 'expired', is_lifetime = false, current_period_end = least(current_period_end, now()), updated_at = now() where id = $1 and status <> 'expired' returning user_id", [id]);
   if (!row) throw badRequest("That subscription is already expired.");
   await audit(admin.id, `admin.subscription_${b.action}`, "subscription", id, b);
   await syncDiscordRoleSafe(row.user_id);

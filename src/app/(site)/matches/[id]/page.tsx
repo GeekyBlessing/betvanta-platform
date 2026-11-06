@@ -40,7 +40,7 @@ export default async function Match(props: { params: Promise<{ id: string }> }) 
       {stats && (stats.home || stats.away) && (
         <section className="grid gap-3">
           <h2 className="font-semibold text-[17px]">Statistics this season</h2>
-          <div className="card overflow-x-auto"><table className="table"><thead><tr><th>Team</th><th className="text-right">Played</th><th className="text-right">Scored</th><th className="text-right">Conceded</th><th className="text-right">Goals per game</th><th>Form</th></tr></thead><tbody>
+          <div className="card overflow-x-auto relative"><table className="table"><thead><tr><th>Team</th><th className="text-right">Played</th><th className="text-right">Scored</th><th className="text-right">Conceded</th><th className="text-right">Goals per game</th><th>Form</th></tr></thead><tbody>
             <tr><td>{f.home} (home)</td><td className="num text-right">{stats.home?.home_played ?? 0}</td><td className="num text-right">{stats.home?.home_goals_for ?? 0}</td><td className="num text-right">{stats.home?.home_goals_against ?? 0}</td><td className="num text-right">{avg(stats.home?.home_goals_for ?? 0, stats.home?.home_played ?? 0)}</td><td className="num text-xs tracking-[.08em]">{stats.home?.form ?? ""}</td></tr>
             <tr><td>{f.away} (away)</td><td className="num text-right">{stats.away?.away_played ?? 0}</td><td className="num text-right">{stats.away?.away_goals_for ?? 0}</td><td className="num text-right">{stats.away?.away_goals_against ?? 0}</td><td className="num text-right">{avg(stats.away?.away_goals_for ?? 0, stats.away?.away_played ?? 0)}</td><td className="num text-xs tracking-[.08em]">{stats.away?.form ?? ""}</td></tr>
           </tbody></table></div>
