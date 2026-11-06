@@ -4,9 +4,10 @@ import { listPredictions } from "./predictions";
 import { approvedTestimonials } from "./testimonials";
 import { listCompetitions, standings, listFixtures } from "./sports";
 import { userFromToken } from "../session";
+import { listHomepageStats } from "./homepage-stats";
 
 /** The newest file in db/migrations. A unit test keeps this in step with the folder. */
-export const LATEST_MIGRATION = "009_rls_and_app_role.sql";
+export const LATEST_MIGRATION = "010_homepage_stats.sql";
 
 export type CheckResult = { name: string; ok: boolean; ms: number; detail?: string; code?: string };
 
@@ -36,6 +37,7 @@ export async function runDbHealth(): Promise<{ ok: boolean; checks: CheckResult[
   await run("homepage statistics (users, predictions, competitions, fixtures)", async () => { const s = await homeStats(); return `${s.members} members, ${s.settled} settled`; });
   await run("predictions list (free view)", async () => `${(await listPredictions("free", { upcoming: true, limit: 12 })).length} upcoming`);
   await run("settled predictions", async () => `${(await listPredictions("free", { settled: true, limit: 5 })).length} rows`);
+  await run("homepage headline statistics", async () => `${(await listHomepageStats()).length} slots`);
   await run("testimonials", async () => `${(await approvedTestimonials(6)).length} approved`);
   await run("plans", async () => {
     const r = await q<{ code: string }>("select code from plans where active and currency = 'USD' order by level");

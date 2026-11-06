@@ -69,3 +69,9 @@ Email betvanta098@gmail.com, phone (314) 343-6703 (`SUPPORT_EMAIL`, `SUPPORT_PHO
 ## Build and migrations
 
 `npm run build` / Vercel runs `next build` only and needs no database (verified by building with no environment variables and with unreachable database URLs). Migrations are a separate step: the Supabase check workflow or `npm run db:migrate`.
+
+## Homepage hero and statistics (migration 010)
+- Hero: original stadium artwork rendered by `scripts/artwork/render-stadium.cjs` (no third-party image licence involved), dark scrim, overlay header, Explore Predictions and Join Our Community.
+  To use a licensed photo instead, replace `public/images/hero/stadium-wide.webp` (desktop, about 2560x1440) and `stadium-tall.webp` (mobile, about 1200x2000). Do not use photos of identifiable players or crowds without a model release.
+- Statistics: four slots in `homepage_stats`, edited in Admin > Homepage. Client figures (2,000+, 100%, 12,500+, 10) are seeded as **Unverified** and labelled so on the site. An admin can switch a slot to the live figure from BETVANTA's records, or mark it verified, which requires a written note on how it was verified (also enforced by a database constraint). Every change is in the audit log.
+- Production needs migration 010: run Supabase check in `inspect`, then `apply`. Until then the homepage shows live figures only and logs `homepage_stats table is missing`.

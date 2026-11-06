@@ -10,9 +10,9 @@ export function LogoMark({ size = 28, reversed = false }: { size?: number; rever
     </svg>
   );
 }
-export function Logo({ size = 28, href = "/" }: { size?: number; href?: string }) {
+export function Logo({ size = 28, href = "/", onDark = false }: { size?: number; href?: string; onDark?: boolean }) {
   return (
-    <Link href={href} className="inline-flex items-center gap-2.5 text-ink" aria-label="BETVANTA home">
+    <Link href={href} className={`inline-flex items-center gap-2.5 ${onDark ? "text-sand" : "text-ink"}`} aria-label="BETVANTA home">
       <LogoMark size={size} />
       <span className="display font-bold tracking-[.06em]" style={{ fontSize: Math.round(size * 0.62) }}>BETVANTA</span>
     </Link>

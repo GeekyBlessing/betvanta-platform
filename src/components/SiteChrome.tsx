@@ -3,18 +3,24 @@ import { currentUser } from "@/lib/session";
 import { Logo, LogoMark, RG_LINE } from "./ui";
 import { ThemeToggle } from "./ThemeToggle";
 import { LogoutButton } from "./LogoutButton";
+import { HeaderScrollState } from "./HeaderScrollState";
 import { support } from "@/lib/support";
 
 const NAV = [{ href: "/predictions", label: "Predictions" }, { href: "/sports", label: "Sports" }, { href: "/fixtures", label: "Scores" }, { href: "/performance", label: "Performance" }, { href: "/pricing", label: "Pricing" }, { href: "/community", label: "Community" }];
 
-export async function SiteHeader() {
+/** `overlay` sits on top of the homepage hero image: transparent at first, solid once the page scrolls. */
+export async function SiteHeader({ overlay = false }: { overlay?: boolean }) {
   const u = await currentUser();
+  const link = overlay ? "text-sand/80 hover:text-sand hover:bg-white/10" : "text-muted hover:text-ink hover:bg-sunken";
   return (
-    <header className="bg-surface border-b border-line sticky top-0 z-20" style={{ top: "env(safe-area-inset-top, 0px)" }}>
-      <div className="wrap flex items-center gap-6 min-h-16 py-2">
-        <Logo />
+    <header id={overlay ? "site-header-overlay" : undefined}
+      className={overlay ? "site-header-overlay on-dark fixed inset-x-0 top-0 z-30 border-b border-transparent text-sand" : "bg-surface border-b border-line sticky top-0 z-20"}
+      style={overlay ? { paddingTop: "env(safe-area-inset-top, 0px)" } : { top: "env(safe-area-inset-top, 0px)" }}>
+      {overlay && <HeaderScrollState targetId="site-header-overlay" />}
+      <div className={`wrap flex items-center gap-6 py-2 ${overlay ? "min-h-[72px]" : "min-h-16"}`}>
+        <Logo size={overlay ? 34 : 28} onDark={overlay} />
         <nav aria-label="Main" className="hidden md:flex gap-1 flex-1">
-          {NAV.map((n) => <Link key={n.href} href={n.href} className="px-3 py-2 rounded-md text-sm font-medium text-muted hover:text-ink hover:bg-sunken">{n.label}</Link>)}
+          {NAV.map((n) => <Link key={n.href} href={n.href} className={`px-3 py-2 rounded-md text-sm font-medium ${link}`}>{n.label}</Link>)}
         </nav>
         <div className="flex items-center gap-2 ml-auto">
           <span className="hidden sm:inline-flex"><ThemeToggle /></span>
@@ -28,7 +34,7 @@ export async function SiteHeader() {
         </div>
       </div>
       <nav aria-label="Main mobile" className="md:hidden wrap flex gap-1 overflow-x-auto pb-2 -mt-1">
-        {NAV.map((n) => <Link key={n.href} href={n.href} className="px-3 py-1.5 rounded-md text-sm font-medium text-muted whitespace-nowrap hover:bg-sunken">{n.label}</Link>)}
+        {NAV.map((n) => <Link key={n.href} href={n.href} className={`px-3 py-1.5 rounded-md text-sm font-medium whitespace-nowrap ${overlay ? link : "text-muted hover:bg-sunken"}`}>{n.label}</Link>)}
       </nav>
     </header>
   );

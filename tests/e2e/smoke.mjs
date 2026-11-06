@@ -137,12 +137,28 @@ check("sportsbook money tables stay locked", await db.query("insert into sportsb
 
 console.log("homepage sections, links, testimonials, Discord");
 const homePage = await anon("/");
-check("hero has Get Premium Picks to /pricing", /href="\/pricing"[^>]*>[\s\S]{0,400}Get Premium Picks/.test(homePage.body));
+check("hero has Explore Predictions to /predictions", /href="\/predictions"[^>]*>[\s\S]{0,400}Explore Predictions/.test(homePage.body));
+check("hero has Join Our Community", homePage.body.includes("Join Our Community"));
+check("hero uses the stadium artwork for desktop and mobile", homePage.body.includes("/images/hero/stadium-wide.webp") && homePage.body.includes("/images/hero/stadium-tall.webp") && (await anon("/images/hero/stadium-tall.webp")).status === 200);
+check("platform section is present", homePage.body.includes("Your Smarter Sports Intelligence Platform"));
 const invite = process.env.DISCORD_INVITE_URL;
 check("Join Discord opens the configured invite in a new tab", invite ? homePage.body.includes(`href="${invite}" target="_blank" rel="noopener noreferrer"`) : homePage.body.includes('href="/community"'));
-check("homepage shows the four statistics", ["Members", "Prediction win rate", "Settled predictions", "Sports covered"].every((s) => homePage.body.includes(s)));
+const textOf = (html) => html.replace(/<[^>]+>/g, " ").replace(/&nbsp;/g, " ").replace(/\s+/g, " ");
+const homeText = textOf(homePage.body);
+check("homepage shows the four client statistics, each labelled Unverified", ["2,000+ Happy Members Unverified", "100% Win Rate Unverified", "12,500+ Winning Picks Unverified", "10 Sports Covered Unverified"].every((s) => homeText.includes(s)));
+check("homepage explains what Unverified means", homeText.includes("have not yet been independently verified"));
+check("member cannot edit homepage statistics", (await member("/api/admin/homepage-stats/members", { method: "PATCH", json: { value: "9", label: "x", source: "manual", verification: "unverified", visible: true } })).status === 403);
+check("admin cannot mark a figure verified without evidence", (await admin("/api/admin/homepage-stats/win_rate", { method: "PATCH", json: { value: "100%", label: "Win Rate", source: "manual", verification: "verified", visible: true } })).status === 400);
+check("admin switches members to the live figure", (await admin("/api/admin/homepage-stats/members", { method: "PATCH", json: { value: "2,000+", label: "Members", source: "live", verification: "unverified", visible: true } })).body.ok);
 const memberCount = (await db.query("select count(*)::int n from users where role='member' and status='active'")).rows[0].n;
-check("member statistic matches the database", homePage.body.includes(`>${new Intl.NumberFormat("en-US").format(memberCount)}<`));
+{ const t = textOf((await anon("/")).body);
+  check("live member statistic matches the database and is labelled as live", t.includes(`${new Intl.NumberFormat("en-US").format(memberCount)} Members Live record`)); }
+check("admin records a verified figure with its evidence", (await admin("/api/admin/homepage-stats/sports", { method: "PATCH", json: { value: "4", label: "Sports Covered", source: "manual", verification: "verified", verificationNote: "Counted from the live coverage list on 6 Nov 2026 by the admin team.", visible: true } })).body.ok);
+check("verified figure shows as Verified", textOf((await anon("/")).body).includes("4 Sports Covered Verified"));
+check("homepage statistic edits are audited", (await db.query("select count(*)::int n from audit_logs where action = 'admin.update_homepage_stat'")).rows[0].n >= 2);
+check("admin homepage statistics page loads", (await admin("/admin/homepage")).status === 200);
+// restore the client placeholders for later runs
+await db.query("update homepage_stats set value_text = v, label = l, source = 'manual', verification = 'unverified', verification_note = null, verified_by = null, verified_at = null, visible = true from (values ('members','2,000+','Happy Members'),('sports','10','Sports Covered')) x(k, v, l) where key = k");
 check("sports coverage links to all four sports", ["/sports/american-football", "/sports/soccer", "/sports/basketball", "/sports/baseball"].every((h) => homePage.body.includes(`href="${h}"`)));
 const links = [...new Set([...homePage.body.matchAll(/href="(\/[^"#]*)"/g)].map((m) => m[1].replace(/&amp;/g, "&")))].filter((h) => !h.startsWith("/_next") && !h.startsWith("/api/"));
 const broken = [];
