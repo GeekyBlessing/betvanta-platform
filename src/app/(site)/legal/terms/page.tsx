@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Notice, PageHeader } from "@/components/ui";
+import { support } from "@/lib/support";
 export const metadata: Metadata = { title: "Terms of service" };
+export const dynamic = "force-dynamic";
 export default function Terms() {
   return (
     <div className="wrap py-10 max-w-[760px] grid gap-5 text-[15px] leading-7">
@@ -13,6 +15,7 @@ export default function Terms() {
       <p><strong>Accounts.</strong> Keep your password private. One account per person. We may suspend accounts that share access, scrape content or abuse the service.</p>
       <p><strong>Content.</strong> Predictions and analysis are for your personal use and may not be resold or republished.</p>
       <p><strong>Governing law.</strong> To be confirmed with the legal entity.</p>
+      <p><strong>Contact.</strong> Questions about this page: <a className="text-link underline" href={support().emailHref}>{support().email}</a> or <a className="text-link underline" href={support().phoneHref}>{support().phoneDisplay}</a>.</p>
     </div>
   );
 }

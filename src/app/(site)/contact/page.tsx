@@ -1,19 +1,41 @@
 import type { Metadata } from "next";
 import { ApiForm, Field } from "@/components/ApiForm";
+import { JoinDiscordButton } from "@/components/Discord";
 import { PageHeader } from "@/components/ui";
-export const metadata: Metadata = { title: "Contact", description: "Contact the BETVANTA team." };
+import { support } from "@/lib/support";
+export const dynamic = "force-dynamic";
+export const metadata: Metadata = { title: "Contact support", description: "Contact BETVANTA customer support by email, phone or message." };
 export default function Contact() {
+  const s = support();
   return (
-    <div className="wrap py-10 max-w-[640px]">
-      <PageHeader eyebrow="Contact" title="Talk to us">Questions about your account, billing or our predictions. We reply by email.</PageHeader>
-      <div className="card p-6">
+    <div className="wrap py-10 grid gap-8">
+      <PageHeader eyebrow="Support" title="Contact BETVANTA">Questions about your account, billing or our predictions. Choose whichever is easiest for you.</PageHeader>
+      <div className="grid gap-4 md:grid-cols-3">
+        <a href={s.emailHref} className="card p-5 grid gap-1 hover:border-[var(--accent)]">
+          <span className="text-[13px] font-medium text-muted">Email</span>
+          <span className="font-semibold text-[16px] break-all">{s.email}</span>
+          <span className="text-xs text-subtle">We reply by email</span>
+        </a>
+        <a href={s.phoneHref} className="card p-5 grid gap-1 hover:border-[var(--accent)]">
+          <span className="text-[13px] font-medium text-muted">Phone</span>
+          <span className="font-semibold text-[16px] num">{s.phoneDisplay}</span>
+          <span className="text-xs text-subtle">US number</span>
+        </a>
+        <div className="card p-5 grid gap-2 content-start">
+          <span className="text-[13px] font-medium text-muted">Community</span>
+          <JoinDiscordButton className="btn btn-secondary btn-sm w-fit" />
+        </div>
+      </div>
+      <section className="card p-6 grid gap-4 max-w-[640px]" aria-labelledby="form-h">
+        <h2 id="form-h" className="font-semibold text-[17px]">Send a message</h2>
         <ApiForm action="/api/contact" submitLabel="Send message" variant="primary" refresh={false} resetOnSuccess>
           <Field label="Name" name="name" autoComplete="name" required />
           <Field label="Email address" name="email" type="email" autoComplete="email" required />
           <div className="grid gap-1.5"><label htmlFor="f-message" className="label">Message</label><textarea id="f-message" name="message" rows={6} className="input" required /></div>
           <input type="text" name="website" tabIndex={-1} autoComplete="off" className="hidden" aria-hidden />
         </ApiForm>
-      </div>
+      </section>
+      <p className="text-xs text-subtle">Never send card numbers or passwords by email, phone or this form. BETVANTA staff will never ask for them.</p>
     </div>
   );
 }

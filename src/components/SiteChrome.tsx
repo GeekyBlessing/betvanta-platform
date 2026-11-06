@@ -3,6 +3,7 @@ import { currentUser } from "@/lib/session";
 import { Logo, LogoMark, RG_LINE } from "./ui";
 import { ThemeToggle } from "./ThemeToggle";
 import { LogoutButton } from "./LogoutButton";
+import { support } from "@/lib/support";
 
 const NAV = [{ href: "/predictions", label: "Predictions" }, { href: "/sports", label: "Sports" }, { href: "/fixtures", label: "Scores" }, { href: "/performance", label: "Performance" }, { href: "/pricing", label: "Pricing" }, { href: "/community", label: "Community" }];
 
@@ -34,12 +35,17 @@ export async function SiteHeader() {
 }
 
 export function SiteFooter() {
+  const s = support();
   return (
     <footer className="border-t border-line mt-16 bg-surface">
       <div className="wrap py-10 grid gap-8 md:grid-cols-[1.5fr_1fr_1fr]">
         <div className="grid gap-3 content-start">
           <div className="flex items-center gap-2.5"><LogoMark size={24} /><span className="display font-bold tracking-[.06em]">BETVANTA</span></div>
           <p className="text-sm text-muted">Smarter Insights. Better Decisions.</p>
+          <address className="not-italic text-sm text-muted grid gap-0.5">
+            <span>Support: <a href={s.emailHref} className="text-link hover:underline">{s.email}</a></span>
+            <span>Phone: <a href={s.phoneHref} className="text-link hover:underline num">{s.phoneDisplay}</a></span>
+          </address>
           <p className="text-xs text-subtle max-w-[48ch]">{RG_LINE} If betting stops being fun, take a break and seek support.</p>
         </div>
         <div className="grid gap-2 content-start text-sm"><span className="eyebrow">Product</span>

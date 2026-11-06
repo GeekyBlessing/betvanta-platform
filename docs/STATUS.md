@@ -1,6 +1,6 @@
 # Phase 1 status
 
-Verified by 58 unit/integration tests against Postgres and 105 end-to-end HTTP checks (also run with the app connected as the restricted `betvanta_app` role) against a production build (`tests/e2e/smoke.mjs`), with payment and Discord APIs replaced by local stand-ins.
+Verified by 61 unit/integration tests against Postgres and 110 end-to-end HTTP checks (also run with the app connected as the restricted `betvanta_app` role) against a production build (`tests/e2e/smoke.mjs`), with payment and Discord APIs replaced by local stand-ins.
 
 | # | Requirement | Status | Evidence / note |
 | --- | --- | --- | --- |
@@ -61,3 +61,7 @@ Legal review needed before launch: in the US, giveaways tied to a paid subscript
 ## Supabase
 
 Code, migrations and checks are ready (`docs/SUPABASE.md`). **Not yet verified against the live Supabase project**: that happens when the "Supabase check" workflow runs with the project's secrets.
+
+## Customer support
+
+Email betvanta098@gmail.com, phone (314) 343-6703 (`SUPPORT_EMAIL`, `SUPPORT_PHONE`). Shown on the contact page, footer, FAQ, terms and privacy pages, in every email footer, and in the site's structured data. Emails are sent with Reply-To set to the support address. Contact-form messages are stored for admins and forwarded to the support inbox with Reply-To set to the customer.

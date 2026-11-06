@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Notice, PageHeader } from "@/components/ui";
+import { support } from "@/lib/support";
 export const metadata: Metadata = { title: "Privacy policy" };
+export const dynamic = "force-dynamic";
 export default function Privacy() {
   return (
     <div className="wrap py-10 max-w-[760px] grid gap-5 text-[15px] leading-7">
@@ -11,6 +13,7 @@ export default function Privacy() {
       <p><strong>Service providers.</strong> Payment processors (such as Stripe), our email provider (Resend), Discord (only if you link it), and our hosting and database providers. Card details are handled by the payment processor and never reach BETVANTA.</p>
       <p><strong>Your choices.</strong> You can update your details, unlink Discord, change email preferences and delete your account from Settings. Deleting your account removes your personal details; payment records are kept without them for accounting.</p>
       <p><strong>Cookies.</strong> We use one essential, secure session cookie to keep you signed in. No advertising cookies. We do not sell personal information.</p>
+      <p><strong>Contact.</strong> Questions about this page: <a className="text-link underline" href={support().emailHref}>{support().email}</a> or <a className="text-link underline" href={support().phoneHref}>{support().phoneDisplay}</a>.</p>
     </div>
   );
 }

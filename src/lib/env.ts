@@ -32,6 +32,9 @@ const schema = z.object({
   ALLOW_SAMPLE_DATA: z.enum(["true", "false"]).default("false"),
   // US-targeted product: kickoff times display in this zone (IANA name). Members' own zones can come later.
   APP_TIMEZONE: z.string().default("America/New_York"),
+  // Customer support contact (client-provided). Shown on the site and used as Reply-To on emails.
+  SUPPORT_EMAIL: z.string().email().default("betvanta098@gmail.com"),
+  SUPPORT_PHONE: z.string().regex(/^\+?[0-9]{10,15}$/).default("+13143436703"),
   // Crypto stays OFF until legal and payment-provider approvals are confirmed for the merchant's jurisdiction.
   CRYPTO_PAYMENTS_ENABLED: z.enum(["true", "false"]).default("false"),
   CRON_SECRET: z.string().optional(),

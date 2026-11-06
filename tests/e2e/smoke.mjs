@@ -163,6 +163,15 @@ const withReview = (await anon("/")).body;
 check("approved review shows with name, rating and verified badge", withReview.includes("Clear, honest analysis every week.") && withReview.includes("Mia") && withReview.includes("5 out of 5 stars") && withReview.includes("Verified subscriber"));
 check("member withdraws the review and it disappears", (await member(`/api/testimonials/${tid}`, { method: "DELETE" })).body.ok && !(await anon("/")).body.includes("Clear, honest analysis every week."));
 
+console.log("customer support contact");
+const contactPage = await anon("/contact");
+check("contact page shows support email and phone links", contactPage.body.includes('href="mailto:betvanta098@gmail.com"') && contactPage.body.includes('href="tel:+13143436703"') && contactPage.body.includes("(314) 343-6703"));
+check("footer shows support contact on every page", (await anon("/pricing")).body.includes("betvanta098@gmail.com") && (await anon("/sports")).body.includes("(314) 343-6703"));
+check("structured data lists the support contact", homePage.body.includes('"contactType":"customer support"'));
+const before = (await db.query("select count(*)::int n from email_outbox where to_email = 'betvanta098@gmail.com'")).rows[0].n;
+check("contact form message is accepted", (await anon("/api/contact", { method: "POST", json: { name: "Jordan", email: "jordan@example.com", message: "How do I change my plan?" } })).body.ok);
+check("contact form is forwarded to the support inbox", (await db.query("select count(*)::int n from email_outbox where to_email = 'betvanta098@gmail.com' and template = 'support_contact'")).rows[0].n === before + 1);
+
 console.log("account and cron");
 check("settings save", (await member("/api/account", { method: "PATCH", json: { displayName: "Member Two", notifyPredictions: false, notifyBilling: true } })).body.ok);
 check("password change requires current password", (await member("/api/account/password", { method: "POST", json: { currentPassword: "nope", newPassword: "another long passphrase" } })).status === 400);

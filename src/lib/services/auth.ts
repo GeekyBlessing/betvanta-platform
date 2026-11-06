@@ -4,6 +4,7 @@ import { conflict, badRequest, unauthorized } from "../errors";
 import { adminEmails, env } from "../env";
 import { sendEmail, templates } from "../email";
 import { audit } from "../audit";
+import { support } from "../support";
 import type { z } from "zod";
 import type { registerSchema } from "./validation";
 
@@ -51,7 +52,7 @@ export async function login(email: string, password: string) {
   const u = await one<{ id: string; password_hash: string; status: string }>("select id, password_hash, status from users where email = $1", [email]);
   const valid = await verifyPassword(password, u?.password_hash ?? DUMMY_HASH);
   if (!u || !valid) throw unauthorized("Email or password is incorrect.");
-  if (u.status !== "active") throw unauthorized("This account is suspended. Contact support.");
+  if (u.status !== "active") throw unauthorized(`This account is suspended. Contact support at ${support().email}.`);
   return u.id;
 }
 
