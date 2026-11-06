@@ -4,7 +4,7 @@ import { Logo, LogoMark, RG_LINE } from "./ui";
 import { ThemeToggle } from "./ThemeToggle";
 import { LogoutButton } from "./LogoutButton";
 
-const NAV = [{ href: "/predictions", label: "Predictions" }, { href: "/performance", label: "Performance" }, { href: "/pricing", label: "Pricing" }, { href: "/about", label: "About" }];
+const NAV = [{ href: "/predictions", label: "Predictions" }, { href: "/fixtures", label: "Fixtures" }, { href: "/sports", label: "Leagues" }, { href: "/performance", label: "Performance" }, { href: "/pricing", label: "Pricing" }];
 
 export async function SiteHeader() {
   const u = await currentUser();
@@ -46,7 +46,7 @@ export function SiteFooter() {
           <Link href="/predictions" className="text-muted hover:text-ink">Predictions</Link><Link href="/performance" className="text-muted hover:text-ink">Performance</Link><Link href="/pricing" className="text-muted hover:text-ink">Pricing</Link><Link href="/faq" className="text-muted hover:text-ink">FAQ</Link>
         </div>
         <div className="grid gap-2 content-start text-sm"><span className="eyebrow">Company</span>
-          <Link href="/about" className="text-muted hover:text-ink">About</Link><Link href="/contact" className="text-muted hover:text-ink">Contact</Link><Link href="/legal/terms" className="text-muted hover:text-ink">Terms</Link><Link href="/legal/privacy" className="text-muted hover:text-ink">Privacy</Link><Link href="/responsible-gambling" className="text-muted hover:text-ink">Responsible gambling</Link>
+          <Link href="/about" className="text-muted hover:text-ink">About</Link>{process.env.DISCORD_INVITE_URL && <a href={process.env.DISCORD_INVITE_URL} className="text-muted hover:text-ink" rel="noopener noreferrer" target="_blank">Discord community</a>}<Link href="/contact" className="text-muted hover:text-ink">Contact</Link><Link href="/legal/terms" className="text-muted hover:text-ink">Terms</Link><Link href="/legal/privacy" className="text-muted hover:text-ink">Privacy</Link><Link href="/responsible-gambling" className="text-muted hover:text-ink">Responsible gambling</Link>
         </div>
       </div>
       <div className="wrap pb-8 text-xs text-subtle">© {new Date().getFullYear()} BETVANTA. All rights reserved.</div>

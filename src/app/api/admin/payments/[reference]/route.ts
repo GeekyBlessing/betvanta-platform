@@ -8,5 +8,5 @@ export const POST = route(async (_req: Request, { params }: { params: Promise<{ 
   const ref = z.string().regex(/^BV-[A-Z0-9-]+$/).parse((await params).reference);
   const r = await verifyAndActivate(ref, "admin");
   await audit(admin.id, "admin.reverify_payment", "payment", ref, { outcome: r.outcome });
-  return ok({ message: `Re-verified with Paystack: ${r.outcome.replace("_", " ")}.` });
+  return ok({ message: `Re-verified with the provider: ${r.outcome.replace("_", " ")}.` });
 });

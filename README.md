@@ -2,7 +2,7 @@
 
 **Smarter Insights. Better Decisions.**
 
-BETVANTA is a sports intelligence platform: data-driven match predictions with stated confidence, an open locked-at-kickoff track record, and Free, Premium and VIP subscriptions paid through Paystack.
+BETVANTA is a sports intelligence platform: fixtures, scores and statistics, data-driven match predictions with stated confidence, an open locked-at-kickoff track record, and Free, Premium and VIP subscriptions in USD (card or crypto).
 
 ## Stack
 
@@ -12,7 +12,9 @@ BETVANTA is a sports intelligence platform: data-driven match predictions with s
 | API | Next.js route handlers under `src/app/api` (REST, JSON, Zod validation) |
 | Database | PostgreSQL (Supabase, Neon or any Postgres 14+), SQL migrations in `db/migrations` |
 | Auth | Own implementation: scrypt password hashing, DB-backed sessions in an httpOnly cookie, email verification and reset tokens |
-| Payments | Paystack (server-side verification + signed webhooks) |
+| Payments | USD only: Stripe, Paystack and NOWPayments (BTC, ETH, USDT) behind one provider layer, all verified server-side with signed webhooks |
+| Community | Discord OAuth linking, tier role sync, pick announcements |
+| Sportsbook | Integration points only (`src/lib/sportsbook`, `sportsbook` schema), hard-disabled |
 | Email | Resend (falls back to an admin-visible outbox) |
 | Sports data | API-Football adapter, or a labelled fictional sample league |
 | AI | OpenAI, optional, grounded on stored stats only |
@@ -24,7 +26,7 @@ BETVANTA is a sports intelligence platform: data-driven match predictions with s
 cp .env.example .env.local        # fill DATABASE_URL at minimum
 npm install
 npm run migrate                   # applies db/migrations
-node scripts/paystack-stub.mjs &  # optional: local Paystack sandbox stand-in (PAYSTACK_BASE_URL=http://127.0.0.1:4599)
+node scripts/payments-stub.mjs &  # optional: local stand-in for Stripe/Paystack/NOWPayments (point *_API_BASE / PAYSTACK_BASE_URL at http://127.0.0.1:4599)
 npm run dev
 ```
 

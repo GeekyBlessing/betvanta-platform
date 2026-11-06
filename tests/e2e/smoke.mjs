@@ -52,33 +52,66 @@ const lockedSel = (await db.query("select p.selection, ht.name from predictions 
 check("public predictions page renders", home.status === 200 && home.body.includes("Upcoming predictions"));
 check("locked analysis text never reaches the browser", !home.body.includes("Model probability"));
 
-console.log("payments");
-r = await member("/api/billing/checkout", { method: "POST", json: { planCode: "premium_monthly" } });
+console.log("payments (USD)");
+const sortKeys = (v) => Array.isArray(v) ? v.map(sortKeys) : v && typeof v === "object" ? Object.fromEntries(Object.keys(v).sort().map((k) => [k, sortKeys(v[k])])) : v;
+r = await member("/api/billing/checkout", { method: "POST", json: { planCode: "premium_monthly", provider: "stripe" } });
 check("unverified member cannot check out", r.status === 403);
 const vt = await tokenFor(memberEmail);
 check("verification email recorded", Boolean(vt));
 check("email verification succeeds", (await member("/api/auth/verify", { method: "POST", json: { token: vt } })).body.ok);
-r = await member("/api/billing/checkout", { method: "POST", json: { planCode: "vip_monthly" } });
-check("verified member starts checkout", r.body.ok && r.body.data.next.includes("/checkout/"), JSON.stringify(r.body));
-const ref = r.body.data.reference;
-r = await member(`/billing/callback?reference=${ref}`);
-check("callback before payment does not grant access", r.body.includes("still processing") && (await member("/api/predictions")).body.data.tier === "free");
-await fetch(`${STUB}/__pay/${ref}`, { method: "POST", body: JSON.stringify({ status: "success", amount: 2500000, currency: "NGN" }) });
-r = await member(`/billing/callback?reference=${ref}`);
-check("callback after verified payment activates VIP", r.body.includes("Payment verified") && (await member("/api/predictions")).body.data.tier === "vip");
+check("checkout page lists card and crypto options", await (async () => { const x = await member("/checkout/vip_monthly"); return x.status === 200 && x.body.includes("Pay with BTC") && x.body.includes("Card (Stripe)") && x.body.includes("$49"); })());
+r = await member("/api/billing/checkout", { method: "POST", json: { planCode: "premium_monthly", provider: "stripe" } });
+check("Stripe checkout starts in USD", r.body.ok && (await db.query("select currency, amount_minor from payments where reference=$1", [r.body.data.reference])).rows[0].currency === "USD", JSON.stringify(r.body));
+const sref = r.body.data.reference;
+check("Stripe callback before payment does not grant access", (await member(`/billing/callback?reference=${sref}`)).body.includes("still processing") && (await member("/api/predictions")).body.data.tier === "free");
+await fetch(`${STUB}/__pay/${sref}`, { method: "POST", body: JSON.stringify({ status: "success" }) });
+check("Stripe callback after payment activates Premium", (await member(`/billing/callback?reference=${sref}`)).body.includes("Payment verified") && (await member("/api/predictions")).body.data.tier === "premium");
+const stBody = JSON.stringify({ id: "evt_1", type: "checkout.session.completed", data: { object: { client_reference_id: sref } } });
+const ts = Math.floor(Date.now() / 1000);
+const stSig = crypto.createHmac("sha256", process.env.STRIPE_WEBHOOK_SECRET).update(`${ts}.${stBody}`).digest("hex");
+check("Stripe webhook with bad signature is rejected", (await anon("/api/webhooks/stripe", { method: "POST", raw: stBody, headers: { "stripe-signature": `t=${ts},v1=${"0".repeat(64)}` } })).status === 400);
+check("signed Stripe webhook is accepted and idempotent", (await anon("/api/webhooks/stripe", { method: "POST", raw: stBody, headers: { "stripe-signature": `t=${ts},v1=${stSig}` } })).body.ok && (await db.query("select count(*)::int n from subscriptions s join users u on u.id=s.user_id where u.email=$1", [memberEmail])).rows[0].n === 1);
+
+r = await member("/api/billing/checkout", { method: "POST", json: { planCode: "vip_monthly", provider: "nowpayments", payCurrency: "USDT" } });
+check("crypto checkout records USDT and USD price", r.body.ok && (await db.query("select pay_currency, method, currency from payments where reference=$1", [r.body.data.reference])).rows[0].pay_currency === "USDT", JSON.stringify(r.body));
+const cref = r.body.data.reference;
+const paid = await (await fetch(`${STUB}/__pay/${cref}`, { method: "POST", body: JSON.stringify({ status: "confirming" }) })).json();
+const ipn = (status) => ({ payment_id: Number(paid.paymentId), payment_status: status, price_amount: 49, price_currency: "usd", order_id: cref, pay_currency: "usdttrc20" });
+const npSig = (o) => crypto.createHmac("sha512", process.env.NOWPAYMENTS_IPN_SECRET).update(JSON.stringify(sortKeys(o))).digest("hex");
+check("crypto IPN with bad signature is rejected", (await anon("/api/webhooks/nowpayments", { method: "POST", raw: JSON.stringify(ipn("finished")), headers: { "x-nowpayments-sig": "00" + npSig(ipn("finished")).slice(2) } })).status === 401);
+await anon("/api/webhooks/nowpayments", { method: "POST", raw: JSON.stringify(ipn("confirming")), headers: { "x-nowpayments-sig": npSig(ipn("confirming")) } });
+check("crypto still confirming: no VIP yet", (await member("/api/predictions")).body.data.tier === "premium");
+await fetch(`${STUB}/__pay/${cref}`, { method: "POST", body: JSON.stringify({ status: "success" }) });
+const fin = ipn("finished");
+await anon("/api/webhooks/nowpayments", { method: "POST", raw: JSON.stringify(fin), headers: { "x-nowpayments-sig": npSig(fin) } });
+check("crypto IPN 'finished' verified with the API activates VIP", (await member("/api/predictions")).body.data.tier === "vip");
 const unlocked = (await member("/api/predictions")).body.data.predictions;
 check("VIP member sees all selections", unlocked.every((p) => !p.locked && p.selection));
-const body = JSON.stringify({ event: "charge.success", data: { id: 99, reference: ref } });
+
+r = await member("/api/billing/checkout", { method: "POST", json: { planCode: "premium_monthly", provider: "paystack" } });
+const pref = r.body.data.reference;
+await fetch(`${STUB}/__pay/${pref}`, { method: "POST", body: JSON.stringify({ status: "success", amount: 100 }) });
+check("Paystack underpayment is flagged, not activated", (await member(`/billing/callback?reference=${pref}`)).body.includes("under review"));
+const body = JSON.stringify({ event: "charge.success", data: { id: 99, reference: pref } });
 const sig = crypto.createHmac("sha512", process.env.PAYSTACK_SECRET_KEY).update(body).digest("hex");
-check("webhook with bad signature is rejected", (await anon("/api/webhooks/paystack", { method: "POST", raw: body, headers: { "x-paystack-signature": "00" + sig.slice(2), "content-type": "application/json" } })).status === 401);
-check("signed webhook is accepted", (await anon("/api/webhooks/paystack", { method: "POST", raw: body, headers: { "x-paystack-signature": sig, "content-type": "application/json" } })).body.ok);
-const replay = await anon("/api/webhooks/paystack", { method: "POST", raw: body, headers: { "x-paystack-signature": sig, "content-type": "application/json" } });
-check("replayed webhook is ignored", replay.body.duplicate === true);
-check("exactly one subscription after callback + webhook", (await db.query("select count(*)::int n from subscriptions s join users u on u.id=s.user_id where u.email=$1", [memberEmail])).rows[0].n === 1);
-const ref2 = (await member("/api/billing/checkout", { method: "POST", json: { planCode: "premium_monthly" } })).body.data.reference;
-await fetch(`${STUB}/__pay/${ref2}`, { method: "POST", body: JSON.stringify({ status: "success", amount: 50000, currency: "NGN" }) });
-check("underpayment is flagged, not activated", (await member(`/billing/callback?reference=${ref2}`)).body.includes("under review"));
+check("Paystack webhook with bad signature is rejected", (await anon("/api/webhooks/paystack", { method: "POST", raw: body, headers: { "x-paystack-signature": "00" + sig.slice(2) } })).status === 401);
+check("signed Paystack webhook accepted; replay ignored", (await anon("/api/webhooks/paystack", { method: "POST", raw: body, headers: { "x-paystack-signature": sig } })).body.ok && (await anon("/api/webhooks/paystack", { method: "POST", raw: body, headers: { "x-paystack-signature": sig } })).body.duplicate === true);
 check("member can cancel and keeps access", (await member("/api/billing/cancel", { method: "POST", json: {} })).body.ok && (await member("/api/predictions")).body.data.tier === "vip");
+
+console.log("sports, leagues, favourites, admin subscriptions");
+const comp = (await db.query("select id from competitions limit 1")).rows[0].id;
+check("member saves a favourite league", (await member("/api/account/favourites", { method: "POST", json: { competitionId: comp, favourite: true } })).body.ok);
+check("my-leagues fixtures filter works", (await member("/fixtures?mine=1")).body.includes("Schedule"));
+check("league page shows a table", (await anon(`/leagues/${comp}`)).body.includes("Pts"));
+check("results view shows finished scores", (await anon("/fixtures?mode=results")).body.includes("FT"));
+const fixtureId = (await db.query("select fixture_id from predictions limit 1")).rows[0].fixture_id;
+check("match page shows statistics and head to head", await (async () => { const x = await anon(`/matches/${fixtureId}`); return x.body.includes("Statistics this season") && x.body.includes("Head to head"); })());
+r = await admin("/api/admin/subscriptions", { method: "POST", json: { email: memberEmail, planCode: "premium_monthly", days: 7, note: "support credit" } });
+check("admin grants complimentary access (audited)", r.body.ok && (await db.query("select count(*)::int n from audit_logs where action='admin.grant_access'")).rows[0].n >= 1, JSON.stringify(r.body));
+const subId = (await db.query("select s.id from subscriptions s join users u on u.id=s.user_id where u.email=$1 and s.source='admin_grant' limit 1", [memberEmail])).rows[0].id;
+check("admin revokes a subscription", (await admin(`/api/admin/subscriptions/${subId}`, { method: "PATCH", json: { action: "revoke" } })).body.ok);
+check("member cannot use admin subscription API", (await member("/api/admin/subscriptions", { method: "POST", json: { email: memberEmail, planCode: "vip_annual", days: 366, note: "self grant" } })).status === 403);
+check("sportsbook money tables stay locked", await db.query("insert into sportsbook.wallets(user_id) select id from users limit 1").then(() => false, (e) => /disabled/.test(e.message)));
 
 console.log("account and cron");
 check("settings save", (await member("/api/account", { method: "PATCH", json: { displayName: "Member Two", notifyPredictions: false, notifyBilling: true } })).body.ok);
@@ -90,10 +123,10 @@ check("logout clears session", (await member("/api/auth/logout", { method: "POST
 console.log("headers and pages");
 const h = (await anon("/")).headers;
 check("security headers present", h.get("content-security-policy")?.includes("frame-ancestors 'none'") && h.get("x-frame-options") === "DENY" && h.get("x-content-type-options") === "nosniff" && !h.get("x-powered-by"));
-for (const p of ["/", "/pricing", "/performance", "/about", "/faq", "/contact", "/legal/terms", "/legal/privacy", "/responsible-gambling", "/login", "/register", "/forgot-password"]) {
+for (const p of ["/sports", "/fixtures", "/fixtures?mode=live", "/", "/pricing", "/performance", "/about", "/faq", "/contact", "/legal/terms", "/legal/privacy", "/responsible-gambling", "/login", "/register", "/forgot-password"]) {
   const x = await anon(p); check(`page ${p} renders with BETVANTA title`, x.status === 200 && /<title>[^<]*BETVANTA/.test(x.body));
 }
-for (const p of ["/admin", "/admin/predictions", "/admin/users", "/admin/payments", "/admin/plans", "/admin/audit", "/admin/data", "/admin/emails"]) check(`admin page ${p}`, (await admin(p)).status === 200);
+for (const p of ["/admin/subscriptions", "/admin", "/admin/predictions", "/admin/users", "/admin/payments", "/admin/plans", "/admin/audit", "/admin/data", "/admin/emails"]) check(`admin page ${p}`, (await admin(p)).status === 200);
 check("rate limit kicks in on repeated failed logins", await (async () => { let last; for (let i = 0; i < 10; i++) last = await anon("/api/auth/login", { method: "POST", json: { email: "ratelimit@example.com", password: "wrong" } }); return last.status === 429; })());
 await db.end();
 console.log(`\n${pass} passed, ${fail} failed`);

@@ -4,7 +4,6 @@ import { q } from "@/lib/db";
 import { currentUser } from "@/lib/session";
 import { paymentsEnabled } from "@/lib/env";
 import { formatMoney, type Plan } from "@/lib/services/billing";
-import { ApiForm } from "@/components/ApiForm";
 import { Notice, PageHeader, RG_LINE } from "@/components/ui";
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Pricing", description: "BETVANTA plans: Free, Premium and VIP, monthly, quarterly or annual." };
@@ -21,11 +20,11 @@ export default async function Pricing(props: { searchParams: Promise<{ interval?
       <div className="inline-flex p-1 gap-1 bg-sunken rounded-full border border-line mb-8" role="group" aria-label="Billing interval">
         {INTERVALS.map((i) => <Link key={i} href={`/pricing?interval=${i}`} aria-pressed={i === interval} className={`px-4 py-1.5 rounded-full text-sm font-semibold capitalize ${i === interval ? "bg-surface text-ink shadow-sm" : "text-muted"}`}>{i}</Link>)}
       </div>
-      {!paymentsEnabled() && <div className="mb-6"><Notice tone="warning" title="Checkout is not switched on yet.">Payments will open once the payment provider is connected.</Notice></div>}
+      {!paymentsEnabled() && <div className="mb-6"><Notice tone="warning" title="Checkout is not switched on yet.">Payments open once a payment provider is connected.</Notice></div>}
       <div className="grid gap-4 md:grid-cols-3 items-start">
         <section className="card p-6 grid gap-5 rounded-xl" aria-label="Free plan">
           <span className="display text-[13px] font-bold tracking-[.14em] uppercase">Free</span>
-          <div className="display text-[40px] leading-[44px] font-bold">₦0</div>
+          <div className="display text-[40px] leading-[44px] font-bold">$0</div>
           <ul className="grid gap-2 text-sm"><li>Free daily predictions</li><li>Public track record</li><li>Match pages and form</li></ul>
           <Link href={user ? "/dashboard" : "/register"} className="btn btn-secondary btn-lg w-full">{user ? "Go to dashboard" : "Create free account"}</Link>
         </section>
@@ -37,13 +36,13 @@ export default async function Pricing(props: { searchParams: Promise<{ interval?
               <div className="flex items-baseline gap-2"><span className="display text-[40px] leading-[44px] font-bold num">{formatMoney(p.amount_minor, p.currency)}</span><span className={`text-sm ${vip ? "opacity-80" : "text-subtle"}`}>{per}</span></div>
               <ul className="grid gap-2 text-sm">{p.features.map((f) => <li key={f}>✓ {f}</li>)}</ul>
               {user ? (
-                <ApiForm action="/api/billing/checkout" extra={{ planCode: p.code }} submitLabel={`Choose ${p.name}`} variant={vip ? "accent" : "primary"} size="lg" block className="grid gap-2"><span className="sr-only">{p.code}</span></ApiForm>
+                <Link href={`/checkout/${p.code}`} className={`btn btn-lg w-full ${vip ? "btn-accent" : "btn-primary"}`}>Choose {p.name}</Link>
               ) : <Link href={`/register?next=/pricing`} className={`btn btn-lg w-full ${vip ? "btn-accent" : "btn-primary"}`}>Create account to subscribe</Link>}
             </section>
           );
         })}
       </div>
-      <p className="mt-8 text-xs text-subtle">Prices in Nigerian naira. Payments are processed by Paystack. {RG_LINE}</p>
+      <p className="mt-8 text-xs text-subtle">All prices in US dollars. Card payments are processed by Stripe or Paystack; crypto payments (BTC, ETH, USDT) by NOWPayments. {RG_LINE}</p>
     </div>
   );
 }

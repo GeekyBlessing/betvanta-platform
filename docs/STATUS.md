@@ -1,44 +1,38 @@
-# MVP status
+# Phase 1 status
 
-Verified by 27 unit/integration tests against Postgres and 55 end-to-end HTTP checks against a production build.
+Verified by 35 unit/integration tests against Postgres and 73 end-to-end HTTP checks against a production build (`tests/e2e/smoke.mjs`), with payment and Discord APIs replaced by local stand-ins.
 
-## Working and tested
+| # | Requirement | Status | Evidence / note |
+| --- | --- | --- | --- |
+| 1 | Premium responsive homepage | Done | e2e page checks, desktop/mobile/dark screenshots |
+| 2 | Registration, login, authentication | Done | auth tests, e2e |
+| 3 | User dashboard | Done | overview filtered by favourite leagues, predictions, history, billing, settings |
+| 4 | Sports and league selection | Done | `/sports`, favourites API, "My leagues" filters. Only football has a data feed; other sports are listed as not connected |
+| 5 | Fixtures, schedules, scores, statistics | Done | `/fixtures` (schedule, live, results), `/leagues/[id]` table, match stats and head to head |
+| 6 | AI match analysis and predictions | Done, AI needs key | Poisson engine always on; OpenAI analysis grounded on stored numbers when `OPENAI_API_KEY` is set |
+| 7 | Free, Premium, VIP tiers | Done | server-side gating tests |
+| 8 | USD subscription checkout | Done, needs keys | Stripe (cards), Paystack (USD, needs approval); prices are USD placeholders |
+| 9 | Crypto payment architecture (BTC, ETH, USDT) | Done, needs keys | NOWPayments invoices + signed IPN + API confirmation; legal check required before enabling |
+| 10 | Other approved payment methods | Done | Paystack card/bank in USD |
+| 11 | Prediction history and performance | Done | settles from final scores; record starts empty (no back-filled history) |
+| 12 | Email notifications | Done, needs key | verify, reset, password changed, receipt, cancellation, expiry reminder; logged in Admin > Emails until `RESEND_API_KEY` is set |
+| 13 | Discord community | Done, needs keys | OAuth link, auto role by tier (incl. expiry), pick announcements, invite link |
+| 14 | Complete admin dashboard | Done | overview, predictions, sports data, users, subscriptions, payments, plans, emails, messages, audit |
+| 15 | User and subscription management | Done | roles, suspend, grant/extend/revoke access (audited) |
+| 16 | Prediction publishing and management | Done | drafts, tier choice, publish, discard, settle, AI analysis |
+| 17 | Responsive mobile and desktop | Done | screenshots at 390px and 1280px, light and dark |
+| Sportsbook | Integration points only, disabled | Done | separate schema, DB guard, disabled operator adapter, tests |
 
-| Feature | Evidence |
-| --- | --- |
-| Registration (18+ and terms required), login, logout, sessions | auth tests, e2e |
-| Email verification, password reset, password change, profile and notification settings, account deletion (anonymisation) | auth tests, e2e |
-| Roles (member, analyst, admin), suspension, admin role assignment via `ADMIN_EMAILS` | auth tests, e2e (403/401 checks) |
-| Sports data sync with idempotent upserts, team stats and form rebuilt from results | prediction tests, e2e |
-| Poisson prediction engine (1X2, BTTS, Over/Under 2.5) with probabilities, confidence bands and limitations text | engine unit tests |
-| Draft, review, publish, lock at kickoff (DB trigger), automatic settlement | prediction tests, e2e |
-| Server-side gating of Premium/VIP content | prediction tests, e2e |
-| Plans (Premium/VIP x monthly/quarterly/annual), admin-editable prices | e2e |
-| Paystack checkout, server verification, signed webhooks, idempotent activation, flagged mismatches, renewals extend, cancellation keeps access to period end, expiry and reminders | billing tests and e2e against a Paystack API stand-in |
-| Public site, member dashboard, admin console (users, payments, plans, predictions, data, emails, messages, audit) | e2e page checks, screenshots |
-| Security controls listed in SECURITY.md | tests + e2e (CSRF, signatures, rate limits, headers) |
-| CI workflow (typecheck, lint, tests, audit, e2e) | `.github/workflows/ci.yml` (runs once pushed) |
+## Needs your credentials before it runs against the real service
 
-## Depends on your credentials (code complete, not yet exercised against the real service)
+GitHub push access, a Postgres database, API-Football key, Stripe test keys (and/or Paystack USD, NOWPayments), Resend key and domain, Discord app + bot + role ids, OpenAI key (optional).
 
-| Feature | Needs | Until then |
-| --- | --- | --- |
-| Real Paystack test checkout | `PAYSTACK_SECRET_KEY=sk_test_...` and webhook URL in the Paystack dashboard | Checkout shows "not switched on yet" |
-| Email delivery | `RESEND_API_KEY`, verified domain | Emails are logged in Admin > Emails, not delivered, so members cannot verify |
-| Real fixtures and stats | `API_FOOTBALL_KEY` (check your plan covers the season) | Labelled sample league with fictional teams |
-| AI analysis | `OPENAI_API_KEY` | Model-generated analysis text only |
+## Placeholders to replace before going live
 
-## Not built yet
-
-- Live in-play scores and odds (no licensed odds feed)
-- Flutterwave and Stripe (Paystack only)
-- Recurring auto-renew billing, proration, coupons
-- MFA, session/device list, social login
-- Testimonials moderation, broadcast notifications, analytics charts
-- Native apps
-
-## Placeholders to replace before live payments
-
-- Plan prices (NGN 10,000 / 27,000 / 96,000 Premium; 25,000 / 67,500 / 240,000 VIP) are placeholders.
+- USD plan prices (Premium $19 / $49 / $179, VIP $49 / $129 / $449).
 - Terms, privacy and responsible-gambling pages are drafts for legal review.
-- The performance record starts empty: settled results only appear after real published picks finish. No historical record was back-filled.
+- Crypto acceptance needs legal confirmation for your markets (Nigeria: SEC and CBN rules).
+
+## Not built in Phase 1
+
+Live odds (needs a licensed feed), real-money betting, wallets, deposits and withdrawals (deliberately disabled), recurring auto-renew, MFA, testimonials, analytics charts, native apps.

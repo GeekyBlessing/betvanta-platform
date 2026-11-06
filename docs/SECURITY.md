@@ -11,7 +11,9 @@
 | CSRF | SameSite cookies + middleware rejects state-changing `/api` requests whose Origin does not match the host |
 | Input | Zod schemas on every API body; parameterised SQL only; JSON body size bounded by the platform; webhook body capped at 200 KB |
 | Rate limiting | Postgres-backed fixed window: login (IP and email), register, forgot/reset, resend, checkout, contact, password change |
-| Payments | Access only after Paystack's verify API confirms success and amount, currency and reference match; mismatches are flagged; activation is idempotent under concurrent callback + webhook; webhooks require a valid HMAC-SHA512 signature and are de-duplicated |
+| Payments | USD only (DB check). Access only after the provider's own API confirms success (Stripe session retrieve, Paystack verify, NOWPayments payment status) and amount, currency and reference match our record; partial or mismatched payments are flagged; activation is idempotent under concurrent redirect + webhook. Webhooks: Stripe HMAC-SHA256 with 5-minute timestamp tolerance, Paystack HMAC-SHA512, NOWPayments HMAC-SHA512 over sorted JSON; all de-duplicated. A crypto IPN pointing at another order's payment cannot unlock an order |
+| Discord | OAuth state is random, bound to the signed-in user, single-use and expires in 10 minutes; one Discord account per BETVANTA account; paid selections are never posted to Discord |
+| Sportsbook | Real-money tables blocked at the database level while disabled; application adapter throws on every money operation |
 | Audit | Append-only audit log of registrations, logins, payments, role/status changes, plan price changes, prediction publish/settle |
 | Headers | CSP, HSTS, X-Frame-Options DENY, nosniff, Referrer-Policy, Permissions-Policy; `X-Powered-By` removed |
 | Secrets | Only in environment variables; `.env*` git-ignored; nothing secret is prefixed `NEXT_PUBLIC_` |

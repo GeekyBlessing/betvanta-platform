@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { one } from "@/lib/db";
-import { aiEnabled, emailEnabled, paymentsEnabled, sampleDataAllowed, env } from "@/lib/env";
+import { aiEnabled, emailEnabled, sampleDataAllowed, env, discordOAuthEnabled } from "@/lib/env";
 import { formatMoney } from "@/lib/services/billing";
 import { Badge, PageHeader, Stat } from "@/components/ui";
 export const metadata: Metadata = { title: "Admin" };
@@ -17,11 +17,15 @@ export default async function AdminHome() {
     <PageHeader eyebrow="Admin" title="Overview" />
     <div className="grid gap-3 grid-cols-2 lg:grid-cols-4 mb-8">
       <Stat label="Members" value={String(s.users)} foot={`${s.new_users} new this week`} /><Stat label="Active paid members" value={String(s.paying)} />
-      <Stat label="Verified revenue, 30 days" value={formatMoney(s.revenue_30d, "NGN")} /><Stat label="Payments under review" value={String(s.flagged)} />
+      <Stat label="Verified revenue, 30 days" value={formatMoney(s.revenue_30d)} /><Stat label="Payments under review" value={String(s.flagged)} foot="Mismatched or partial payments" />
       <Stat label="Draft predictions" value={String(s.drafts)} /><Stat label="Live predictions" value={String(s.live)} /><Stat label="Unread messages" value={String(s.messages)} />
     </div>
     <section className="card p-6 max-w-[640px] text-sm"><h2 className="font-semibold text-[17px] mb-3">Integrations</h2>
-      {flag(paymentsEnabled(), `Paystack ${env().PAYSTACK_SECRET_KEY?.startsWith("sk_live") ? "(live)" : "(test mode)"}`, "Not configured")}
+      {flag(Boolean(env().STRIPE_SECRET_KEY), `Stripe ${env().STRIPE_SECRET_KEY?.startsWith("sk_live") ? "(live)" : "(test mode)"}`, "Not configured")}
+      {flag(Boolean(env().PAYSTACK_SECRET_KEY), `Paystack USD ${env().PAYSTACK_SECRET_KEY?.startsWith("sk_live") ? "(live)" : "(test mode)"}`, "Not configured")}
+      {flag(Boolean(env().NOWPAYMENTS_API_KEY && env().NOWPAYMENTS_IPN_SECRET), "NOWPayments crypto (BTC, ETH, USDT)", "Not configured")}
+      {flag(discordOAuthEnabled(), "Discord role sync", "Not configured")}
+      {flag(Boolean(env().DISCORD_WEBHOOK_URL), "Discord announcements", "Not configured")}
       {flag(emailEnabled(), "Resend email", "Logging to outbox")}
       {flag(Boolean(env().API_FOOTBALL_KEY), "API-Football data", sampleDataAllowed() ? "Using sample data" : "Not configured")}
       {flag(aiEnabled(), "OpenAI analysis", "Not configured")}
