@@ -16,7 +16,7 @@ export function MobileMenu({ nav, signedIn, accountHref, accountLabel, onDark }:
     return () => document.removeEventListener("keydown", k);
   }, [open]);
   return (
-    <div className="md:hidden">
+    <div className="lg:hidden">
       <button type="button" aria-expanded={open} aria-controls={id} onClick={() => setOpen((o) => !o)}
         className={`h-10 w-10 grid place-items-center rounded-md ${onDark ? "text-sand hover:bg-white/10" : "text-ink hover:bg-sunken"}`}>
         <span className="sr-only">{open ? "Close menu" : "Open menu"}</span>

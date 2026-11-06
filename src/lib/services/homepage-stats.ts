@@ -14,8 +14,20 @@ export type HomepageStatRow = {
   visible: boolean; updated_at: string; updated_by_name: string | null;
 };
 
-/** What the homepage renders. `status` drives the label shown next to every figure. Unverified figures are never public. */
-export type PublicStat = { key: StatKey; icon: StatIcon; value: string; label: string; status: "live" | "verified"; note?: string };
+/**
+ * What the homepage hero renders. These are marketing figures, kept apart from live platform statistics (homeStats,
+ * shown on /performance and in admin). `client` = provided by BETVANTA and not independently verified (the page says so);
+ * `verified` = an admin recorded the evidence; `live` = an admin chose the live figure for that slot.
+ */
+export type PublicStat = { key: StatKey; icon: StatIcon; value: string; label: string; status: "client" | "verified" | "live"; note?: string };
+
+/** Client-provided figures. Used if the homepage_stats table is not available, so an empty or missing table never shows 0. */
+export const CLIENT_FIGURES: { key: StatKey; icon: StatIcon; value: string; label: string }[] = [
+  { key: "members", icon: "members", value: "2,000", label: "Happy Members" },
+  { key: "win_rate", icon: "target", value: "100%", label: "Win Rate" },
+  { key: "winning_picks", icon: "trophy", value: "12,500", label: "Winning Picks" },
+  { key: "sports", icon: "sports", value: "10", label: "Sports Covered" },
+];
 
 const fmt = (n: number) => new Intl.NumberFormat("en-US").format(n);
 
@@ -29,11 +41,6 @@ export function liveValue(key: StatKey, s: HomeStats): { value: string; note?: s
   }
 }
 
-const LIVE_DEFAULTS: Record<StatKey, { icon: StatIcon; label: string }> = {
-  members: { icon: "members", label: "Members" }, win_rate: { icon: "target", label: "Win rate" },
-  winning_picks: { icon: "trophy", label: "Winning picks" }, sports: { icon: "sports", label: "Sports covered" },
-};
-
 export async function listHomepageStats() {
   return q<HomepageStatRow>(
     `select h.key, h.sort, h.icon, h.value_text, h.label, h.source, h.verification, h.verification_note, h.verified_at, h.visible, h.updated_at,
@@ -42,8 +49,9 @@ export async function listHomepageStats() {
 }
 
 /**
- * Statistics for the homepage hero. If the homepage_stats table is not there yet (migration 010 not applied),
- * the page shows the live figures from BETVANTA's records and logs the problem; it never invents numbers.
+ * Figures for the homepage hero. Entered figures are shown as entered, whatever the live records say; a slot shows a
+ * live figure only when an admin switched it to "live". If the table is missing (migration 010 not applied) the
+ * client figures are shown and the problem is logged.
  */
 export async function publicHomepageStats(): Promise<{ stats: PublicStat[]; live: HomeStats; configMissing: boolean }> {
   const live = await homeStats();
@@ -51,15 +59,14 @@ export async function publicHomepageStats(): Promise<{ stats: PublicStat[]; live
   try { rows = await listHomepageStats(); }
   catch (e) {
     if ((e as { code?: string }).code !== "42P01") throw e;
-    console.error("[homepage] homepage_stats table is missing; apply migration 010. Showing live figures only.");
-    return { live, configMissing: true, stats: STAT_KEYS.map((k) => ({ key: k, ...LIVE_DEFAULTS[k], ...liveValue(k, live), status: "live" as const })) };
+    console.error("[homepage] homepage_stats table is missing; apply migration 010. Showing the client-provided figures.");
+    return { live, configMissing: true, stats: CLIENT_FIGURES.map((f) => ({ ...f, status: "client" as const })) };
   }
-  const stats = rows.filter((r) => r.visible).map((r): PublicStat => {
-    // Only live figures and figures an admin has verified (with recorded evidence) reach the public page.
-    // An unverified entered figure is never shown; the live figure from our own records stands in for it.
-    if (r.source === "live" || r.verification !== "verified") return { key: r.key, icon: r.icon, label: r.verification !== "verified" && r.source === "manual" ? LIVE_DEFAULTS[r.key].label : r.label, ...liveValue(r.key, live), status: "live" };
-    return { key: r.key, icon: r.icon, label: r.label, value: r.value_text, status: "verified" };
-  });
+  if (!rows.length) return { live, configMissing: true, stats: CLIENT_FIGURES.map((f) => ({ ...f, status: "client" as const })) };
+  const stats = rows.filter((r) => r.visible).map((r): PublicStat =>
+    r.source === "live"
+      ? { key: r.key, icon: r.icon, label: r.label, ...liveValue(r.key, live), status: "live" }
+      : { key: r.key, icon: r.icon, label: r.label, value: r.value_text, status: r.verification === "verified" ? "verified" : "client" });
   return { stats, live, configMissing: false };
 }
 

@@ -21,16 +21,16 @@ export async function SiteHeader({ overlay = false }: { overlay?: boolean }) {
       {overlay && <HeaderScrollState targetId="site-header-overlay" />}
       <div className={`wrap flex items-center gap-6 py-2 ${overlay ? "min-h-[72px]" : "min-h-16"}`}>
         <Logo size={overlay ? 34 : 28} onDark={overlay} />
-        <nav aria-label="Main" className="hidden md:flex gap-1 flex-1">
+        <nav aria-label="Main" className="hidden lg:flex gap-1 flex-1">
           {NAV.map((n) => <Link key={n.href} href={n.href} className={`px-3 py-2 rounded-md text-sm font-medium ${link}`}>{n.label}</Link>)}
         </nav>
         <div className="flex items-center gap-2 ml-auto">
           <span className="hidden sm:inline-flex"><ThemeToggle /></span>
           {u ? (<>
             <Link href={u.role === "member" ? "/dashboard" : "/admin"} className="btn btn-secondary btn-sm">{u.role === "member" ? "Dashboard" : "Admin"}</Link>
-            <span className="hidden md:inline-flex"><LogoutButton /></span>
+            <span className="hidden lg:inline-flex"><LogoutButton /></span>
           </>) : (<>
-            <span className="hidden md:inline-flex"><Link href="/login" className="btn btn-ghost btn-sm">Log in</Link></span>
+            <span className="hidden lg:inline-flex"><Link href="/login" className="btn btn-ghost btn-sm">Log in</Link></span>
             <Link href="/register" className="btn btn-accent btn-sm">Get started</Link>
           </>)}
           <MobileMenu nav={NAV} signedIn={Boolean(u)} accountHref={u ? (u.role === "member" ? "/dashboard" : "/admin") : "/register"} accountLabel={u ? (u.role === "member" ? "Open dashboard" : "Open admin") : "Get started"} onDark={overlay} />

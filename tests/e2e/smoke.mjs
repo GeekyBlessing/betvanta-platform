@@ -183,11 +183,11 @@ console.log("payment assistant: manual crypto and Discord-arranged payments");
 
 console.log("homepage sections, links, testimonials, Discord");
 const homePage = await anon("/");
-check("hero Get Started Now opens registration", /href="\/register"[^>]*>Get Started Now</.test(homePage.body));
-check("hero View Predictions opens predictions", /href="\/predictions"[^>]*>[\s\S]{0,400}View Predictions/.test(homePage.body));
-check("Premium Picks opens the subscription page", /href="\/pricing"[^>]*>Premium Picks</.test(homePage.body));
+check("hero Get Premium Picks opens the subscription page", /href="\/pricing"[^>]*>[\s\S]{0,600}Get Premium Picks/.test(homePage.body));
+check("Get Started Now opens registration", /href="\/register"[^>]*>Get Started Now</.test(homePage.body));
+check("View Predictions opens predictions", /href="\/predictions"[^>]*>View Predictions</.test(homePage.body));
 check("hero uses the stadium artwork for desktop and mobile", homePage.body.includes("/images/hero/stadium-wide.webp") && homePage.body.includes("/images/hero/stadium-tall.webp") && (await anon("/images/hero/stadium-tall.webp")).status === 200);
-for (const [name, text] of [["sports coverage", "Built for the sports you follow"], ["upcoming fixtures", "Upcoming matches"], ["predictions and analysis", "Predictions and match analysis"], ["premium plans", "Choose how long you want full access"], ["how it works", "From sign-up to sharper picks in three steps"], ["dashboard preview", "Everything you follow, in one place"], ["testimonials", "What members say"], ["FAQ", "Questions, answered"], ["community", "Talk the game with other members"]])
+for (const [name, text] of [["platform and sports", "Your Smarter Sports Intelligence Platform"], ["get started", "Get started in under a minute"], ["upcoming fixtures", "Upcoming matches"], ["predictions and analysis", "Predictions and match analysis"], ["premium plans", "Choose how long you want full access"], ["how it works", "From sign-up to sharper picks in three steps"], ["dashboard preview", "Everything you follow, in one place"], ["testimonials", "What members say"], ["FAQ", "Questions, answered"], ["community", "Talk the game with other members"]])
   check(`homepage section: ${name}`, homePage.body.includes(text));
 check("homepage plans link to checkout or registration for all five plans", ["premium_1m", "premium_3m", "premium_6m", "premium_1y", "premium_lifetime"].every((c) => homePage.body.includes(`/register?next=/checkout/${c}`)));
 check("footer has contact, Discord and legal links", ["mailto:", "/contact", "/legal/terms", "/legal/privacy", "/responsible-gambling"].every((x) => homePage.body.includes(x)) && /Discord/.test(homePage.body));
@@ -196,20 +196,21 @@ const invite = process.env.DISCORD_INVITE_URL;
 check("Join Discord opens the configured invite in a new tab", invite ? homePage.body.includes(`href="${invite}" target="_blank" rel="noopener noreferrer"`) : homePage.body.includes('href="/community"'));
 const textOf = (html) => html.replace(/<[^>]+>/g, " ").replace(/&nbsp;/g, " ").replace(/\s+/g, " ");
 const homeText = textOf(homePage.body);
-check("homepage never shows unverified client figures", !["100% Win Rate", "12,500+", "2,000+", "10 Sports Covered", ">100%<"].some((x) => homeText.includes(x) || homePage.body.includes(x)));
-check("homepage statistics come from records and say so", homeText.includes("Live record") && homeText.includes("Figures come from BETVANTA"));
+check("hero shows the four client figures", ["2,000 Happy Members", "100% Win Rate", "12,500 Winning Picks", "10 Sports Covered"].every((x) => homeText.includes(x)), homeText.slice(0, 300));
+check("client figures carry the not-independently-verified note", homeText.includes("Figures provided by BETVANTA; not independently verified"));
+check("empty live records never replace the hero figures", !/\b0 Winning Picks|Building Win Rate/.test(homeText));
 check("member cannot edit homepage statistics", (await member("/api/admin/homepage-stats/members", { method: "PATCH", json: { value: "9", label: "x", source: "manual", verification: "unverified", visible: true } })).status === 403);
 check("admin cannot mark a figure verified without evidence", (await admin("/api/admin/homepage-stats/win_rate", { method: "PATCH", json: { value: "100%", label: "Win Rate", source: "manual", verification: "verified", visible: true } })).status === 400);
 check("admin switches members to the live figure", (await admin("/api/admin/homepage-stats/members", { method: "PATCH", json: { value: "2,000+", label: "Members", source: "live", verification: "unverified", visible: true } })).body.ok);
 const memberCount = (await db.query("select count(*)::int n from users where role='member' and status='active'")).rows[0].n;
 { const t = textOf((await anon("/")).body);
-  check("live member statistic matches the database and is labelled as live", t.includes(`${new Intl.NumberFormat("en-US").format(memberCount)} Members Live record`)); }
+  check("live member statistic matches the database and is labelled as live", t.includes(`${new Intl.NumberFormat("en-US").format(memberCount)} Members Live record`), t.slice(0, 400)); }
 check("admin records a verified figure with its evidence", (await admin("/api/admin/homepage-stats/sports", { method: "PATCH", json: { value: "4", label: "Sports Covered", source: "manual", verification: "verified", verificationNote: "Counted from the live coverage list on 6 Nov 2026 by the admin team.", visible: true } })).body.ok);
 check("verified figure shows as Verified", textOf((await anon("/")).body).includes("4 Sports Covered Verified"));
 check("homepage statistic edits are audited", (await db.query("select count(*)::int n from audit_logs where action = 'admin.update_homepage_stat'")).rows[0].n >= 2);
 check("admin homepage statistics page loads", (await admin("/admin/homepage")).status === 200);
 // restore the client placeholders for later runs
-await db.query("update homepage_stats set value_text = v, label = l, source = 'manual', verification = 'unverified', verification_note = null, verified_by = null, verified_at = null, visible = true from (values ('members','2,000+','Happy Members'),('sports','10','Sports Covered')) x(k, v, l) where key = k");
+await db.query("update homepage_stats set value_text = v, label = l, source = 'manual', verification = 'unverified', verification_note = null, verified_by = null, verified_at = null, visible = true from (values ('members','2,000','Happy Members'),('sports','10','Sports Covered')) x(k, v, l) where key = k");
 check("sports coverage links to all four sports", ["/sports/american-football", "/sports/soccer", "/sports/basketball", "/sports/baseball"].every((h) => homePage.body.includes(`href="${h}"`)));
 const links = [...new Set([...homePage.body.matchAll(/href="(\/[^"#]*)"/g)].map((m) => m[1].replace(/&amp;/g, "&")))].filter((h) => !h.startsWith("/_next") && !h.startsWith("/api/"));
 const broken = [];

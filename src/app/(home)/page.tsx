@@ -14,7 +14,7 @@ import { SPORTS } from "@/lib/services/sports";
 import { FixtureCard, groupByFixture } from "@/components/PredictionCard";
 import { JoinDiscordButton } from "@/components/Discord";
 import { SportIcon } from "@/components/SportIcon";
-import { Confidence, Notice, RG_LINE, SampleBadge } from "@/components/ui";
+import { Confidence, Notice, RG_LINE } from "@/components/ui";
 export const dynamic = "force-dynamic";
 
 
@@ -35,42 +35,28 @@ function StatGlyph({ icon }: { icon: StatIcon }) {
     case "sports": return <svg {...ic}><circle cx="12" cy="12" r="8.5" /><path d="M12 7.5l3.4 2.5-1.3 4h-4.2l-1.3-4zM12 3.5v4M15.4 10l4.4-1.6M14.1 14l2.6 4M9.9 14l-2.6 4M8.6 10L4.2 8.4" /></svg>;
   }
 }
-const STATUS: Record<PublicStat["status"], { text: string; color: string }> = {
-  verified: { text: "Verified", color: "#74C394" }, live: { text: "Live record", color: "#7DB8AE" },
-};
 function StatTile({ s, i }: { s: PublicStat; i: number }) {
-  const st = STATUS[s.status];
   return (
-    <div className="stat-tile hero-in p-5 md:p-7 grid gap-3 content-start" style={{ animationDelay: `${420 + i * 90}ms` }}>
+    <div className="stat-tile hero-in px-3 py-5 sm:px-5 sm:py-6 grid justify-items-center text-center gap-2 content-start" style={{ animationDelay: `${360 + i * 80}ms` }}>
       <span className="stat-icon h-11 w-11 rounded-full grid place-items-center"><StatGlyph icon={s.icon} /></span>
-      <div className="grid gap-1">
-        <span className="display font-bold tabular-nums text-[32px] leading-9 sm:text-[38px] sm:leading-[44px] lg:text-[44px] lg:leading-[50px] tracking-tight text-[#F4EEE5]">{s.value}</span>
-        <span className="text-[14px] font-medium text-sand/80">{s.label}</span>
-      </div>
-      <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[.08em]" style={{ color: st.color }}>
-        <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-current" />{st.text}{s.note ? <span className="normal-case tracking-normal font-normal text-sand/60">&nbsp;· {s.note}</span> : null}
-      </span>
+      <span className="display font-bold tabular-nums text-[30px] leading-9 sm:text-[36px] sm:leading-[42px] lg:text-[42px] lg:leading-[48px] tracking-tight text-[#F4EEE5]">{s.value}</span>
+      <span className="text-[13px] sm:text-[14px] font-medium text-sand/80 leading-5">{s.label}</span>
+      {s.status !== "client" && <span className="text-[10px] font-semibold uppercase tracking-[.08em]" style={{ color: s.status === "verified" ? "#74C394" : "#7DB8AE" }}>{s.status === "verified" ? "Verified" : "Live record"}</span>}
     </div>
   );
 }
 
+const fi = { width: 22, height: 22, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 1.6, strokeLinecap: "round" as const, strokeLinejoin: "round" as const, "aria-hidden": true };
 const FEATURES = [
-  { n: "01", title: "Predictions", href: "/predictions", cta: "Explore predictions", body: "Every pick carries a probability and a confidence band, and is locked at kickoff so the record cannot be edited afterwards.", visual: "prob" },
-  { n: "02", title: "Match analysis", href: "/fixtures", cta: "See matches", body: "Form, home and away scoring, head-to-head context, and the limits of the data stated plainly on each match page.", visual: "form" },
-  { n: "03", title: "Statistics", href: "/sports", cta: "Browse sports", body: "League tables, team records, fixtures and results across soccer, American football, basketball and baseball.", visual: "bars" },
-  { n: "04", title: "Premium insights", href: "/pricing", cta: "Compare plans", body: "Full written analysis, VIP picks and member roles in the BETVANTA Discord with Premium and VIP plans.", visual: "lock" },
-] as const;
-function FeatureVisual({ kind }: { kind: (typeof FEATURES)[number]["visual"] }) {
-  const tag = <span className="text-[10px] font-semibold uppercase tracking-[.1em] text-subtle">Example</span>;
-  if (kind === "prob") return (
-    <div className="grid gap-2">{tag}<div className="flex items-center gap-3"><div className="h-2 flex-1 rounded-full bg-sunken overflow-hidden"><div className="h-full rounded-full bg-[var(--link)]" style={{ width: "62%" }} /></div><span className="num text-sm font-semibold">62%</span></div><Confidence band="medium" /></div>);
-  if (kind === "form") return (
-    <div className="grid gap-2">{tag}<div className="flex gap-1.5">{["W", "D", "W", "L", "W"].map((r, i) => <span key={i} className={`num h-8 w-8 rounded-md grid place-items-center text-xs font-bold ${r === "W" ? "bg-success-subtle text-success" : r === "L" ? "bg-danger-subtle text-danger" : "bg-sunken text-muted"}`}>{r}</span>)}</div></div>);
-  if (kind === "bars") return (
-    <div className="grid gap-2">{tag}<div className="flex items-end gap-1.5 h-10">{[40, 62, 48, 86, 55, 70].map((h, i) => <span key={i} className="w-4 rounded-t-[3px]" style={{ height: `${h}%`, background: i === 3 ? "var(--accent)" : "var(--link)", opacity: i === 3 ? 1 : 0.75 }} />)}</div></div>);
-  return (
-    <div className="grid gap-2">{tag}<div className="flex items-center gap-3"><span className="h-8 w-8 rounded-md bg-accent-subtle text-accent-text grid place-items-center"><svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><rect x="5" y="11" width="14" height="9" rx="2" /><path d="M8 11V8a4 4 0 0 1 8 0v3" /></svg></span><div className="grid gap-1.5 flex-1"><span className="h-2 rounded-full bg-sunken w-full" /><span className="h-2 rounded-full bg-sunken w-3/4" /></div></div></div>);
-}
+  { title: "Expert predictions", href: "/predictions", cta: "View predictions", body: "Match result, both teams to score and goals picks, each with a probability and a confidence band, locked at kickoff.",
+    icon: <svg {...fi}><path d="M4 15l5-5 4 4 7-7M14 7h6v6" /></svg> },
+  { title: "Match analysis", href: "/fixtures", cta: "See upcoming matches", body: "Form, home and away scoring, head-to-head context and the limits of the data on every match page.",
+    icon: <svg {...fi}><circle cx="11" cy="11" r="6.5" /><path d="M20 20l-4.2-4.2M8.5 11h5M11 8.5v5" /></svg> },
+  { title: "Stats and standings", href: "/sports", cta: "Browse sports", body: "League tables, team records, fixtures and results for soccer, American football, basketball and baseball.",
+    icon: <svg {...fi}><path d="M5 20V11M10 20V5M15 20v-7M20 20V8" /></svg> },
+  { title: "Premium insights", href: "/pricing", cta: "Get Premium Picks", body: "Every premium pick, full written analysis, VIP selections and member roles in the BETVANTA Discord.",
+    icon: <svg {...fi}><rect x="5" y="11" width="14" height="9" rx="2" /><path d="M8 11V8a4 4 0 0 1 8 0v3" /></svg> },
+];
 
 export default async function Home() {
   const user = await currentUser();
@@ -92,75 +78,83 @@ export default async function Home() {
 
   return (
     <>
-      {/* Hero: stadium artwork under a dark scrim, overlay header from the (home) layout */}
+      {/* Hero: full-width stadium artwork, dark overlay, centred message, glass statistics panel */}
       <section className="hero relative isolate overflow-hidden" aria-labelledby="hero-h">
         <picture>
           <source media="(max-width: 767px)" srcSet="/images/hero/stadium-tall.webp" type="image/webp" />
-          <img src="/images/hero/stadium-wide.webp" alt="" fetchPriority="high" decoding="async" className="hero-media absolute inset-0 -z-20 h-full w-full object-cover object-[50%_40%] max-md:object-top" />
+          <img src="/images/hero/stadium-wide.webp" alt="" fetchPriority="high" decoding="async" className="hero-media absolute inset-0 -z-20 h-full w-full object-cover object-[50%_35%] max-md:object-top" />
         </picture>
         <div aria-hidden className="hero-scrim absolute inset-0 -z-10" />
         <div aria-hidden className="hero-glow absolute inset-0 -z-10" />
-        <div className="wrap pt-[148px] md:pt-[136px] pb-10 md:pb-14 grid gap-10 md:gap-14">
-          <div className="grid gap-6 max-w-[720px]">
-            <span className="hero-in inline-flex w-fit items-center gap-2 rounded-full border border-sand/20 bg-white/5 px-3 py-1.5 text-[12px] font-semibold tracking-[.12em] uppercase text-sand/85 display" style={{ animationDelay: "60ms" }}>
-              <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-copper" />Sports intelligence
-            </span>
-            <h1 id="hero-h" className="hero-in display font-bold text-[40px] leading-[44px] sm:text-[52px] sm:leading-[56px] lg:text-[64px] lg:leading-[68px] tracking-[-.01em] text-[#F4EEE5]" style={{ animationDelay: "120ms" }}>
-              Sharper reads on every <span className="text-copper">matchup.</span>
-            </h1>
-            <p className="hero-in text-[17px] leading-7 md:text-[19px] md:leading-8 max-w-[56ch] text-sand/85" style={{ animationDelay: "200ms" }}>
-              <strong className="font-semibold text-sand">Smarter Insights. Better Decisions.</strong> Expert predictions and AI-assisted analysis of form, scoring and head-to-head data, with the probability, confidence and data limits behind every pick.
-            </p>
-            <div className="hero-in flex flex-col sm:flex-row gap-3 pt-1" style={{ animationDelay: "280ms" }}>
-              <Link href={start} className="btn btn-accent btn-lg w-full sm:w-auto">{user ? "Open your dashboard" : "Get Started Now"}</Link>
-              <Link href="/predictions" className="btn btn-lg btn-onbrand w-full sm:w-auto backdrop-blur-sm">
-                <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 14l5-5 4 4 7-7M14 6h6v6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
-                View Predictions
-              </Link>
-            </div>
-            <p className="hero-in text-sm text-sand/80" style={{ animationDelay: "320ms" }}>
-              Free account, free picks. <Link href="/pricing" className="font-semibold text-sand underline underline-offset-4 decoration-copper hover:decoration-2">Premium Picks</Link> from {plans[0] ? formatMoney(plans[0].amount_minor) : "$50"}.
-            </p>
-            <p className="hero-in text-xs text-sand/70" style={{ animationDelay: "340ms" }}>{RG_LINE}</p>
+        <div className="wrap pt-[92px] md:pt-[112px] pb-10 md:pb-14 grid justify-items-center text-center gap-4 md:gap-5">
+          <span className="hero-in inline-flex items-center gap-2 rounded-full border border-sand/20 bg-white/5 px-3 py-1.5 text-[11px] sm:text-[12px] font-semibold tracking-[.12em] uppercase text-sand/85 display" style={{ animationDelay: "40ms" }}>
+            <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-copper" />Sports intelligence<span className="hidden sm:inline"> and predictions</span>
+          </span>
+          <h1 id="hero-h" className="hero-in display font-bold text-[32px] leading-[36px] sm:text-[48px] sm:leading-[52px] lg:text-[60px] lg:leading-[64px] tracking-[-.01em] text-[#F4EEE5] max-w-[22ch]" style={{ animationDelay: "100ms" }}>
+            Smarter sports insights. <span className="text-copper">Sharper predictions.</span>
+          </h1>
+          <p className="hero-in text-[15px] leading-6 sm:text-[17px] sm:leading-7 md:text-[19px] md:leading-8 max-w-[60ch] text-sand/85" style={{ animationDelay: "170ms" }}>
+            Expert picks and AI-assisted match analysis<span className="hidden sm:inline"> for soccer, American football, basketball and baseball</span>, with the probability and confidence behind every prediction.
+          </p>
+          <div className="hero-in grid grid-cols-2 sm:flex gap-2.5 sm:gap-3 w-full sm:w-auto pt-1" style={{ animationDelay: "240ms" }}>
+            <Link href="/pricing" className="btn btn-accent sm:btn-lg hero-cta w-full sm:w-auto shadow-[0_10px_30px_-10px_rgba(196,124,82,.7)]">
+              <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M8 4h8v5a4 4 0 0 1-8 0z" /><path d="M8 6H5a2.5 2.5 0 0 0 3 4M16 6h3a2.5 2.5 0 0 1-3 4M12 13v4M8.5 20h7" /></svg>
+              Get Premium Picks
+            </Link>
+            <JoinDiscordButton label="Join Discord" className="btn sm:btn-lg hero-cta btn-onbrand w-full sm:w-auto bg-white/5 backdrop-blur-sm" />
           </div>
+          <p className="hero-in text-[13px] sm:text-sm text-sand/80" style={{ animationDelay: "280ms" }}>
+            New here? <Link href={start} className="font-semibold text-sand underline underline-offset-4 decoration-copper hover:decoration-2">{user ? "Open your dashboard" : "Create a free account"}</Link><span className="hidden sm:inline"> and get free picks today</span>.
+          </p>
 
-          {/* Statistics: editable in Admin > Homepage; unverified figures are labelled as such */}
-          <div className="grid gap-3">
-            <h2 className="sr-only">BETVANTA by the numbers</h2>
-            <div className="glass hero-in overflow-hidden grid grid-cols-2 lg:grid-cols-4 [&>*]:border-sand/10 [&>*:nth-child(2n)]:border-l [&>*:nth-child(n+3)]:border-t lg:[&>*:nth-child(n+3)]:border-t-0 lg:[&>*:nth-child(n+2)]:border-l" style={{ animationDelay: "380ms" }}>
+          {/* Statistics panel: figures from Admin > Homepage (client-provided unless marked verified or live) */}
+          <div className="w-full max-w-[880px] grid gap-2.5 pt-2 md:pt-4">
+            <h2 className="sr-only">BETVANTA in numbers</h2>
+            <div className="glass hero-in overflow-hidden grid grid-cols-2 sm:grid-cols-4 [&>*]:border-sand/10 [&>*:nth-child(2n)]:border-l [&>*:nth-child(n+3)]:border-t sm:[&>*:nth-child(n+3)]:border-t-0 sm:[&>*:nth-child(n+2)]:border-l" style={{ animationDelay: "320ms" }}>
               {heroStats.map((s, i) => <StatTile key={s.key} s={s} i={i} />)}
             </div>
-            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-sand/70">
-              <span>Figures come from BETVANTA&apos;s own records{heroStats.some((x) => x.status === "verified") ? " or are independently verified" : ""}.</span>
-              {stats.sampleData && <><SampleBadge /><span>Live figures include development sample data until the live data feed is connected.</span></>}
-              <Link href="/performance" className="font-semibold text-sand underline-offset-4 hover:underline sm:ml-auto">See every graded pick</Link>
-            </div>
+            <p className="text-[11px] sm:text-xs text-sand/65 max-w-[80ch] mx-auto">
+              {heroStats.some((x) => x.status === "client") && "Figures provided by BETVANTA; not independently verified. "}Past results do not guarantee future outcomes. {RG_LINE}{" "}
+              <Link href="/performance" className="font-semibold text-sand/85 underline underline-offset-2">See our graded record</Link>
+            </p>
           </div>
         </div>
       </section>
 
-      {/* Sports coverage */}
-      <section aria-labelledby="sports-h" className="wrap pt-16 md:pt-24 pb-14 md:pb-20 grid gap-6">
-        <div className="grid gap-2"><span className="eyebrow">Coverage</span><h2 id="sports-h" className="display text-[26px] leading-8 md:text-[32px] md:leading-[38px] font-bold">Built for the sports you follow</h2></div>
+      {/* What BETVANTA offers: sports and features, visible straight after the hero */}
+      <section id="platform" aria-labelledby="platform-h" className="wrap py-12 md:py-16 grid gap-8">
+        <div className="grid gap-3 justify-items-center text-center">
+          <span className="eyebrow">The platform</span>
+          <h2 id="platform-h" className="display font-bold text-[28px] leading-[34px] md:text-[40px] md:leading-[46px] tracking-[-.01em] max-w-[22ch]">Your Smarter Sports Intelligence Platform</h2>
+          <p className="text-[16px] leading-7 text-muted max-w-[62ch]">Predictions, match analysis, statistics and premium insights in one place. Start free, then unlock every premium pick when you want more depth.</p>
+        </div>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
           {SPORTS.map((s) => {
             const c = cov(s.id);
             return (
-              <Link key={s.id} href={`/sports/${s.slug}`} className="group card p-5 md:p-6 grid gap-4 content-start transition-colors hover:border-[var(--accent)] focus-visible:border-[var(--accent)]">
-                <span className="h-14 w-14 md:h-16 md:w-16 rounded-full bg-teal-subtle text-link grid place-items-center group-hover:bg-brand group-hover:text-[#EAE1D4] transition-colors"><SportIcon sport={s.id} size={30} /></span>
-                <div className="grid gap-1">
-                  <span className="font-semibold text-[17px]">{s.name}</span>
-                  <span className="text-sm text-muted">{s.blurb}</span>
-                </div>
-                <span className="text-xs text-subtle">{c ? `${c.upcoming} upcoming games` : "Feed coming soon"}{s.predictions ? " · predictions" : ""}</span>
-              </Link>
-            );
+              <Link key={s.id} href={`/sports/${s.slug}`} className="group card p-4 md:p-5 flex items-center gap-3 md:gap-4 transition-colors hover:border-[var(--accent)] focus-visible:border-[var(--accent)]">
+                <span className="h-12 w-12 md:h-14 md:w-14 shrink-0 rounded-full bg-teal-subtle text-link grid place-items-center group-hover:bg-brand group-hover:text-[#EAE1D4] transition-colors"><SportIcon sport={s.id} size={26} /></span>
+                <span className="grid min-w-0"><span className="font-semibold text-[15px] md:text-[16px] leading-6">{s.name}</span><span className="text-xs text-subtle">{c ? `${c.upcoming} upcoming games` : "Feed coming soon"}{s.predictions ? " · picks" : ""}</span></span>
+              </Link>);
           })}
+        </div>
+        <div className="grid gap-3 md:gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {FEATURES.map((f) => (
+            <Link key={f.title} href={f.href} className="feature-card group card p-5 md:p-6 grid gap-3 content-start">
+              <span className="h-11 w-11 rounded-lg bg-accent-subtle text-accent-text grid place-items-center">{f.icon}</span>
+              <h3 className="display font-bold text-[18px] leading-6">{f.title}</h3>
+              <p className="text-sm text-muted">{f.body}</p>
+              <span className="text-sm font-semibold text-link mt-1">{f.cta} <span aria-hidden>&rarr;</span></span>
+            </Link>))}
+        </div>
+        <div className="rounded-xl bg-brand text-on-brand on-dark px-5 py-5 md:px-8 md:py-6 flex flex-col md:flex-row md:items-center gap-4 md:gap-6">
+          <div className="grid gap-1 flex-1"><p className="display font-bold text-[20px] leading-7">Get started in under a minute</p><p className="text-sm text-sand/80">Create a free account for free picks and the full results record. Upgrade to Premium whenever you are ready.</p></div>
+          <div className="flex flex-col sm:flex-row gap-3"><Link href={start} className="btn btn-accent">{user ? "Open your dashboard" : "Get Started Now"}</Link><Link href="/predictions" className="btn btn-onbrand">View Predictions</Link></div>
         </div>
       </section>
 
       {/* Upcoming fixtures */}
-      <section aria-labelledby="fixtures-h" className="wrap pb-14 md:pb-20 grid gap-6">
+      <section aria-labelledby="fixtures-h" className="wrap pb-12 md:pb-16 grid gap-6">
         <div className="flex items-end justify-between gap-4 flex-wrap">
           <div className="grid gap-2"><span className="eyebrow">Fixtures</span><h2 id="fixtures-h" className="display font-bold text-[26px] leading-8 md:text-[32px] md:leading-[38px]">Upcoming matches</h2>
             <p className="text-muted max-w-[60ch]">Kickoff times in US Eastern. Open a match for form, scoring records, head-to-head and our picks.</p></div>
@@ -169,36 +163,9 @@ export default async function Home() {
         {nextFixtures.length ? <FixtureList rows={nextFixtures} /> : <Notice tone="info">No upcoming fixtures are loaded yet. Results and schedules appear here once the data feed syncs.</Notice>}
       </section>
 
-      {/* Platform introduction */}
-      <section aria-labelledby="platform-h" className="wrap pb-16 md:pb-24 pt-2 grid gap-10 lg:grid-cols-12 lg:gap-12">
-        <div className="lg:col-span-5 grid gap-5 content-start">
-          <span className="eyebrow">The platform</span>
-          <h2 id="platform-h" className="display font-bold text-[30px] leading-[36px] md:text-[40px] md:leading-[46px] tracking-[-.01em]">Your Smarter Sports Intelligence Platform</h2>
-          <p className="text-[16px] leading-7 text-muted max-w-[52ch]">BETVANTA turns fixtures, form and scoring records into clear, measured reads. Start with free picks, then unlock full analysis and premium insights when you want more depth.</p>
-          <ul className="grid gap-4 pt-2">
-            {[["Data first", "Every pick starts from scoring and conceding records, home and away, shown on the match page."],
-              ["Stated confidence", "A probability and a confidence band on every prediction. We never promise a result."],
-              ["An open record", "Picks lock at kickoff and are graded against the final score. Nothing is edited afterwards."]].map(([t, d]) => (
-              <li key={t} className="grid grid-cols-[12px_1fr] gap-3"><span aria-hidden className="mt-2 h-2 w-2 rounded-full bg-[var(--accent)]" /><span><strong className="font-semibold">{t}.</strong> <span className="text-muted">{d}</span></span></li>))}
-          </ul>
-        </div>
-        <div className="lg:col-span-7 grid gap-4 sm:grid-cols-2">
-          {FEATURES.map((f) => (
-            <Link key={f.n} href={f.href} className="feature-card group card p-6 grid gap-5 content-between">
-              <div className="grid gap-3">
-                <div className="flex items-baseline justify-between"><span className="num text-xs font-semibold text-accent-text">{f.n}</span><span aria-hidden className="text-subtle group-hover:text-[var(--accent-text)] transition-colors">&rarr;</span></div>
-                <h3 className="display font-bold text-[20px] leading-7">{f.title}</h3>
-                <p className="text-sm text-muted">{f.body}</p>
-              </div>
-              <FeatureVisual kind={f.visual} />
-              <span className="text-sm font-semibold text-link">{f.cta}</span>
-            </Link>))}
-        </div>
-      </section>
-
       {/* Featured fixtures */}
       <section className="bg-surface border-y border-line">
-        <div className="wrap py-14 md:py-20 grid gap-6">
+        <div className="wrap py-12 md:py-16 grid gap-6">
           <div className="flex items-end justify-between gap-4 flex-wrap">
             <div className="grid gap-2"><span className="eyebrow">Predictions</span><h2 className="display text-[26px] leading-8 md:text-[32px] md:leading-[38px] font-bold">Predictions and match analysis</h2></div>
             <Link href="/predictions" className="btn btn-primary btn-sm">View Predictions</Link>
@@ -210,7 +177,7 @@ export default async function Home() {
 
       {/* Premium picks and plans */}
       <section aria-labelledby="plans-h" className="bg-brand text-on-brand on-dark">
-        <div className="wrap py-14 md:py-20 grid gap-8">
+        <div className="wrap py-12 md:py-16 grid gap-8">
           <div className="flex items-end justify-between gap-4 flex-wrap">
             <div className="grid gap-2 max-w-[62ch]"><span className="eyebrow" style={{ color: "#C47C52" }}>Premium Picks</span>
               <h2 id="plans-h" className="display font-bold text-[26px] leading-8 md:text-[32px] md:leading-[38px]">Choose how long you want full access</h2>
@@ -234,7 +201,7 @@ export default async function Home() {
       </section>
 
       {/* How it works */}
-      <section aria-labelledby="how-h" className="wrap py-14 md:py-20 grid gap-8">
+      <section aria-labelledby="how-h" className="wrap py-12 md:py-16 grid gap-8">
         <div className="grid gap-2 max-w-[60ch]"><span className="eyebrow">How it works</span><h2 id="how-h" className="display font-bold text-[26px] leading-8 md:text-[32px] md:leading-[38px]">From sign-up to sharper picks in three steps</h2></div>
         <ol className="grid gap-4 md:grid-cols-3">
           {[
@@ -255,7 +222,7 @@ export default async function Home() {
 
       {/* Member dashboard preview */}
       <section aria-labelledby="dash-h" className="bg-surface border-y border-line">
-        <div className="wrap py-14 md:py-20 grid gap-10 lg:grid-cols-12 lg:items-center">
+        <div className="wrap py-12 md:py-16 grid gap-10 lg:grid-cols-12 lg:items-center">
           <div className="lg:col-span-5 grid gap-4 content-start">
             <span className="eyebrow">Member dashboard</span>
             <h2 id="dash-h" className="display font-bold text-[26px] leading-8 md:text-[32px] md:leading-[38px]">Everything you follow, in one place</h2>
@@ -288,7 +255,7 @@ export default async function Home() {
 
       {/* Testimonials */}
       <section aria-labelledby="reviews-h" className="bg-sunken">
-        <div className="wrap py-14 md:py-20 grid gap-6">
+        <div className="wrap py-12 md:py-16 grid gap-6">
           <div className="flex items-end justify-between gap-4 flex-wrap">
             <div className="grid gap-2"><span className="eyebrow">Members</span><h2 id="reviews-h" className="display text-[26px] leading-8 md:text-[32px] md:leading-[38px] font-bold">What members say</h2></div>
             <Link href={user ? "/dashboard/feedback" : "/register?next=/dashboard/feedback"} className="text-sm font-semibold text-link hover:underline">Share your feedback</Link>
@@ -316,7 +283,7 @@ export default async function Home() {
       </section>
 
       {/* FAQ */}
-      <section aria-labelledby="faq-h" className="wrap py-14 md:py-20 grid gap-6 lg:grid-cols-12">
+      <section aria-labelledby="faq-h" className="wrap py-12 md:py-16 grid gap-6 lg:grid-cols-12">
         <div className="lg:col-span-4 grid gap-3 content-start"><span className="eyebrow">FAQ</span><h2 id="faq-h" className="display font-bold text-[26px] leading-8 md:text-[32px] md:leading-[38px]">Questions, answered</h2>
           <p className="text-muted">Still unsure? <Link href="/contact" className="text-link font-semibold hover:underline">Contact us</Link> or read the <Link href="/faq" className="text-link font-semibold hover:underline">full FAQ</Link>.</p></div>
         <div className="lg:col-span-8 grid gap-3">{FAQ.filter(([q]) => ["How are predictions made?", "Can a prediction change after kickoff?", "Do plans renew automatically?", "When does my access start?", "Is BETVANTA a bookmaker?"].includes(q)).map(([q, a]) => (
@@ -324,7 +291,7 @@ export default async function Home() {
       </section>
 
       {/* Community */}
-      <section className="wrap py-14 md:py-20">
+      <section className="wrap py-12 md:py-16">
         <div className="rounded-xl bg-brand text-on-brand p-8 md:p-12 grid gap-6 md:grid-cols-[1.4fr_auto] md:items-center">
           <div className="grid gap-3">
             <span className="eyebrow" style={{ color: "#C47C52" }}>Community</span>

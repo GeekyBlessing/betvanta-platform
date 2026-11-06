@@ -3,7 +3,7 @@ import { closePool, resetDb } from "../helpers";
 import { one, q } from "@/lib/db";
 import { publicHomepageStats, updateHomepageStat, listHomepageStats } from "@/lib/services/homepage-stats";
 
-const PLACEHOLDERS = [["members", "2,000+", "Happy Members"], ["win_rate", "100%", "Win Rate"], ["winning_picks", "12,500+", "Winning Picks"], ["sports", "10", "Sports Covered"]];
+const PLACEHOLDERS = [["members", "2,000", "Happy Members"], ["win_rate", "100%", "Win Rate"], ["winning_picks", "12,500", "Winning Picks"], ["sports", "10", "Sports Covered"]];
 async function admin() { return (await one(`insert into users(email, password_hash, display_name, role, age_confirmed_at, terms_accepted_at) values ('a${Math.random()}@x.com','x','Ada','admin',now(),now()) returning id`))!.id as string; }
 const base = { label: "Win Rate", source: "manual" as const, visible: true };
 
@@ -13,14 +13,14 @@ beforeEach(async () => {
 afterAll(closePool);
 
 describe("homepage statistics", () => {
-  it("seeds the client figures as unverified, and never shows an unverified figure publicly", async () => {
+  it("shows the client figures as entered, never replaced by empty live records", async () => {
     const rows = await listHomepageStats();
     expect(rows.map((r) => [r.value_text, r.label, r.verification])).toEqual(PLACEHOLDERS.map(([, v, l]) => [v, l, "unverified"]));
-    const { stats, configMissing } = await publicHomepageStats();
+    const { stats, live, configMissing } = await publicHomepageStats();
     expect(configMissing).toBe(false);
-    expect(stats.every((s) => s.status === "live")).toBe(true);
-    expect(stats.map((s) => s.value)).not.toEqual(expect.arrayContaining(["100%"]));
-    expect(stats.find((s) => s.key === "win_rate")).toMatchObject({ value: "Building", label: "Win rate" });
+    expect(live.members).toBe(0);
+    expect(live.winRate).toBeNull();
+    expect(stats.map((s) => [s.value, s.label, s.status])).toEqual(PLACEHOLDERS.map(([, v, l]) => [v, l, "client"]));
   });
 
   it("refuses to mark a figure verified without evidence, in the service and in the database", async () => {
@@ -38,7 +38,7 @@ describe("homepage statistics", () => {
     expect(row).toMatchObject({ value_text: "58.4%", verification: "verified", verification_note: note, verified_by_name: "Ada" });
     expect((await publicHomepageStats()).stats.find((s) => s.key === "win_rate")!.status).toBe("verified");
     await updateHomepageStat(id, "win_rate", { ...base, value: "100%", verification: "unverified" });
-    expect((await publicHomepageStats()).stats.find((s) => s.key === "win_rate")).toMatchObject({ status: "live", value: "Building" });
+    expect((await publicHomepageStats()).stats.find((s) => s.key === "win_rate")).toMatchObject({ status: "client", value: "100%" });
     row = (await listHomepageStats()).find((r) => r.key === "win_rate")!;
     expect(row).toMatchObject({ verification: "unverified", verification_note: null, verified_at: null });
     const logs = await q<{ details: { after: { value: string } } }>("select details from audit_logs where action = 'admin.update_homepage_stat' order by id");
@@ -71,13 +71,12 @@ describe("homepage statistics", () => {
     expect(anon).toEqual([]);
   });
 
-  it("if migration 010 is missing, the homepage shows live figures instead of failing or inventing numbers", async () => {
+  it("if the table is missing or empty, the homepage keeps the client figures instead of showing 0", async () => {
     await q("alter table homepage_stats rename to homepage_stats_moved");
     try {
       const r = await publicHomepageStats();
       expect(r.configMissing).toBe(true);
-      expect(r.stats.every((s) => s.status === "live")).toBe(true);
-      expect(r.stats.map((s) => s.value)).not.toContain("100%");
+      expect(r.stats.map((s) => [s.value, s.status])).toEqual(PLACEHOLDERS.map(([, v]) => [v, "client"]));
     } finally { await q("alter table homepage_stats_moved rename to homepage_stats"); }
   });
 });
