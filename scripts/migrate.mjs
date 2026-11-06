@@ -3,13 +3,15 @@ import fs from "node:fs";
 import path from "node:path";
 import pg from "pg";
 
-const url = process.env.DATABASE_URL;
+import { sslFor, stripSslMode } from "./pg-ssl.mjs";
+// Migrations run as the schema owner (Supabase: the postgres role via the session pooler, port 5432).
+// The running app uses DATABASE_URL with the least-privilege betvanta_app role.
+const url = process.env.MIGRATION_DATABASE_URL || process.env.DATABASE_URL;
 if (!url) {
   if (process.env.SKIP_MIGRATIONS === "1") { console.log("migrate: skipped (no DATABASE_URL)"); process.exit(0); }
-  console.error("migrate: DATABASE_URL is not set"); process.exit(1);
+  console.error("migrate: MIGRATION_DATABASE_URL or DATABASE_URL is not set"); process.exit(1);
 }
-const ssl = /sslmode=require|supabase|neon\.tech|render\.com/.test(url) ? { rejectUnauthorized: false } : undefined;
-const client = new pg.Client({ connectionString: url, ssl });
+const client = new pg.Client({ connectionString: stripSslMode(url), ssl: sslFor(url) });
 const dir = path.join(process.cwd(), "db", "migrations");
 await client.connect();
 try {

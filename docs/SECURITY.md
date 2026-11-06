@@ -16,7 +16,8 @@
 | Sportsbook | Real-money tables blocked at the database level while disabled; application adapter throws on every money operation |
 | Audit | Append-only audit log of registrations, logins, payments, role/status changes, plan price changes, prediction publish/settle |
 | Headers | CSP, HSTS, X-Frame-Options DENY, nosniff, Referrer-Policy, Permissions-Policy; `X-Powered-By` removed |
-| Secrets | Only in environment variables; `.env*` git-ignored; nothing secret is prefixed `NEXT_PUBLIC_` |
+| Database (Supabase) | App connects as least-privilege `betvanta_app` through the transaction pooler; migrations use the owner role separately. RLS on every table; `anon`/`authenticated` have no privileges, so the Supabase anon key reads nothing (verified against the live REST API by the Supabase check workflow). App role cannot run DDL/TRUNCATE, delete users or payments, alter the audit log, or delete non-draft predictions. TLS always; full certificate verification with `DATABASE_CA_CERT` |
+| Secrets | Only in environment variables; `.env*` git-ignored; nothing secret is prefixed `NEXT_PUBLIC_`; CI scans the built browser bundle for connection strings, API-key patterns and the values of every server secret |
 | Cron | Bearer secret compared in constant time |
 
 ## Known gaps

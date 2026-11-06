@@ -1,6 +1,6 @@
 # Deployment (Vercel + Postgres)
 
-1. **Database.** Create a Postgres database (Supabase recommended). Copy the pooled connection string with `sslmode=require`.
+1. **Database.** Supabase project (US East) is created. Follow `docs/SUPABASE.md`: add the GitHub secrets and run the **Supabase check** workflow until every check passes.
 2. **Vercel project.** Import the GitHub repo `betvanta-platform`. Framework: Next.js. The build command `npm run build` runs migrations first.
 3. **Environment variables** (Production): see `.env.example`. Minimum: `DATABASE_URL`, `APP_URL`, `ADMIN_EMAILS`, `CRON_SECRET`, `RESEND_API_KEY` + `EMAIL_FROM`, either `API_FOOTBALL_KEY` or `ALLOW_SAMPLE_DATA=true`, and at least one payment provider (Stripe recommended for USD cards). Optional: Paystack (USD-approved), NOWPayments (crypto), Discord, OpenAI.
 4. **Deploy**, then open `/api/health` (expects `{"ok":true,"db":"up"}`).

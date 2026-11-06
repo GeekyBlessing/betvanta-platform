@@ -3,10 +3,21 @@ import { env } from "./env";
 
 declare global { var __bvPool: Pool | undefined; }
 
+/**
+ * Supabase: connect through the transaction pooler (port 6543) as the least-privilege betvanta_app role.
+ * TLS is always on for remote hosts; set DATABASE_CA_CERT to verify the server certificate fully.
+ * node-pg uses unnamed statements, which the transaction pooler supports.
+ */
+export function sslFor(url: string) {
+  const remote = /sslmode=(require|verify)|supabase\.(co|com)|pooler\.supabase|neon\.tech|render\.com/.test(url);
+  const ca = process.env.DATABASE_CA_CERT;
+  if (ca) return { ca: ca.replace(/\\n/g, "\n"), rejectUnauthorized: true };
+  return remote ? { rejectUnauthorized: false } : undefined;
+}
+const stripSslMode = (url: string) => url.replace(/([?&])sslmode=[^&]*&?/, "$1").replace(/[?&]$/, "");
 function makePool() {
   const url = env().DATABASE_URL;
-  const ssl = /sslmode=require|supabase|neon\.tech|render\.com/.test(url) ? { rejectUnauthorized: false } : undefined;
-  return new Pool({ connectionString: url, ssl, max: 5, idleTimeoutMillis: 10_000 });
+  return new Pool({ connectionString: stripSslMode(url), ssl: sslFor(url), max: 3, idleTimeoutMillis: 10_000, connectionTimeoutMillis: 10_000 });
 }
 export function pool(): Pool {
   if (!globalThis.__bvPool) globalThis.__bvPool = makePool();

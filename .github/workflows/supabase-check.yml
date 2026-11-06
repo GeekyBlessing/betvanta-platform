@@ -1,0 +1,37 @@
+name: Supabase check
+# Manual: Actions > Supabase check > Run workflow.
+# Applies migrations to the BETVANTA Supabase database, enables the least-privilege app role,
+# then verifies connectivity, TLS, RLS, privileges, Supabase API lockdown and an auth round-trip (rolled back).
+on:
+  workflow_dispatch:
+    inputs:
+      apply_migrations:
+        description: "Apply pending migrations before checking"
+        type: boolean
+        default: true
+permissions:
+  contents: read
+jobs:
+  supabase:
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      SUPABASE_ADMIN_DB_URL: ${{ secrets.SUPABASE_ADMIN_DB_URL }}
+      APP_DB_PASSWORD: ${{ secrets.APP_DB_PASSWORD }}
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+      DATABASE_CA_CERT: ${{ secrets.DATABASE_CA_CERT }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with: { node-version: 22, cache: npm }
+      - run: npm ci
+      - name: Derive connection strings (masked)
+        run: node scripts/supabase-urls.mjs
+      - name: Apply migrations
+        if: ${{ inputs.apply_migrations }}
+        run: node scripts/migrate.mjs
+      - name: Enable app role login
+        run: node scripts/db-app-role.mjs
+      - name: Database and auth checks
+        run: node scripts/db-check.mjs

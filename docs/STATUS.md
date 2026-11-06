@@ -1,6 +1,6 @@
 # Phase 1 status
 
-Verified by 53 unit/integration tests against Postgres and 105 end-to-end HTTP checks against a production build (`tests/e2e/smoke.mjs`), with payment and Discord APIs replaced by local stand-ins.
+Verified by 58 unit/integration tests against Postgres and 105 end-to-end HTTP checks (also run with the app connected as the restricted `betvanta_app` role) against a production build (`tests/e2e/smoke.mjs`), with payment and Discord APIs replaced by local stand-ins.
 
 | # | Requirement | Status | Evidence / note |
 | --- | --- | --- | --- |
@@ -57,3 +57,7 @@ Legal review needed before launch: in the US, giveaways tied to a paid subscript
 
 - Statistics come straight from the database: active member accounts, settled predictions (won, lost, void), sports with fixtures in the feed. The win rate stays hidden ("Building") until at least 20 picks have settled. When any figure includes sample data, a "Sample data" label is shown under the panel.
 - Testimonials: no reviews are seeded. Only signed-in members can submit, they must tick an explicit publication consent (stored with the review), an admin must approve, and the member can withdraw at any time. Reviews from suspended or deleted accounts are hidden. Paid members are labelled "Verified subscriber".
+
+## Supabase
+
+Code, migrations and checks are ready (`docs/SUPABASE.md`). **Not yet verified against the live Supabase project**: that happens when the "Supabase check" workflow runs with the project's secrets.

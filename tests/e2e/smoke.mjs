@@ -3,7 +3,8 @@ import crypto from "node:crypto";
 import pg from "pg";
 const BASE = process.env.E2E_BASE ?? "http://localhost:3000";
 const STUB = process.env.E2E_STUB ?? "http://127.0.0.1:4599";
-const db = new pg.Client({ connectionString: process.env.DATABASE_URL }); await db.connect();
+// Test-only direct queries use the admin URL when given, so the app itself can run as the restricted role.
+const db = new pg.Client({ connectionString: process.env.E2E_ADMIN_DATABASE_URL || process.env.DATABASE_URL }); await db.connect();
 let pass = 0, fail = 0;
 const check = (name, cond, extra = "") => { if (cond) { pass++; console.log("  ok  ", name); } else { fail++; console.log("  FAIL", name, extra); } };
 

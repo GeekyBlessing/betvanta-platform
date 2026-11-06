@@ -50,6 +50,8 @@ jobs:
         with: { node-version: 22, cache: npm }
       - run: npm ci
       - run: npm run build
+      - name: No secrets in browser bundle
+        run: node scripts/check-client-bundle.mjs
       - run: |
           node scripts/payments-stub.mjs &
           npx next start -p 3000 &
