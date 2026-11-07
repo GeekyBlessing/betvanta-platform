@@ -42,10 +42,10 @@ const schema = z.object({
   CRYPTO_PAYMENTS_ENABLED: z.enum(["true", "false"]).default("false"),
   CRON_SECRET: z.string().optional(),
   // Manual crypto payments: the chain each 0x wallet receives on. Leave unset until the client confirms it;
-  // the payment assistant then tells customers to confirm the network with Tom before sending.
+  // the payment assistant then tells customers to confirm the network with BETVANTA before sending.
   CRYPTO_ETH_NETWORK: z.string().trim().min(2).max(40).optional(),
   CRYPTO_USDT_NETWORK: z.string().trim().min(2).max(40).optional(),
-  // Where "Contact Tom on Discord" goes: a discord.com channel, user or invite link. Falls back to DISCORD_INVITE_URL.
+  // Where "Contact BETVANTA on Discord" goes: a discord.com channel, user or invite link. Falls back to DISCORD_INVITE_URL.
   DISCORD_SUPPORT_URL: z.string().url().optional(),
 });
 
@@ -64,7 +64,7 @@ export function discordInviteUrl(): string | null {
   if (!u) return null;
   try { const x = new URL(u); return x.protocol === "https:" && (x.hostname === "discord.gg" || ((x.hostname === "discord.com" || x.hostname === "www.discord.com") && x.pathname.startsWith("/invite/"))) ? x.toString() : null; } catch { return null; }
 }
-/** Link for "Contact Tom on Discord": a Discord channel, user or invite link only; otherwise the community invite. */
+/** Link for "Contact BETVANTA on Discord": a Discord channel, user or invite link only; otherwise the community invite. */
 export function discordSupportUrl(): string | null {
   const u = env().DISCORD_SUPPORT_URL;
   if (u) {

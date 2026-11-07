@@ -66,20 +66,20 @@ export const methodLabel = (m: Pick<ManualPayment, "method" | "method_other">) =
 
 /** Records a member's payment details for review. Never grants access. */
 export async function submitManualPayment(user: { id: string; email: string; display_name: string }, input: Submission, proof: ProofFile) {
-  if (!(await manualPaymentsReady())) throw unavailable("The payment assistant is not available yet. Please pay by card or contact Tom on Discord.");
+  if (!(await manualPaymentsReady())) throw unavailable("The payment assistant is not available yet. Please pay by card or contact BETVANTA on Discord.");
   await rateLimit(`manual-pay:${user.id}`, 6, 3600);
   const plan = await one<{ id: string; name: string; amount_minor: string; currency: string }>("select id, name, amount_minor, currency from plans where code = $1 and active", [input.planCode]);
   if (!plan) throw notFound("That plan is not available.");
   if (plan.currency !== "USD") throw badRequest("This plan is not priced in USD.");
 
   const coin = isCrypto(input.method);
-  if (coin && !manualCryptoEnabled()) throw badRequest("Crypto payments are not open yet. Contact Tom on Discord to pay another way.");
+  if (coin && !manualCryptoEnabled()) throw badRequest("Crypto payments are not open yet. Contact BETVANTA on Discord to pay another way.");
   if (input.method === "other" && (!input.methodOther || input.methodOther.length < 2)) throw badRequest("Tell us which payment method you used.", { methodOther: ["Enter the payment method, for example Cash App."] });
   let network: string | null = null, address: string | null = null;
   if (coin) {
     address = WALLETS[input.method as keyof typeof WALLETS].address;
     network = walletNetwork(input.method as keyof typeof WALLETS) ?? input.network ?? null;
-    if (!network) throw badRequest("Tell us which network you sent on, as confirmed by Tom.", { network: ["Enter the network, for example Ethereum (ERC-20)."] });
+    if (!network) throw badRequest("Tell us which network you sent on, as confirmed by BETVANTA.", { network: ["Enter the network, for example Ethereum (ERC-20)."] });
   }
   if (!input.reference && !proof) throw badRequest(coin ? "Add the transaction hash (TXID) or upload a screenshot of the payment." : "Add the payment ID or upload a screenshot of the payment.",
     { reference: ["Add a transaction or payment reference, or upload proof."] });

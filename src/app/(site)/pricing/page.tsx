@@ -29,7 +29,7 @@ export default async function Pricing(props: { searchParams: Promise<{ subscribe
   const methods = [
     { label: "Card", detail: "Visa, Mastercard, Amex via Stripe", on: PROVIDERS.stripe.enabled() || PROVIDERS.paystack.enabled() },
     { label: "Crypto", detail: "BTC, ETH, USDT", on: PROVIDERS.nowpayments.enabled() || cryptoApproved(), pending: !cryptoApproved() },
-    { label: "PayPal, Venmo, Chime, Apple Pay", detail: "Instructions from Tom in our Discord, verified by our team", on: true },
+    { label: "PayPal, Venmo, Chime, Apple Pay", detail: "Instructions from BETVANTA in our Discord, verified by our team", on: true },
   ];
 
   return (

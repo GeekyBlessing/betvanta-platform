@@ -23,7 +23,7 @@ export default async function ManualPayments(props: { searchParams: Promise<{ st
   const rows = await listManualPayments(status);
   return (<>
     <PageHeader eyebrow="Admin" title="Manual payments">
-      Payments sent through the payment assistant (crypto to BETVANTA&apos;s wallets, and methods arranged by Tom on Discord). Nothing grants access until you approve it here.
+      Payments sent through the payment assistant (crypto to BETVANTA&apos;s wallets, and methods arranged with BETVANTA on Discord). Nothing grants access until you approve it here.
       Approve only after you have confirmed the funds arrived in full. These are subscription payments only and are kept apart from sportsbook wallets.
     </PageHeader>
     <nav aria-label="Filter by status" className="flex flex-wrap gap-2 mb-6">

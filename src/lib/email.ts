@@ -22,7 +22,7 @@ export const templates = {
   manualConfirmed: (name: string, plan: string, amount: string, ref: string, until: string): Omit<Msg, "to"> => ({ template: "manual_confirmed", subject: `Payment confirmed: your BETVANTA ${plan} is active`,
     text: `Hi ${name},\n\nWe have verified your payment and your subscription is now active.\n\nPlan: ${plan}\nAmount: ${amount}\nReference: ${ref}\nAccess until: ${until}\n\nOpen your dashboard to see today's premium picks. Thank you for subscribing.` + footer() }),
   manualRejected: (name: string, ref: string, reason: string): Omit<Msg, "to"> => ({ template: "manual_rejected", subject: `We could not verify payment ${ref}`,
-    text: `Hi ${name},\n\nWe could not verify the payment with reference ${ref}, so access has not been switched on.\n\nReason: ${reason}\n\nIf you have paid, reply to this email or contact Tom in the BETVANTA Discord with this reference. You can send new details from the checkout page.` + footer() }),
+    text: `Hi ${name},\n\nWe could not verify the payment with reference ${ref}, so access has not been switched on.\n\nReason: ${reason}\n\nIf you have paid, reply to this email or contact BETVANTA in our Discord with this reference. You can send new details from the checkout page.` + footer() }),
   cancelled: (name: string, until: string): Omit<Msg, "to"> => ({ template: "cancelled", subject: "Your BETVANTA subscription is cancelled",
     text: `Hi ${name},\n\nYour subscription will not renew. You keep access until ${until}.` + footer() }),
   expiring: (name: string, plan: string, until: string): Omit<Msg, "to"> => ({ template: "expiring", subject: "Your BETVANTA plan ends soon",

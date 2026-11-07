@@ -78,7 +78,7 @@ function CopyButton({ text, label }: { text: string; label: string }) {
     </button>
   );
 }
-function DiscordButton({ url, children = "Contact Tom on Discord" }: { url: string | null; children?: ReactNode }) {
+function DiscordButton({ url, children = "Contact BETVANTA on Discord" }: { url: string | null; children?: ReactNode }) {
   return url
     ? <a href={url} target="_blank" rel="noopener noreferrer" className="btn btn-accent w-full sm:w-auto">{Icon.discord}{children}<span className="sr-only"> (opens Discord in a new tab)</span></a>
     : <a href="/community" className="btn btn-accent w-full sm:w-auto">{Icon.discord}{children}</a>;
@@ -237,7 +237,7 @@ export function SubscribeAssistant(p: SubscribeAssistantProps) {
                 <p>Thank you. We verify every payment before switching on access{p.user ? <> and we&apos;ll email <strong>{p.user.email}</strong> when it&apos;s confirmed</> : null}.</p>
                 <StatusCard s={current} amount={plan.price} onRefresh={refresh} busy={checking} />
                 {current.status === "rejected" && <button type="button" onClick={() => { setJustSent(null); setStartOver(true); setMethod(null); }} className="btn btn-secondary btn-sm w-fit">Send a new payment</button>}
-                <p className="text-sm text-muted">Questions? Message Tom on Discord with your reference, or email <a className="text-link underline" href={`mailto:${p.supportEmail}`}>{p.supportEmail}</a>.</p>
+                <p className="text-sm text-muted">Questions? Message BETVANTA on Discord with your reference, or email <a className="text-link underline" href={`mailto:${p.supportEmail}`}>{p.supportEmail}</a>.</p>
                 <a href="/dashboard/billing" className="text-sm font-semibold text-link hover:underline">Track it in Billing</a>
               </Bot>
             </>)}
@@ -272,12 +272,12 @@ function MethodFlow({ m, plan, p, onDone }: { m: AssistantMethod; plan: Assistan
     {m.kind === "card" && (p.user ? <CardPay m={m} plan={plan} /> : <SignInPrompt p={p} plan={plan} m={m} />)}
     {manualOff && (
       <Bot>
-        <p>{m.label} payments are being set up and can&apos;t be sent through the website yet. Tom can help you pay in the official BETVANTA Discord.</p>
+        <p>{m.label} payments are being set up and can&apos;t be sent through the website yet. The BETVANTA team can help you pay in our official Discord.</p>
         <DiscordButton url={p.discordUrl} />
       </Bot>)}
     {!manualOff && m.kind === "crypto" && !m.enabled && (
       <Bot>
-        <p><strong>{m.label}</strong> payments aren&apos;t open yet. Tom can help you pay another way in the official BETVANTA Discord.</p>
+        <p><strong>{m.label}</strong> payments aren&apos;t open yet. The BETVANTA team can help you pay another way in our official Discord.</p>
         <DiscordButton url={p.discordUrl} />
       </Bot>)}
     {!manualOff && m.kind === "crypto" && m.enabled && (<>
@@ -292,22 +292,22 @@ function MethodFlow({ m, plan, p, onDone }: { m: AssistantMethod; plan: Assistan
           <div className="w-full grid gap-1 text-sm">
             <div className="flex justify-between gap-3"><span className="text-muted">Plan</span><span className="font-semibold text-right">{plan.name}</span></div>
             <div className="flex justify-between gap-3"><span className="text-muted">Amount</span><span className="font-semibold text-right">{m.id === "usdt" ? `${plan.usdAmount} USDT (${plan.price})` : `${plan.price} in ${m.symbol}`}</span></div>
-            <div className="flex justify-between gap-3"><span className="text-muted">Network</span><span className="font-semibold text-right">{m.network ?? "Confirm with Tom"}</span></div>
+            <div className="flex justify-between gap-3"><span className="text-muted">Network</span><span className="font-semibold text-right">{m.network ?? "Confirm with BETVANTA"}</span></div>
           </div>
           <div className="w-full"><CopyButton text={m.address!} label="Copy address" /></div>
         </div>
         {!m.network && (
           <div className="rounded-lg bg-warning-subtle text-ink p-3 grid gap-2 text-sm" role="note">
             <p className="flex gap-2 font-semibold text-warning">{Icon.warn}Confirm the network before you send</p>
-            <p>This 0x address works on more than one blockchain. Ask Tom which network to use; sending on the wrong one can lose your funds for good.</p>
-            <DiscordButton url={p.discordUrl}>Confirm the network with Tom</DiscordButton>
+            <p>This 0x address works on more than one blockchain. Ask BETVANTA on Discord which network to use; sending on the wrong one can lose your funds for good.</p>
+            <DiscordButton url={p.discordUrl}>Confirm the network with BETVANTA</DiscordButton>
           </div>)}
       </Bot>
       <Bot>
         <p className="font-semibold">How to complete your payment</p>
         <ol className="list-decimal pl-5 grid gap-1 text-[14px]">
           <li>Copy the address or scan the QR code in your wallet app.</li>
-          <li>Send {amountText}{m.network ? ` on ${m.network}` : " on the network Tom confirms"}. Check the address before you confirm.</li>
+          <li>Send {amountText}{m.network ? ` on ${m.network}` : " on the network BETVANTA confirms"}. Check the address before you confirm.</li>
           {m.id !== "usdt" && <li>Prices move: send at least {plan.price} worth at the time you pay.</li>}
           <li>Upload a screenshot of the payment and add the transaction hash (TXID) below.</li>
         </ol>
@@ -317,7 +317,7 @@ function MethodFlow({ m, plan, p, onDone }: { m: AssistantMethod; plan: Assistan
     {!manualOff && m.kind === "contact" && (
       <Bot>
         <p>We don&apos;t list {m.id === "other" ? "payment" : m.label} details on the website, so you never send money to an out-of-date or fake account.</p>
-        <p><strong>Message Tom in the official BETVANTA Discord</strong> for current {m.id === "other" ? "payment" : m.label} instructions. Mention the <strong>{plan.name}</strong> plan ({plan.price}).</p>
+        <p><strong>Message BETVANTA in our official Discord</strong> for current {m.id === "other" ? "payment" : m.label} instructions. Mention the <strong>{plan.name}</strong> plan ({plan.price}).</p>
         <DiscordButton url={p.discordUrl} />
         <p className="text-sm text-muted">Then upload your payment proof below. We confirm the payment before your plan is activated.</p>
       </Bot>)}
@@ -391,7 +391,7 @@ function ProofForm({ m, plan, user, onDone }: { m: AssistantMethod; plan: Assist
         <input id={id("ref")} name="reference" className="input num text-[13px]" maxLength={200} autoCapitalize="none" spellCheck={false} aria-describedby={desc("reference", id("ref-h"))} />
         <span id={id("ref-h")} className="text-[12px] text-subtle">Add this, the proof upload, or both.</span>{hint("reference")}</div>
       {needNetwork && <div className="grid gap-1"><label htmlFor={id("net")} className={label}>Network you sent on</label>
-        <input id={id("net")} name="network" className="input" required maxLength={40} placeholder="as confirmed by Tom" aria-describedby={desc("network", id("net-h"))} />
+        <input id={id("net")} name="network" className="input" required maxLength={40} placeholder="as confirmed by BETVANTA" aria-describedby={desc("network", id("net-h"))} />
         <span id={id("net-h")} className="text-[12px] text-subtle">For example Ethereum (ERC-20).</span>{hint("network")}</div>}
       {m.id === "other" && <div className="grid gap-1"><label htmlFor={id("other")} className={label}>Payment method</label>
         <input id={id("other")} name="methodOther" className="input" required maxLength={40} placeholder="for example Cash App" aria-describedby={desc("methodOther")} />{hint("methodOther")}</div>}

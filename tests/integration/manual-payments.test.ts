@@ -117,7 +117,7 @@ describe("manual payments: review", () => {
   });
 });
 
-describe("Contact Tom on Discord link", () => {
+describe("Contact BETVANTA on Discord link", () => {
   it("accepts only Discord channel, user or invite links, else falls back to the invite", () => {
     withEnv({ DISCORD_SUPPORT_URL: "https://discord.com/channels/123/456" });
     expect(discordSupportUrl()).toBe("https://discord.com/channels/123/456");
