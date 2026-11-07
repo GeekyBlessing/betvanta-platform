@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { pageRole } from "@/lib/auth";
+import { tableExists } from "@/lib/schema";
 import { homeStats } from "@/lib/services/stats";
 import { listHomepageStats, liveValue } from "@/lib/services/homepage-stats";
 import { ApiForm, Check } from "@/components/ApiForm";
@@ -9,6 +10,10 @@ export const metadata: Metadata = { title: "Homepage statistics" };
 
 export default async function HomepageStatsAdmin() {
   await pageRole("/admin/homepage", "admin");
+  if (!(await tableExists("public.homepage_stats"))) return (<>
+    <PageHeader eyebrow="Admin" title="Homepage statistics" />
+    <Notice tone="warning" title="Database update needed.">The homepage statistics table (migration 010) is not in the database yet. The homepage is showing the client-provided figures from the code. Run the Supabase check workflow in apply mode to edit them here.</Notice>
+  </>);
   const [rows, live] = await Promise.all([listHomepageStats(), homeStats()]);
   return (<>
     <PageHeader eyebrow="Admin" title="Homepage statistics">

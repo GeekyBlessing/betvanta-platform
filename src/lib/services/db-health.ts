@@ -6,8 +6,8 @@ import { listCompetitions, standings, listFixtures } from "./sports";
 import { userFromToken } from "../session";
 import { listHomepageStats } from "./homepage-stats";
 
-/** The newest file in db/migrations. A unit test keeps this in step with the folder. */
-export const LATEST_MIGRATION = "013_homepage_win_rate.sql";
+import { LATEST_MIGRATION } from "../migrations";
+export { LATEST_MIGRATION };
 
 export type CheckResult = { name: string; ok: boolean; ms: number; detail?: string; code?: string };
 

@@ -4,13 +4,17 @@ import { one, q, tx } from "../../db";
 import { audit } from "../../audit";
 import { adminEmails, env } from "../../env";
 import { sendEmail, templates } from "../../email";
-import { badRequest, conflict, notFound } from "../../errors";
+import { badRequest, conflict, notFound, unavailable } from "../../errors";
+import { tableExists } from "../../schema";
 import { rateLimit } from "../../rate-limit";
 import { formatMoney, grantAccess } from "../billing";
 import { syncDiscordRoleSafe } from "../discord";
 import { isCrypto, MANUAL_METHODS, manualCryptoEnabled, METHOD_LABELS, walletNetwork, WALLETS, type ManualMethod } from "./methods";
 
 export * from "./methods";
+
+/** False until migration 011 is applied; checkout, billing and admin then show a notice instead of failing. */
+export const manualPaymentsReady = () => tableExists("public.manual_payments");
 
 export const MAX_PROOF_BYTES = 4 * 1024 * 1024; // stays under Vercel's 4.5 MB request limit
 const REF_CHARS = "0123456789ABCDEFGHJKMNPQRSTVWXYZ"; // no I, L, O, U: easy to read out on Discord
@@ -62,6 +66,7 @@ export const methodLabel = (m: Pick<ManualPayment, "method" | "method_other">) =
 
 /** Records a member's payment details for review. Never grants access. */
 export async function submitManualPayment(user: { id: string; email: string; display_name: string }, input: Submission, proof: ProofFile) {
+  if (!(await manualPaymentsReady())) throw unavailable("The payment assistant is not available yet. Please pay by card or contact Tom on Discord.");
   await rateLimit(`manual-pay:${user.id}`, 6, 3600);
   const plan = await one<{ id: string; name: string; amount_minor: string; currency: string }>("select id, name, amount_minor, currency from plans where code = $1 and active", [input.planCode]);
   if (!plan) throw notFound("That plan is not available.");

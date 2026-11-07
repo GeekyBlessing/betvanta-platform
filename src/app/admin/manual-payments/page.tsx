@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { pageRole } from "@/lib/auth";
 import { formatMoney } from "@/lib/services/billing";
-import { explorerUrl, isCrypto, listManualPayments, methodLabel, type ManualPayment } from "@/lib/services/manual-payments";
+import { explorerUrl, isCrypto, listManualPayments, manualPaymentsReady, methodLabel, type ManualPayment } from "@/lib/services/manual-payments";
 import { ApiForm } from "@/components/ApiForm";
 import { Badge, fmtDate, Notice, PageHeader } from "@/components/ui";
 export const metadata: Metadata = { title: "Manual payments" };
@@ -16,6 +16,10 @@ export default async function ManualPayments(props: { searchParams: Promise<{ st
   await pageRole("/admin/manual-payments", "admin");
   const sp = await props.searchParams;
   const status = (TABS.find(([k]) => k === sp.status)?.[0] ?? "pending_review");
+  if (!(await manualPaymentsReady())) return (<>
+    <PageHeader eyebrow="Admin" title="Manual payments" />
+    <Notice tone="warning" title="Database update needed.">The manual payments tables (migration 011) are not in the database yet, so the payment assistant is switched off. Run the Supabase check workflow in apply mode, then reload this page.</Notice>
+  </>);
   const rows = await listManualPayments(status);
   return (<>
     <PageHeader eyebrow="Admin" title="Manual payments">

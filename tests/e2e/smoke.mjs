@@ -24,7 +24,7 @@ const tokenFor = async (email) => (await db.query("select body_text from email_o
 const stamp = Date.now();
 const admin = client(), member = client(), anon = client();
 console.log("auth");
-check("health endpoint reports database up", (await anon("/api/health")).body.db === "up");
+{ const h = (await anon("/api/health")).body; check("health endpoint reports database up and schema current", h.db === "up" && h.schema === "current", JSON.stringify(h)); }
 check("deep health refuses without the cron secret", (await anon("/api/health/deep")).status === 401);
 { const d = await anon("/api/health/deep", { headers: { authorization: `Bearer ${process.env.CRON_SECRET}` } });
   check("deep health: every real app query succeeds", d.status === 200 && d.body.ok, JSON.stringify(d.body.checks?.filter((c) => !c.ok)));

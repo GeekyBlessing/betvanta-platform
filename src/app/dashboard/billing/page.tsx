@@ -3,7 +3,7 @@ import Link from "next/link";
 import { pageUser } from "@/lib/auth";
 import { q } from "@/lib/db";
 import { formatMoney } from "@/lib/services/billing";
-import { listMyManualPayments, methodLabel } from "@/lib/services/manual-payments";
+import { listMyManualPayments, manualPaymentsReady, methodLabel } from "@/lib/services/manual-payments";
 import { ActionButton } from "@/components/ActionButton";
 import { Badge, fmtDate, Notice, PageHeader } from "@/components/ui";
 export const metadata: Metadata = { title: "Billing" };
@@ -11,7 +11,7 @@ export default async function Billing() {
   const u = await pageUser("/dashboard/billing");
   const subs = await q(`select s.*, p.name from subscriptions s join plans p on p.id = s.plan_id where s.user_id = $1 order by s.current_period_end desc limit 20`, [u.id]);
   const pays = await q(`select y.reference, y.amount_minor, y.currency, y.status, y.created_at, y.verified_at, p.name, y.provider from payments y join plans p on p.id = y.plan_id where y.user_id = $1 order by y.created_at desc limit 50`, [u.id]);
-  const manual = await listMyManualPayments(u.id);
+  const manual = (await manualPaymentsReady()) ? await listMyManualPayments(u.id) : [];
   // Lifetime rows end at Infinity (Postgres "infinity"), which new Date() cannot represent.
   const current = (s: { is_lifetime: boolean; current_period_end: string | number }) => s.is_lifetime || new Date(s.current_period_end) > new Date();
   const active = subs.find((s) => s.status === "active" && current(s));

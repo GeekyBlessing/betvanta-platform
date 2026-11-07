@@ -5,7 +5,7 @@ import { one } from "@/lib/db";
 import { enabledProviders } from "@/lib/services/payments";
 import QRCode from "qrcode";
 import { formatMoney, periodLabel, type Plan } from "@/lib/services/billing";
-import { CRYPTO_METHODS, manualCryptoEnabled, methodLabel, METHOD_LABELS, OTHER_METHODS, pendingForPlan, walletNetwork, WALLETS } from "@/lib/services/manual-payments";
+import { CRYPTO_METHODS, manualCryptoEnabled, manualPaymentsReady, methodLabel, METHOD_LABELS, OTHER_METHODS, pendingForPlan, walletNetwork, WALLETS } from "@/lib/services/manual-payments";
 import { PaymentAssistant, type AssistantMethod } from "@/components/PaymentAssistant";
 import { discordSupportUrl } from "@/lib/env";
 import { support } from "@/lib/support";
@@ -33,7 +33,8 @@ export default async function Checkout(props: { params: Promise<{ plan: string }
     })))),
     ...OTHER_METHODS.map((id) => ({ id, label: METHOD_LABELS[id], kind: "contact" as const, enabled: true })),
   ];
-  const pending = await pendingForPlan(user.id, plan.code);
+  const assistantReady = await manualPaymentsReady();
+  const pending = assistantReady ? await pendingForPlan(user.id, plan.code) : null;
   const usd = Number(plan.amount_minor) / 100;
   return (
     <div className="wrap py-10 max-w-[720px] grid gap-6">
@@ -49,12 +50,13 @@ export default async function Checkout(props: { params: Promise<{ plan: string }
       {crypto && <section className="card p-6 grid gap-4"><h2 className="font-semibold text-[17px]">Pay with crypto through NOWPayments</h2>
         <p className="text-sm text-muted">Priced in USD; you pay the equivalent in the coin you choose. Access starts once the network confirms the payment, which can take a few minutes.</p>
         <div className="flex flex-wrap gap-3">{(["BTC", "ETH", "USDT"] as const).map((c) => <ApiForm key={c} action="/api/billing/checkout" extra={{ planCode: plan.code, provider: crypto.id, payCurrency: c }} submitLabel={`Pay with ${c}`} variant="secondary" className="grid gap-2" />)}</div></section>}
-      <PaymentAssistant
+      {!assistantReady && <Notice tone="warning" title="Crypto, PayPal and other methods are not available right now.">We are finishing setup for these payment methods. Card payment is not affected. For help, contact us through the BETVANTA Discord or <a className="underline" href={`mailto:${support().email}`}>{support().email}</a>.</Notice>}
+      {assistantReady && <PaymentAssistant
         plan={{ code: plan.code, name: plan.name, price: formatMoney(plan.amount_minor), period: periodLabel(plan), usdAmount: Number.isInteger(usd) ? String(usd) : usd.toFixed(2) }}
         user={{ firstName: user.display_name.split(/\s+/)[0], displayName: user.display_name, email: user.email }}
         methods={methods} discordUrl={discordSupportUrl()} supportEmail={support().email}
         pending={pending ? { reference: pending.reference, method: methodLabel(pending), submittedAt: pending.created_at } : null}
-        initialMethod={initialMethod && /^[a-z_]{2,12}$/.test(initialMethod) ? initialMethod : null} />
+        initialMethod={initialMethod && /^[a-z_]{2,12}$/.test(initialMethod) ? initialMethod : null} />}
       <p className="text-xs text-subtle">Subscription payments are for access to analysis only. BETVANTA does not take bets, deposits or withdrawals. {RG_LINE}</p>
       <Link href="/pricing" className="text-sm text-link font-semibold hover:underline">Back to plans</Link>
     </div>

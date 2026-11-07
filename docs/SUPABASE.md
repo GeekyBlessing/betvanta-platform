@@ -75,6 +75,10 @@ If the password has special characters, URL-encode them (or reset it to letters 
 - `https://<your-site>/api/health` (public): `db: "up"`, or a non-secret error code plus which kind of host is configured (for example `supabase direct (IPv6-only, unsupported)`).
 - `https://<your-site>/api/health/deep` (needs `Authorization: Bearer <CRON_SECRET>`): runs the app's real reads (homepage statistics, predictions, testimonials, plans, competitions and standings, fixtures, the session lookup used by sign-in) and reports each as ok or with its Postgres error code, plus the connected user and the latest applied migration. Example: `curl -H "Authorization: Bearer $CRON_SECRET" https://<your-site>/api/health/deep`.
 
+### Checkout or Billing shows "Something went wrong" after a deploy
+
+Vercel deploys every push, but migrations only run when you run the Supabase check workflow. If a deploy needs a newer table, `/api/health` returns `503` with `"schema": "behind"` and the latest applied and expected migration. Pages degrade instead of crashing: the payment assistant is switched off with a notice, card checkout keeps working, admin pages say which migration is missing. Run Supabase check in `inspect`, then `apply`. Always apply migrations before (or right after) pushing code that needs them.
+
 ### `relation "users" does not exist` (or predictions, testimonials)
 
 The app reached a database that has no BETVANTA tables. Either migrations were never applied to it, or Vercel's `DATABASE_URL` points at a different database or project than the one migrated.
