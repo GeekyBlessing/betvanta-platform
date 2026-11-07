@@ -137,7 +137,7 @@ export async function approveManualPayment(adminId: string, id: string, note: st
     return { ...m, sub };
   });
   const u = await one<{ email: string; display_name: string }>("select email, display_name from users where id = $1", [r.user_id]);
-  if (u) await sendEmail({ to: u.email, ...templates.receipt(u.display_name, r.sub.planLabel, formatMoney(r.amount_minor), r.reference, r.sub.current_period_end === "lifetime" ? "Lifetime" : new Date(r.sub.current_period_end).toUTCString()) });
+  if (u) await sendEmail({ to: u.email, ...templates.manualConfirmed(u.display_name, r.sub.planLabel, formatMoney(r.amount_minor), r.reference, r.sub.current_period_end === "lifetime" ? "Lifetime" : new Date(r.sub.current_period_end).toUTCString()) });
   await syncDiscordRoleSafe(r.user_id);
   return { reference: r.reference, until: r.sub.current_period_end };
 }

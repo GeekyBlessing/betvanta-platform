@@ -2,6 +2,7 @@ import { ok, route } from "@/lib/http";
 import { requireUser } from "@/lib/auth";
 import { badRequest } from "@/lib/errors";
 import { MAX_PROOF_BYTES, submissionSchema, submitManualPayment } from "@/lib/services/manual-payments";
+import { paymentStatuses } from "@/lib/services/manual-payments/assistant";
 export const dynamic = "force-dynamic";
 
 // Multipart form from the payment assistant: the member's details plus an optional proof file.
@@ -20,4 +21,10 @@ export const POST = route(async (req: Request) => {
   const proof = f && typeof f !== "string" && f.size > 0 ? { name: f.name || "proof", data: Buffer.from(await f.arrayBuffer()) } : null;
   const r = await submitManualPayment(user, input, proof);
   return ok({ ...r, message: "Payment details received. Status: pending verification." }, 201);
+});
+
+// The signed-in member's payment status per plan (Pending, Confirmed or Rejected), for the assistant's Refresh button.
+export const GET = route(async () => {
+  const user = await requireUser();
+  return ok({ statuses: await paymentStatuses(user.id) });
 });

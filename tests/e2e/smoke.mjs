@@ -64,7 +64,8 @@ check("unverified member cannot check out", r.status === 403);
 const vt = await tokenFor(memberEmail);
 check("verification email recorded", Boolean(vt));
 check("email verification succeeds", (await member("/api/auth/verify", { method: "POST", json: { token: vt } })).body.ok);
-check("checkout page lists card and crypto options", await (async () => { const x = await member("/checkout/premium_6m"); return x.status === 200 && x.body.includes("Pay with BTC") && x.body.includes("Card (Stripe)") && x.body.includes("$150"); })());
+check("old checkout links open the payment assistant for that plan", await (async () => { const x = await member("/checkout/premium_6m"); return [307, 308].includes(x.status) && /\/pricing\?subscribe=premium_6m$/.test(x.headers.get("location") ?? ""); })());
+check("the assistant offers card and crypto with the verified wallets", await (async () => { const x = await member("/pricing?subscribe=premium_6m"); return x.status === 200 && x.body.includes("Stripe") && x.body.includes("bc1qu2pq8h060lpu3g5yg8zzc39lr85mal3vpek4dv"); })());
 r = await member("/api/billing/checkout", { method: "POST", json: { planCode: "premium_1m", provider: "stripe" } });
 check("Stripe checkout starts in USD", r.body.ok && (await db.query("select currency, amount_minor from payments where reference=$1", [r.body.data.reference])).rows[0].currency === "USD", JSON.stringify(r.body));
 const sref = r.body.data.reference;
@@ -108,7 +109,7 @@ const pricing = await anon("/pricing");
 check("pricing shows the five USD plans", ["Monthly Premium", "3 Month Premium", "6 Month Premium", "1 Year Premium", "Lifetime Premium", "$50", "$100", "$150", "$300", "$600"].every((s) => pricing.body.includes(s)));
 check("pricing highlights one best-value plan", (pricing.body.match(/Best value</g) ?? []).length === 1);
 check("pricing has comparison table and payment options", pricing.body.includes("Compare plans") && pricing.body.includes("Weekly private video analysis calls") && pricing.body.includes("Payment options"));
-check("anonymous plan selection leads to sign-up then checkout", pricing.body.includes("/register?next=/checkout/premium_1y"));
+check("every plan has a Subscribe Now button that opens the assistant", ["premium_1m", "premium_3m", "premium_6m", "premium_1y", "premium_lifetime"].every((c) => pricing.body.includes(`data-subscribe="${c}"`)) && (pricing.body.match(/>Subscribe Now</g) ?? []).length === 5);
 const life = client(); const lifeEmail = `life${stamp}@example.com`;
 await life("/api/auth/register", { method: "POST", json: { displayName: "Life", email: lifeEmail, password: "lifetime passphrase", confirmAge: true, acceptTerms: true } });
 await life("/api/auth/verify", { method: "POST", json: { token: await tokenFor(lifeEmail) } });
@@ -139,10 +140,10 @@ console.log("payment assistant: manual crypto and Discord-arranged payments");
 {
   const payer = client(), payerEmail = `payer${stamp}@example.com`;
   await payer("/api/auth/register", { method: "POST", json: { displayName: "Pat Payer", email: payerEmail, password: "payer passphrase long", confirmAge: true, acceptTerms: true } });
-  const co = await payer("/checkout/premium_1m");
-  check("checkout shows the payment assistant with every method", co.status === 200 && ["Pay with crypto, PayPal, Venmo and more", 'data-method="btc"', 'data-method="eth"', 'data-method="usdt"', 'data-method="paypal"', 'data-method="venmo"', 'data-method="chime"', 'data-method="apple_pay"', 'data-method="other"'].every((x) => co.body.includes(x)));
-  check("checkout carries the confirmed wallet addresses and QR codes", ["bc1qu2pq8h060lpu3g5yg8zzc39lr85mal3vpek4dv", "0x283bed6B2dB8b70FB245a9734fc6479C60C59E9C", "0x7EE5E8D5149A55c6049f7b1042834cDAEB2f246d"].every((a) => co.body.includes(a)) && (co.body.match(/crispEdges/g) ?? []).length >= 3);
-  check("checkout never shows a PayPal, Venmo or Chime account", !/paypal\.me|venmo\.com\/|\$cashtag|@[a-z0-9_]+ on venmo/i.test(co.body));
+  const co = await payer("/pricing?subscribe=premium_1m");
+  check("the payment assistant lists every method", co.status === 200 && ["Bitcoin (BTC)", "Ethereum (ETH)", "Tether (USDT)", "PayPal", "Venmo", "Chime", "Apple Pay", "Other method"].every((x) => co.body.includes(x)));
+  check("the assistant carries the confirmed wallet addresses and QR codes", ["bc1qu2pq8h060lpu3g5yg8zzc39lr85mal3vpek4dv", "0x283bed6B2dB8b70FB245a9734fc6479C60C59E9C", "0x7EE5E8D5149A55c6049f7b1042834cDAEB2f246d"].every((a) => co.body.includes(a)) && (co.body.match(/crispEdges/g) ?? []).length >= 3);
+  check("the assistant never shows a PayPal, Venmo or Chime account", !/paypal\.me|venmo\.com\/|\$cashtag|@[a-z0-9_]+ on venmo/i.test(co.body));
   const png = Buffer.from("89504e470d0a1a0a0000000d4948445200000001000000010806000000", "hex");
   const form = (o, file) => { const f = new FormData(); for (const [k, v] of Object.entries(o)) f.set(k, v); if (file) f.set("proof", new Blob([file.data], { type: file.type }), file.name); return f; };
   const base = { planCode: "premium_1m", fullName: "Pat Payer", email: payerEmail, discordUsername: "pat_payer" };
@@ -155,8 +156,9 @@ console.log("payment assistant: manual crypto and Discord-arranged payments");
   const ref = sub.body.data?.reference;
   check("a pending submission grants no access", (await db.query("select count(*)::int n from subscriptions s join users u on u.id = s.user_id where u.email = $1", [payerEmail])).rows[0].n === 0);
   check("a second submission for the same plan is refused while one is pending", (await payer("/api/billing/manual", { method: "POST", raw: form({ ...base, method: "paypal", reference: "PP-1" }) })).status === 409);
-  check("checkout shows the pending status", (await payer("/checkout/premium_1m")).body.includes(ref));
-  check("member sees pending verification in billing", (await payer("/dashboard/billing")).body.includes("Pending verification"));
+  check("the assistant shows the pending status for that plan", (await payer("/pricing?subscribe=premium_1m")).body.includes(ref));
+  { const st = await payer("/api/billing/manual"); check("members can refresh their payment status", st.body.ok && st.body.data.statuses.some((x) => x.reference === ref && x.status === "pending")); }
+  check("member sees the Pending status in billing", />Pending</.test((await payer("/dashboard/billing")).body));
   check("member and admin were emailed", (await db.query("select count(*)::int n from email_outbox where template in ('manual_received','manual_to_review') and body_text like $1", [`%${ref}%`])).rows[0].n === 2);
   const row = (await db.query("select m.id, f.id proof_id, f.mime from manual_payments m join manual_payment_proofs f on f.manual_payment_id = m.id where m.reference = $1", [ref])).rows[0];
   check("proof is stored with its real type", row?.mime === "image/png");
@@ -170,8 +172,8 @@ console.log("payment assistant: manual crypto and Discord-arranged payments");
   const ap = await admin(`/api/admin/manual-payments/${row.id}`, { method: "POST", json: { action: "approve", note: "received, 2 confirmations" } });
   check("admin approves after verification and access is granted", ap.body.ok && (await db.query("select s.plan_level, s.source from subscriptions s join users u on u.id = s.user_id where u.email = $1 and s.status = 'active'", [payerEmail])).rows[0]?.plan_level === 1, JSON.stringify(ap.body));
   check("a submission cannot be approved twice", (await admin(`/api/admin/manual-payments/${row.id}`, { method: "POST", json: { action: "approve" } })).status === 409);
-  check("approval is audited and a receipt is emailed", (await db.query("select count(*)::int n from audit_logs where action = 'admin.manual_payment_approved' and entity_id = $1", [ref])).rows[0].n === 1
-    && (await db.query("select count(*)::int n from email_outbox where template = 'receipt' and body_text like $1", [`%${ref}%`])).rows[0].n === 1);
+  check("approval is audited and a confirmation email is sent", (await db.query("select count(*)::int n from audit_logs where action = 'admin.manual_payment_approved' and entity_id = $1", [ref])).rows[0].n === 1
+    && (await db.query("select count(*)::int n from email_outbox where template = 'manual_confirmed' and body_text like $1", [`%${ref}%`])).rows[0].n === 1);
   const pp = await payer("/api/billing/manual", { method: "POST", raw: form({ ...base, planCode: "premium_3m", method: "other", methodOther: "Cash App", reference: "CA-12345" }) });
   check("member submits a Discord-arranged payment", pp.status === 201, JSON.stringify(pp.body));
   const ppId = (await db.query("select id from manual_payments where reference = $1", [pp.body.data?.reference])).rows[0]?.id;
@@ -189,7 +191,7 @@ check("View Predictions opens predictions", /href="\/predictions"[^>]*>View Pred
 check("hero uses the stadium artwork for desktop and mobile", homePage.body.includes("/images/hero/stadium-wide.webp") && homePage.body.includes("/images/hero/stadium-tall.webp") && (await anon("/images/hero/stadium-tall.webp")).status === 200);
 for (const [name, text] of [["platform and sports", "Your Smarter Sports Intelligence Platform"], ["get started", "Get started in under a minute"], ["upcoming fixtures", "Upcoming matches"], ["predictions and analysis", "Predictions and match analysis"], ["premium plans", "Choose how long you want full access"], ["how it works", "From sign-up to sharper picks in three steps"], ["dashboard preview", "Everything you follow, in one place"], ["testimonials", "What members say"], ["FAQ", "Questions, answered"], ["community", "Talk the game with other members"]])
   check(`homepage section: ${name}`, homePage.body.includes(text));
-check("homepage plans link to checkout or registration for all five plans", ["premium_1m", "premium_3m", "premium_6m", "premium_1y", "premium_lifetime"].every((c) => homePage.body.includes(`/register?next=/checkout/${c}`)));
+check("homepage plans open the payment assistant for all five plans", ["premium_1m", "premium_3m", "premium_6m", "premium_1y", "premium_lifetime"].every((c) => homePage.body.includes(`data-subscribe="${c}"`)));
 check("footer has contact, Discord and legal links", ["mailto:", "/contact", "/legal/terms", "/legal/privacy", "/responsible-gambling"].every((x) => homePage.body.includes(x)) && /Discord/.test(homePage.body));
 check("platform section is present", homePage.body.includes("Your Smarter Sports Intelligence Platform"));
 const invite = process.env.DISCORD_INVITE_URL || "https://discord.com/invite/STDJ29shZS";

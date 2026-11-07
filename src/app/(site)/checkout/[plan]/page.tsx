@@ -1,64 +1,11 @@
-import Link from "next/link";
-import { notFound } from "next/navigation";
-import { pageUser } from "@/lib/auth";
-import { one } from "@/lib/db";
-import { enabledProviders } from "@/lib/services/payments";
-import QRCode from "qrcode";
-import { formatMoney, periodLabel, type Plan } from "@/lib/services/billing";
-import { CRYPTO_METHODS, manualCryptoEnabled, manualPaymentsReady, methodLabel, METHOD_LABELS, OTHER_METHODS, pendingForPlan, walletNetwork, WALLETS } from "@/lib/services/manual-payments";
-import { PaymentAssistant, type AssistantMethod } from "@/components/PaymentAssistant";
-import { discordSupportUrl } from "@/lib/env";
-import { support } from "@/lib/support";
-import { cardFeatures } from "@/lib/services/plans";
-import { ApiForm } from "@/components/ApiForm";
-import { Notice, PageHeader, RG_LINE } from "@/components/ui";
+import { redirect } from "next/navigation";
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Checkout" };
+// The subscription journey now runs in the payment assistant on the plans page. Old checkout links (emails, bookmarks)
+// open the assistant for the same plan; card payments, crypto and Discord-arranged methods are all offered there.
 export default async function Checkout(props: { params: Promise<{ plan: string }>; searchParams: Promise<{ method?: string }> }) {
-  const { plan: code } = await props.params;
-  const { method: initialMethod } = await props.searchParams;
-  const user = await pageUser(`/checkout/${code}`);
-  if (!/^[a-z0-9_]{3,40}$/.test(code)) notFound();
-  const plan = await one<Plan>("select * from plans where code = $1 and active", [code]);
-  if (!plan) notFound();
-  const providers = enabledProviders();
-  const card = providers.filter((p) => p.method === "card");
-  const crypto = providers.find((p) => p.method === "crypto");
-  const cryptoOn = manualCryptoEnabled();
-  const methods: AssistantMethod[] = [
-    ...(await Promise.all(CRYPTO_METHODS.map(async (id) => ({
-      id, label: METHOD_LABELS[id], kind: "crypto" as const, enabled: cryptoOn, symbol: WALLETS[id].symbol, walletName: WALLETS[id].name,
-      ...(cryptoOn ? { address: WALLETS[id].address, network: walletNetwork(id),
-        qrSvg: await QRCode.toString(WALLETS[id].address, { type: "svg", margin: 1, errorCorrectionLevel: "M", color: { dark: "#172322", light: "#FFFFFF" } }) } : {}),
-    })))),
-    ...OTHER_METHODS.map((id) => ({ id, label: METHOD_LABELS[id], kind: "contact" as const, enabled: true })),
-  ];
-  const assistantReady = await manualPaymentsReady();
-  const pending = assistantReady ? await pendingForPlan(user.id, plan.code) : null;
-  const usd = Number(plan.amount_minor) / 100;
-  return (
-    <div className="wrap py-10 max-w-[720px] grid gap-6">
-      <PageHeader eyebrow="Checkout" title={plan.name}>
-        <span className="num text-ink text-[20px] font-semibold">{formatMoney(plan.amount_minor)}</span> {plan.is_lifetime ? "one-time payment for lifetime access." : `for ${plan.duration_days} days. One-time payment, no automatic renewal.`}
-      </PageHeader>
-      <section className="card p-5 grid gap-2"><h2 className="font-semibold">What you get</h2><ul className="grid gap-1.5 text-sm sm:grid-cols-2">{cardFeatures(plan.level).map((f) => <li key={f}>✓ {f}</li>)}</ul></section>
-      {!user.email_verified_at && <Notice tone="warning" title="Verify your email first.">Check your inbox for the verification link, then come back here.</Notice>}
-      {!providers.length && <Notice tone="info" title="Card checkout is not switched on yet.">You can still pay with the payment assistant below.</Notice>}
-      {card.length > 0 && <section className="card p-6 grid gap-4"><h2 className="font-semibold text-[17px]">Pay by card</h2>
-        <div className="flex flex-wrap gap-3">{card.map((p) => <ApiForm key={p.id} action="/api/billing/checkout" extra={{ planCode: plan.code, provider: p.id }} submitLabel={p.label} variant={p.id === card[0].id ? "accent" : "secondary"} className="grid gap-2" />)}</div>
-        <p className="text-xs text-subtle">You will be sent to the provider&apos;s secure page. Card details never reach BETVANTA.</p></section>}
-      {crypto && <section className="card p-6 grid gap-4"><h2 className="font-semibold text-[17px]">Pay with crypto through NOWPayments</h2>
-        <p className="text-sm text-muted">Priced in USD; you pay the equivalent in the coin you choose. Access starts once the network confirms the payment, which can take a few minutes.</p>
-        <div className="flex flex-wrap gap-3">{(["BTC", "ETH", "USDT"] as const).map((c) => <ApiForm key={c} action="/api/billing/checkout" extra={{ planCode: plan.code, provider: crypto.id, payCurrency: c }} submitLabel={`Pay with ${c}`} variant="secondary" className="grid gap-2" />)}</div></section>}
-      {!assistantReady && <Notice tone="warning" title="Crypto, PayPal and other methods are not available right now.">We are finishing setup for these payment methods. Card payment is not affected. For help, contact us through the BETVANTA Discord or <a className="underline" href={`mailto:${support().email}`}>{support().email}</a>.</Notice>}
-      {assistantReady && <PaymentAssistant
-        plan={{ code: plan.code, name: plan.name, price: formatMoney(plan.amount_minor), period: periodLabel(plan), usdAmount: Number.isInteger(usd) ? String(usd) : usd.toFixed(2) }}
-        user={{ firstName: user.display_name.split(/\s+/)[0], displayName: user.display_name, email: user.email }}
-        methods={methods} discordUrl={discordSupportUrl()} supportEmail={support().email}
-        pending={pending ? { reference: pending.reference, method: methodLabel(pending), submittedAt: pending.created_at } : null}
-        initialMethod={initialMethod && /^[a-z_]{2,12}$/.test(initialMethod) ? initialMethod : null} />}
-      <p className="text-xs text-subtle">Subscription payments are for access to analysis only. BETVANTA does not take bets, deposits or withdrawals. {RG_LINE}</p>
-      <Link href="/pricing" className="text-sm text-link font-semibold hover:underline">Back to plans</Link>
-    </div>
-  );
+  const { plan } = await props.params;
+  const { method } = await props.searchParams;
+  const code = /^[a-z0-9_]{3,40}$/.test(plan) ? plan : "";
+  const m = method && /^[a-z_]{2,12}$/.test(method) ? `&method=${method}` : "";
+  redirect(code ? `/pricing?subscribe=${code}${m}` : "/pricing");
 }

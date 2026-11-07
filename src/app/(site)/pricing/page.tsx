@@ -7,6 +7,8 @@ import { formatMoney, MONTHS, periodLabel, type Plan } from "@/lib/services/bill
 import { cardFeatures, FEATURES, LEVEL_NAMES } from "@/lib/services/plans";
 import { PROVIDERS } from "@/lib/services/payments";
 import { PageHeader, RG_LINE } from "@/components/ui";
+import { SubscribeAssistant } from "@/components/SubscribeAssistant";
+import { subscribeAssistantProps } from "@/lib/services/manual-payments/assistant";
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Pricing", description: "BETVANTA Premium plans in USD: Monthly, 3 Month, 6 Month, 1 Year and Lifetime." };
 
@@ -15,12 +17,15 @@ const Tick = ({ className = "" }: { className?: string }) => (
 );
 const perMonth = (p: Plan) => (p.is_lifetime ? null : Number(p.amount_minor) / MONTHS[p.interval]);
 
-export default async function Pricing() {
+export default async function Pricing(props: { searchParams: Promise<{ subscribe?: string; method?: string }> }) {
+  const sp = await props.searchParams;
   const [plans, user] = await Promise.all([q<Plan>("select * from plans where active order by level"), currentUser()]);
+  const assistant = await subscribeAssistantProps(user, "/pricing", { plan: sp.subscribe, method: sp.method });
   const monthly = plans.find((p) => p.level === 1);
   const periodic = plans.filter((p) => !p.is_lifetime);
   const lifetime = plans.find((p) => p.is_lifetime);
-  const href = (p: Plan) => (user ? `/checkout/${p.code}` : `/register?next=/checkout/${p.code}`);
+  // Subscribe Now opens the payment assistant on this page (data-subscribe); the link is the no-JavaScript fallback.
+  const href = (p: Plan) => `/pricing?subscribe=${p.code}`;
   const methods = [
     { label: "Card", detail: "Visa, Mastercard, Amex via Stripe", on: PROVIDERS.stripe.enabled() || PROVIDERS.paystack.enabled() },
     { label: "Crypto", detail: "BTC, ETH, USDT", on: PROVIDERS.nowpayments.enabled() || cryptoApproved(), pending: !cryptoApproved() },
@@ -53,7 +58,7 @@ export default async function Pricing() {
                 <ul className="grid gap-2.5 text-sm">
                   {cardFeatures(p.level).map((f, i) => <li key={f} className={`flex gap-2.5 ${i === 0 && p.level > 1 ? "font-semibold" : ""}`}><Tick className={best ? "text-[#C47C52]" : "text-link"} />{f}</li>)}
                 </ul>
-                <Link href={href(p)} className={`btn btn-lg w-full mt-auto ${best ? "btn-accent" : "btn-secondary"}`}>Choose {LEVEL_NAMES[p.level]}</Link>
+                <a href={href(p)} data-subscribe={p.code} aria-label={`Subscribe Now to ${p.name}`} className={`btn btn-lg w-full mt-auto ${best ? "btn-accent" : "btn-secondary"}`}>Subscribe Now</a>
               </article>
             );
           })}
@@ -67,7 +72,7 @@ export default async function Pricing() {
               {lifetime.tagline && <p className="text-sm text-muted">{lifetime.tagline}</p>}
             </div>
             <ul className="grid gap-2.5 text-sm sm:grid-cols-2">{cardFeatures(5).map((f) => <li key={f} className="flex gap-2.5"><Tick className="text-link" />{f}</li>)}<li className="flex gap-2.5"><Tick className="text-link" />Everything in 1 Year, with no expiry</li></ul>
-            <Link href={href(lifetime)} className="btn btn-primary btn-lg w-full md:w-auto">Choose Lifetime</Link>
+            <a href={href(lifetime)} data-subscribe={lifetime.code} aria-label={`Subscribe Now to ${lifetime.name}`} className="btn btn-primary btn-lg w-full md:w-auto">Subscribe Now</a>
           </article>
         )}
         <p className="text-sm text-muted">Not ready to subscribe? <Link href={user ? "/predictions" : "/register"} className="text-link font-semibold underline">{user ? "See today's free picks" : "Create a free account"}</Link> for free daily picks and the public track record.</p>
@@ -82,7 +87,7 @@ export default async function Pricing() {
               <span className={`ml-auto text-xs font-semibold rounded-sm px-2 py-0.5 ${m.on ? "bg-success-subtle text-success" : "bg-sunken text-muted"}`}>{m.on ? "Available" : m.pending ? "Coming soon" : "Not yet available"}</span>
             </div>))}
         </div>
-        <p className="text-xs text-subtle">You choose how to pay at checkout. Card details are handled by the payment processor and never reach BETVANTA. Subscription payments are kept separate from any betting funds; BETVANTA does not take bets or deposits.</p>
+        <p className="text-xs text-subtle">Press Subscribe Now and the payment assistant walks you through your chosen method. Card details are handled by the payment processor and never reach BETVANTA. Subscription payments are kept separate from any betting funds; BETVANTA does not take bets or deposits.</p>
       </section>
 
       <section aria-labelledby="cmp-h" className="grid gap-3">
@@ -110,6 +115,7 @@ export default async function Pricing() {
       </section>
 
       <p className="text-xs text-subtle">Prices in USD. Giveaways, lotto selections, video sessions, consultations and support are provided by the BETVANTA team to eligible members. {RG_LINE}{env().DISCORD_INVITE_URL ? " Community access is through Discord." : ""}</p>
+      <SubscribeAssistant {...assistant} />
     </div>
   );
 }

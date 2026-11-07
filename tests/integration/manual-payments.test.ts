@@ -80,7 +80,7 @@ describe("manual payments: review", () => {
     await expect(rejectManualPayment(a.id, id, "changed my mind")).rejects.toThrow(/already approved/);
     await expect(q("update manual_payments set status = 'pending_review' where id = $1", [id])).rejects.toThrow(/already approved/);
     const sent = await q<{ template: string }>("select template from email_outbox where to_email = $1 order by created_at", [u.email]);
-    expect(sent.map((s) => s.template)).toEqual(["manual_received", "receipt"]);
+    expect(sent.map((s) => s.template)).toEqual(["manual_received", "manual_confirmed"]);
   });
 
   it("rejection records the reason, emails the member and allows a new submission", async () => {

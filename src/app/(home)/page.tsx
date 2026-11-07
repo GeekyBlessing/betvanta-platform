@@ -10,6 +10,8 @@ import { formatMoney, periodLabel, type Plan } from "@/lib/services/billing";
 import { cardFeatures } from "@/lib/services/plans";
 import { FAQ } from "@/lib/content/faq";
 import { FixtureList } from "@/components/FixtureList";
+import { SubscribeAssistant } from "@/components/SubscribeAssistant";
+import { subscribeAssistantProps } from "@/lib/services/manual-payments/assistant";
 import { SPORTS } from "@/lib/services/sports";
 import { FixtureCard, groupByFixture } from "@/components/PredictionCard";
 import { JoinDiscordButton } from "@/components/Discord";
@@ -71,8 +73,9 @@ export default async function Home() {
     listFixtures({ mode: "upcoming", limit: 6 }),
     q<Plan>("select * from plans where active order by level"),
   ]);
+  const assistant = await subscribeAssistantProps(user, "/");
   const start = user ? (user.role === "member" ? "/dashboard" : "/admin") : "/register";
-  const planHref = (p: Plan) => (user ? `/checkout/${p.code}` : `/register?next=/checkout/${p.code}`);
+  const planHref = (p: Plan) => `/pricing?subscribe=${p.code}`;
   const fixtures = groupByFixture(upcoming).slice(0, 4);
   const cov = (id: string) => coverage.find((c) => c.sport === id);
 
@@ -193,7 +196,7 @@ export default async function Home() {
                   <p className="flex items-baseline gap-1.5"><span className="display num text-[30px] leading-9 font-bold">{formatMoney(p.amount_minor)}</span><span className={`text-xs ${p.best_value ? "text-[#4F5E5B]" : "text-sand/70"}`}>{periodLabel(p)}</span></p>
                 </div>
                 <ul className={`grid gap-1.5 text-[13px] ${p.best_value ? "text-[#2c3a38]" : "text-sand/85"}`}>{cardFeatures(p.level).slice(0, 3).map((f) => <li key={f} className="flex gap-2"><span aria-hidden className="text-copper">&#10003;</span>{f}</li>)}</ul>
-                <Link href={planHref(p)} className={`btn w-full ${p.best_value ? "btn-accent" : "btn-onbrand"}`}>Choose {p.name.replace(/ Premium$/, "")}</Link>
+                <a href={planHref(p)} data-subscribe={p.code} aria-label={`Subscribe Now to ${p.name}`} className={`btn w-full ${p.best_value ? "btn-accent" : "btn-onbrand"}`}>Subscribe Now</a>
               </li>))}
           </ul> : <Notice tone="info">Plans are being updated. See the pricing page for details.</Notice>}
           <p className="text-xs text-sand/70">Pay by card, crypto, or with help from our team in Discord. Access starts once the payment is verified. {RG_LINE}</p>
@@ -304,6 +307,7 @@ export default async function Home() {
           </div>
         </div>
       </section>
+      <SubscribeAssistant {...assistant} />
     </>
   );
 }

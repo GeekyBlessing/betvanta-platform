@@ -29,7 +29,7 @@ export default async function Billing() {
       <h2 className="font-semibold text-[17px] mb-3">Payments sent through the payment assistant</h2>
       <div className="card overflow-x-auto relative mb-8"><table className="table"><thead><tr><th>Date</th><th>Plan</th><th>Method</th><th>Reference</th><th className="text-right">Amount</th><th>Status</th></tr></thead><tbody>
         {manual.map((m) => <tr key={m.id}><td className="num whitespace-nowrap">{fmtDate(m.created_at)}</td><td>{m.plan_name}</td><td>{methodLabel(m)}</td><td className="num text-xs">{m.reference}</td><td className="num text-right">{formatMoney(m.amount_minor)}</td>
-          <td>{m.status === "approved" ? <Badge tone="success" dot>Verified</Badge> : m.status === "rejected" ? <><Badge tone="danger" dot>Not verified</Badge>{m.review_note && <div className="text-xs text-muted mt-1 max-w-[32ch]">{m.review_note}</div>}</> : <Badge tone="warning" dot>Pending verification</Badge>}</td></tr>)}
+          <td>{m.status === "approved" ? <Badge tone="success" dot>Confirmed</Badge> : m.status === "rejected" ? <><Badge tone="danger" dot>Rejected</Badge>{m.review_note && <div className="text-xs text-muted mt-1 max-w-[32ch]">{m.review_note}</div>}</> : <Badge tone="warning" dot>Pending</Badge>}</td></tr>)}
       </tbody></table></div>
     </>}
     <h2 className="font-semibold text-[17px] mb-3">Payment history</h2>
