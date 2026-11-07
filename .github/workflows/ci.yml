@@ -44,6 +44,7 @@ jobs:
       NOWPAYMENTS_IPN_SECRET: np_ipn_ci
       NOWPAYMENTS_API_BASE: http://127.0.0.1:4599
       CRYPTO_PAYMENTS_ENABLED: "true" # test only; production default is false
+      MEMPOOL_API_BASE: http://127.0.0.1:4599
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5

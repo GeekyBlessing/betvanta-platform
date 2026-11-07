@@ -34,6 +34,20 @@ export function walletNetwork(m: CryptoMethod): string | null {
 /** Crypto collection stays off until CRYPTO_PAYMENTS_ENABLED=true (legal and provider approval, see docs/COMPLIANCE.md). */
 export const manualCryptoEnabled = () => cryptoApproved();
 
+/**
+ * Whether a coin can be offered: crypto must be switched on, and a 0x wallet needs its confirmed network,
+ * because sending on the wrong chain loses the funds. BTC needs no setting (bc1 addresses exist only on Bitcoin).
+ */
+export type CryptoReadiness = { ready: true; reason: null } | { ready: false; reason: "crypto_off" | "network_unconfirmed" };
+export function cryptoReadiness(m: CryptoMethod): CryptoReadiness {
+  if (!manualCryptoEnabled()) return { ready: false, reason: "crypto_off" };
+  if (!walletNetwork(m)) return { ready: false, reason: "network_unconfirmed" };
+  return { ready: true, reason: null };
+}
+
+/** Ethereum mainnet, the only EVM network the automatic on-chain check covers. */
+export const isEthereumMainnet = (network: string | null) => /^(ethereum|erc-?20|eth mainnet|ethereum mainnet)/i.test((network ?? "").trim());
+
 /** Block-explorer link for a transaction hash, only when the network is known and the hash is well formed. */
 export function explorerUrl(m: string, network: string | null, hash: string | null): string | null {
   if (!hash) return null;

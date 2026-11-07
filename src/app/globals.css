@@ -115,3 +115,4 @@ h1, h2, h3 { text-wrap: balance; }
 .on-dark .menu-panel .btn-secondary:hover:not(:disabled) { background: var(--surface-sunken); }
 @media (min-width: 640px) { .sm\:btn-lg { padding: 13px 20px; font-size: 15px; } }
 @media (max-width: 639px) { .hero-cta { padding: 12px 8px; font-size: 14px; gap: 6px; } }
+.chat-panel h2[tabindex="-1"]:focus, .chat-panel h2[tabindex="-1"]:focus-visible { outline: none; }

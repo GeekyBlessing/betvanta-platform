@@ -13,6 +13,7 @@ export type AssistantMethod = {
   label: string; short: string; kind: "card" | "crypto" | "contact"; enabled: boolean;
   symbol?: string; walletName?: string; address?: string; qrSvg?: string; network?: string | null;
   providers?: { id: string; label: string }[];
+  unavailable?: "crypto_off" | "network_unconfirmed" | null;
 };
 export type AssistantPlan = { code: string; name: string; price: string; period: string; usdAmount: string; best?: boolean };
 export type PaymentStatus = { reference: string; planCode: string; method: string; status: "pending" | "confirmed" | "rejected"; reason: string | null; at: string };
@@ -277,7 +278,9 @@ function MethodFlow({ m, plan, p, onDone }: { m: AssistantMethod; plan: Assistan
       </Bot>)}
     {!manualOff && m.kind === "crypto" && !m.enabled && (
       <Bot>
-        <p><strong>{m.label}</strong> payments aren&apos;t open yet. The BETVANTA team can help you pay another way in our official Discord.</p>
+        <p>{m.unavailable === "network_unconfirmed"
+          ? <><strong>{m.label}</strong> isn&apos;t available on the website yet while we confirm its network. The BETVANTA team can help you pay in our official Discord.</>
+          : <><strong>{m.label}</strong> payments aren&apos;t open yet. The BETVANTA team can help you pay another way in our official Discord.</>}</p>
         <DiscordButton url={p.discordUrl} />
       </Bot>)}
     {!manualOff && m.kind === "crypto" && m.enabled && (<>
@@ -292,26 +295,20 @@ function MethodFlow({ m, plan, p, onDone }: { m: AssistantMethod; plan: Assistan
           <div className="w-full grid gap-1 text-sm">
             <div className="flex justify-between gap-3"><span className="text-muted">Plan</span><span className="font-semibold text-right">{plan.name}</span></div>
             <div className="flex justify-between gap-3"><span className="text-muted">Amount</span><span className="font-semibold text-right">{m.id === "usdt" ? `${plan.usdAmount} USDT (${plan.price})` : `${plan.price} in ${m.symbol}`}</span></div>
-            <div className="flex justify-between gap-3"><span className="text-muted">Network</span><span className="font-semibold text-right">{m.network ?? "Confirm with BETVANTA"}</span></div>
+            <div className="flex justify-between gap-3"><span className="text-muted">Network</span><span className="font-semibold text-right">{m.network}</span></div>
           </div>
           <div className="w-full"><CopyButton text={m.address!} label="Copy address" /></div>
         </div>
-        {!m.network && (
-          <div className="rounded-lg bg-warning-subtle text-ink p-3 grid gap-2 text-sm" role="note">
-            <p className="flex gap-2 font-semibold text-warning">{Icon.warn}Confirm the network before you send</p>
-            <p>This 0x address works on more than one blockchain. Ask BETVANTA on Discord which network to use; sending on the wrong one can lose your funds for good.</p>
-            <DiscordButton url={p.discordUrl}>Confirm the network with BETVANTA</DiscordButton>
-          </div>)}
       </Bot>
       <Bot>
         <p className="font-semibold">How to complete your payment</p>
         <ol className="list-decimal pl-5 grid gap-1 text-[14px]">
           <li>Copy the address or scan the QR code in your wallet app.</li>
-          <li>Send {amountText}{m.network ? ` on ${m.network}` : " on the network BETVANTA confirms"}. Check the address before you confirm.</li>
+          <li>Send {amountText} on the <strong>{m.network}</strong> network only. Check the address before you confirm.</li>
           {m.id !== "usdt" && <li>Prices move: send at least {plan.price} worth at the time you pay.</li>}
           <li>Upload a screenshot of the payment and add the transaction hash (TXID) below.</li>
         </ol>
-        <p className="text-sm text-muted">We check the payment on the blockchain before your plan is activated. A screenshot alone never activates a plan.</p>
+        <p className="text-sm text-muted">We check the transaction on the blockchain before your plan is activated. A screenshot alone never activates a plan.</p>
       </Bot>
     </>)}
     {!manualOff && m.kind === "contact" && (
@@ -355,7 +352,6 @@ function ProofForm({ m, plan, user, onDone }: { m: AssistantMethod; plan: Assist
   const [file, setFile] = useState<File | null>(null);
   const uid = useId();
   const id = (n: string) => `${uid}-${n}`;
-  const needNetwork = m.kind === "crypto" && !m.network;
 
   function pick(e: ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0] ?? null;
@@ -389,10 +385,7 @@ function ProofForm({ m, plan, user, onDone }: { m: AssistantMethod; plan: Assist
       </div>
       <div className="grid gap-1"><label htmlFor={id("ref")} className={label}>{m.kind === "crypto" ? "Transaction hash (TXID)" : "Payment ID or reference"}</label>
         <input id={id("ref")} name="reference" className="input num text-[13px]" maxLength={200} autoCapitalize="none" spellCheck={false} aria-describedby={desc("reference", id("ref-h"))} />
-        <span id={id("ref-h")} className="text-[12px] text-subtle">Add this, the proof upload, or both.</span>{hint("reference")}</div>
-      {needNetwork && <div className="grid gap-1"><label htmlFor={id("net")} className={label}>Network you sent on</label>
-        <input id={id("net")} name="network" className="input" required maxLength={40} placeholder="as confirmed by BETVANTA" aria-describedby={desc("network", id("net-h"))} />
-        <span id={id("net-h")} className="text-[12px] text-subtle">For example Ethereum (ERC-20).</span>{hint("network")}</div>}
+        <span id={id("ref-h")} className="text-[12px] text-subtle">{m.kind === "crypto" ? "Needed to check the payment on the blockchain. Find it in your wallet\u2019s transaction details." : "Add this, the proof upload, or both."}</span>{hint("reference")}</div>
       {m.id === "other" && <div className="grid gap-1"><label htmlFor={id("other")} className={label}>Payment method</label>
         <input id={id("other")} name="methodOther" className="input" required maxLength={40} placeholder="for example Cash App" aria-describedby={desc("methodOther")} />{hint("methodOther")}</div>}
       <div className="grid gap-1"><label htmlFor={id("name")} className={label}>Full name</label>

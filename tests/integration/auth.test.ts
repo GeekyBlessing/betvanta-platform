@@ -23,9 +23,17 @@ describe("authentication", () => {
     await expect(auth.register(input("ADA@example.com".toLowerCase()), null)).rejects.toThrow(/already exists/);
     expect(() => registerSchema.parse({ displayName: "A", email: "x", password: "short", confirmAge: false, acceptTerms: true })).toThrow();
   });
-  it("grants admin only to configured admin emails", async () => {
+  it("grants admin only to configured admin emails, and only after the email is verified", async () => {
     const id = await auth.register(input("admin@betvanta.test"), null);
+    expect((await one("select role from users where id = $1", [id])).role).toBe("member");
+    await auth.login("admin@betvanta.test", input("admin@betvanta.test").password).catch(() => null);
+    expect((await one("select role from users where id = $1", [id])).role).toBe("member");
+    const tok = await lastEmailLink("admin@betvanta.test");
+    await auth.verifyEmail(tok!);
     expect((await one("select role from users where id = $1", [id])).role).toBe("admin");
+    const other = await auth.register(input("someone@betvanta.test"), null);
+    await auth.verifyEmail((await lastEmailLink("someone@betvanta.test"))!);
+    expect((await one("select role from users where id = $1", [other])).role).toBe("member");
   });
   it("verifies email once with a valid token", async () => {
     const id = await auth.register(input(), null);

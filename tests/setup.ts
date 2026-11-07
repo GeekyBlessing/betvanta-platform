@@ -22,3 +22,6 @@ process.env.DISCORD_VIP_ROLE_ID = "role-vip";
 process.env.DISCORD_API_BASE = "http://127.0.0.1:4597";
 process.env.DISCORD_WEBHOOK_URL = "http://127.0.0.1:4597/webhook";
 process.env.CRYPTO_PAYMENTS_ENABLED = "true";
+
+process.env.MEMPOOL_API_BASE = "http://127.0.0.1:4596";
+process.env.ETHERSCAN_API_BASE = "http://127.0.0.1:4596/etherscan";

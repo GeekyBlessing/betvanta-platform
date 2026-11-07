@@ -23,7 +23,14 @@ describe("subscription assistant", () => {
     expect(props.user?.firstName).toBe("Sam");
     expect(props.plans.map((p) => p.code)).toEqual(["premium_1m", "premium_3m", "premium_6m", "premium_1y", "premium_lifetime"]);
     expect(props.methods.map((m) => m.id)).toEqual(["card", "btc", "eth", "usdt", "paypal", "venmo", "chime", "apple_pay", "other"]);
-    expect(props.methods.find((m) => m.id === "usdt")).toMatchObject({ address: "0x7EE5E8D5149A55c6049f7b1042834cDAEB2f246d", network: null });
+    // USDT has no confirmed network yet, so it is not offered and no address reaches the browser
+    expect(props.methods.find((m) => m.id === "usdt")).toMatchObject({ enabled: false, unavailable: "network_unconfirmed" });
+    expect(props.methods.find((m) => m.id === "usdt")?.address).toBeUndefined();
+    expect(props.methods.find((m) => m.id === "btc")).toMatchObject({ enabled: true, address: "bc1qu2pq8h060lpu3g5yg8zzc39lr85mal3vpek4dv", network: "Bitcoin" });
+    env({ CRYPTO_USDT_NETWORK: "Ethereum (ERC-20)" });
+    const p2 = await subscribeAssistantProps(null, "/pricing");
+    expect(p2.methods.find((m) => m.id === "usdt")).toMatchObject({ enabled: true, address: "0x7EE5E8D5149A55c6049f7b1042834cDAEB2f246d", network: "Ethereum (ERC-20)" });
+    env({ CRYPTO_USDT_NETWORK: undefined });
     expect(props.methods.find((m) => m.id === "btc")?.qrSvg).toContain("<svg");
     expect(props.methods.filter((m) => m.kind === "contact").every((m) => !m.address)).toBe(true);
   });
@@ -33,7 +40,7 @@ describe("subscription assistant", () => {
     const props = await subscribeAssistantProps(null, "/pricing", { plan: "free_forever", method: "btc" });
     expect(props.initial).toEqual({ plan: null, method: null });
     expect(props.user).toBeNull();
-    expect(props.methods.filter((m) => m.kind === "crypto").every((m) => !m.enabled && !m.address && !m.qrSvg)).toBe(true);
+    expect(props.methods.filter((m) => m.kind === "crypto").every((m) => !m.enabled && !m.address && !m.qrSvg && m.unavailable === "crypto_off")).toBe(true);
   });
 
   it("reports Pending, then Confirmed after an admin verifies, and Rejected with the reason", async () => {
@@ -41,7 +48,7 @@ describe("subscription assistant", () => {
     const r1 = await submitManualPayment(u, sub("premium_1m"), null);
     expect(await paymentStatuses(u.id)).toEqual([expect.objectContaining({ reference: r1.reference, planCode: "premium_1m", status: "pending", method: "PayPal" })]);
     const id1 = (await one<{ id: string }>("select id from manual_payments where reference = $1", [r1.reference]))!.id;
-    await approveManualPayment(a.id, id1, null);
+    await approveManualPayment(a.id, id1, "PayPal 9XK21 for $50 received");
     expect((await paymentStatuses(u.id))[0]).toMatchObject({ status: "confirmed" });
     expect((await q("select 1 from subscriptions where user_id = $1 and status = 'active'", [u.id])).length).toBe(1);
     const r2 = await submitManualPayment(u, sub("premium_1y", "venmo"), null);

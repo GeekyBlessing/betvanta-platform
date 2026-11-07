@@ -45,6 +45,12 @@ const schema = z.object({
   // the payment assistant then tells customers to confirm the network with BETVANTA before sending.
   CRYPTO_ETH_NETWORK: z.string().trim().min(2).max(40).optional(),
   CRYPTO_USDT_NETWORK: z.string().trim().min(2).max(40).optional(),
+  // On-chain verification of manual crypto payments before an admin can approve them.
+  MEMPOOL_API_BASE: z.string().url().default("https://mempool.space"),       // Bitcoin (public API, no key)
+  ETHERSCAN_API_KEY: z.string().optional(),                                  // Ethereum mainnet ETH and USDT (ERC-20)
+  ETHERSCAN_API_BASE: z.string().url().default("https://api.etherscan.io/v2/api"),
+  BTC_MIN_CONFIRMATIONS: z.coerce.number().int().min(1).max(100).default(2),
+  ETH_MIN_CONFIRMATIONS: z.coerce.number().int().min(1).max(200).default(12),
   // Where "Contact BETVANTA on Discord" goes: a discord.com channel, user or invite link. Falls back to DISCORD_INVITE_URL.
   DISCORD_SUPPORT_URL: z.string().url().optional(),
 });

@@ -32,6 +32,9 @@ check("deep health refuses without the cron secret", (await anon("/api/health/de
 let r = await admin("/api/auth/register", { method: "POST", json: { displayName: "Admin", email: "admin@betvanta.test", password: "admin passphrase long", confirmAge: true, acceptTerms: true } });
 if (r.status === 409) r = await admin("/api/auth/login", { method: "POST", json: { email: "admin@betvanta.test", password: "admin passphrase long" } });
 check("admin can register or log in", r.body.ok, JSON.stringify(r.body));
+{ const at = await tokenFor("admin@betvanta.test"); if (at) await admin("/api/auth/verify", { method: "POST", json: { token: at } });
+  await admin("/api/auth/login", { method: "POST", json: { email: "admin@betvanta.test", password: "admin passphrase long" } });
+  check("the ADMIN_EMAILS account becomes admin once its email is verified", (await db.query("select role from users where email = 'admin@betvanta.test'")).rows[0].role === "admin"); }
 const memberEmail = `member${stamp}@example.com`;
 r = await member("/api/auth/register", { method: "POST", json: { displayName: "Member", email: memberEmail, password: "member passphrase long", confirmAge: true, acceptTerms: true } });
 check("member registers and gets a session", r.status === 201 && r.body.ok);
@@ -142,7 +145,8 @@ console.log("payment assistant: manual crypto and Discord-arranged payments");
   await payer("/api/auth/register", { method: "POST", json: { displayName: "Pat Payer", email: payerEmail, password: "payer passphrase long", confirmAge: true, acceptTerms: true } });
   const co = await payer("/pricing?subscribe=premium_1m");
   check("the payment assistant lists every method", co.status === 200 && ["Bitcoin (BTC)", "Ethereum (ETH)", "Tether (USDT)", "PayPal", "Venmo", "Chime", "Apple Pay", "Other method"].every((x) => co.body.includes(x)));
-  check("the assistant carries the confirmed wallet addresses and QR codes", ["bc1qu2pq8h060lpu3g5yg8zzc39lr85mal3vpek4dv", "0x283bed6B2dB8b70FB245a9734fc6479C60C59E9C", "0x7EE5E8D5149A55c6049f7b1042834cDAEB2f246d"].every((a) => co.body.includes(a)) && (co.body.match(/crispEdges/g) ?? []).length >= 3);
+  check("the assistant carries the BTC wallet and QR code", co.body.includes("bc1qu2pq8h060lpu3g5yg8zzc39lr85mal3vpek4dv") && (co.body.match(/crispEdges/g) ?? []).length >= 1);
+  check("ETH and USDT addresses are not shown while their network is unconfirmed", !co.body.includes("0x283bed6B2dB8b70FB245a9734fc6479C60C59E9C") && !co.body.includes("0x7EE5E8D5149A55c6049f7b1042834cDAEB2f246d") && co.body.includes("network_unconfirmed"));
   check("the assistant never shows a PayPal, Venmo or Chime account", !/paypal\.me|venmo\.com\/|\$cashtag|@[a-z0-9_]+ on venmo/i.test(co.body));
   const png = Buffer.from("89504e470d0a1a0a0000000d4948445200000001000000010806000000", "hex");
   const form = (o, file) => { const f = new FormData(); for (const [k, v] of Object.entries(o)) f.set(k, v); if (file) f.set("proof", new Blob([file.data], { type: file.type }), file.name); return f; };
@@ -150,7 +154,7 @@ console.log("payment assistant: manual crypto and Discord-arranged payments");
   check("anonymous visitors cannot submit payments", (await anon("/api/billing/manual", { method: "POST", raw: form({ ...base, method: "btc", reference: "x" }) })).status === 401);
   check("submission without a reference or proof is refused", (await payer("/api/billing/manual", { method: "POST", raw: form({ ...base, method: "btc" }) })).status === 400);
   check("a disguised file is refused", (await payer("/api/billing/manual", { method: "POST", raw: form({ ...base, method: "btc" }, { data: Buffer.from("<script>alert(1)</script>"), type: "image/png", name: "x.png" }) })).status === 400);
-  check("USDT needs the network while it is unconfirmed", (await payer("/api/billing/manual", { method: "POST", raw: form({ ...base, method: "usdt", reference: "0x" + "a".repeat(64) }) })).status === 400);
+  check("USDT cannot be submitted while its network is unconfirmed", (await payer("/api/billing/manual", { method: "POST", raw: form({ ...base, method: "usdt", reference: "0x" + "a".repeat(64) }) })).status === 400);
   const sub = await payer("/api/billing/manual", { method: "POST", raw: form({ ...base, method: "btc", reference: "b".repeat(64) }, { data: png, type: "image/png", name: "wallet screenshot.png" }) });
   check("member submits BTC payment proof and gets a reference", sub.status === 201 && /^BV-M-[0-9A-Z]{8}$/.test(sub.body.data?.reference) && sub.body.data.status === "pending_review", JSON.stringify(sub.body));
   const ref = sub.body.data?.reference;
@@ -169,6 +173,9 @@ console.log("payment assistant: manual crypto and Discord-arranged payments");
   check("admin review queue lists the submission with an explorer link", list.status === 200 && list.body.includes(ref) && list.body.includes(`https://mempool.space/tx/${"b".repeat(64)}`));
   check("members cannot approve payments", (await payer(`/api/admin/manual-payments/${row.id}`, { method: "POST", json: { action: "approve" } })).status === 403);
   check("rejecting needs a reason", (await admin(`/api/admin/manual-payments/${row.id}`, { method: "POST", json: { action: "reject" } })).status === 422);
+  { const ck = await admin(`/api/admin/manual-payments/${row.id}`, { method: "POST", json: { action: "check" } });
+    check("admin checks the BTC transaction on the blockchain", ck.body.ok && ck.body.data.chain.status === "verified" && /0.0011 BTC/.test(ck.body.data.chain.summary), JSON.stringify(ck.body)); }
+  check("admin overview shows the payment assistant setup", /Payment assistant setup/.test((await admin("/admin")).body));
   const ap = await admin(`/api/admin/manual-payments/${row.id}`, { method: "POST", json: { action: "approve", note: "received, 2 confirmations" } });
   check("admin approves after verification and access is granted", ap.body.ok && (await db.query("select s.plan_level, s.source from subscriptions s join users u on u.id = s.user_id where u.email = $1 and s.status = 'active'", [payerEmail])).rows[0]?.plan_level === 1, JSON.stringify(ap.body));
   check("a submission cannot be approved twice", (await admin(`/api/admin/manual-payments/${row.id}`, { method: "POST", json: { action: "approve" } })).status === 409);

@@ -5,16 +5,17 @@ import { audit } from "../../audit";
 import { adminEmails, env } from "../../env";
 import { sendEmail, templates } from "../../email";
 import { badRequest, conflict, notFound, unavailable } from "../../errors";
-import { tableExists } from "../../schema";
+import { columnExists, tableExists } from "../../schema";
 import { rateLimit } from "../../rate-limit";
 import { formatMoney, grantAccess } from "../billing";
 import { syncDiscordRoleSafe } from "../discord";
-import { isCrypto, MANUAL_METHODS, manualCryptoEnabled, METHOD_LABELS, walletNetwork, WALLETS, type ManualMethod } from "./methods";
+import { cryptoReadiness, isCrypto, MANUAL_METHODS, METHOD_LABELS, walletNetwork, WALLETS, type ManualMethod } from "./methods";
+import { checkOnChain, type ChainResult } from "./chain";
 
 export * from "./methods";
 
-/** False until migration 011 is applied; checkout, billing and admin then show a notice instead of failing. */
-export const manualPaymentsReady = () => tableExists("public.manual_payments");
+/** False until migrations 011 and 014 are applied; the assistant, billing and admin then show a notice instead of failing. */
+export const manualPaymentsReady = async () => (await tableExists("public.manual_payments")) && (await columnExists("manual_payments", "chain_status"));
 
 export const MAX_PROOF_BYTES = 4 * 1024 * 1024; // stays under Vercel's 4.5 MB request limit
 const REF_CHARS = "0123456789ABCDEFGHJKMNPQRSTVWXYZ"; // no I, L, O, U: easy to read out on Discord
@@ -53,6 +54,7 @@ export type ManualPayment = {
   id: string; reference: string; user_id: string; plan_id: string; plan_name: string; plan_code: string; amount_minor: string; method: ManualMethod;
   method_other: string | null; network: string | null; pay_to_address: string | null; full_name: string; contact_email: string; discord_username: string;
   customer_reference: string | null; customer_note: string | null; status: "pending_review" | "approved" | "rejected"; review_note: string | null;
+  chain_status: "verified" | "failed" | "pending" | "unsupported" | "error" | null; chain_summary: string | null; chain_checked_at: string | null; verified_manually: boolean;
   reviewed_at: string | null; reviewer_name: string | null; created_at: string; account_email: string; account_name: string;
   proofs: { id: string; filename: string; mime: string; size_bytes: number }[];
 };
@@ -73,14 +75,15 @@ export async function submitManualPayment(user: { id: string; email: string; dis
   if (plan.currency !== "USD") throw badRequest("This plan is not priced in USD.");
 
   const coin = isCrypto(input.method);
-  if (coin && !manualCryptoEnabled()) throw badRequest("Crypto payments are not open yet. Contact BETVANTA on Discord to pay another way.");
-  if (input.method === "other" && (!input.methodOther || input.methodOther.length < 2)) throw badRequest("Tell us which payment method you used.", { methodOther: ["Enter the payment method, for example Cash App."] });
-  let network: string | null = null, address: string | null = null;
   if (coin) {
-    address = WALLETS[input.method as keyof typeof WALLETS].address;
-    network = walletNetwork(input.method as keyof typeof WALLETS) ?? input.network ?? null;
-    if (!network) throw badRequest("Tell us which network you sent on, as confirmed by BETVANTA.", { network: ["Enter the network, for example Ethereum (ERC-20)."] });
+    const r = cryptoReadiness(input.method as keyof typeof WALLETS);
+    if (!r.ready) throw badRequest(r.reason === "crypto_off" ? "Crypto payments are not open yet. Contact BETVANTA on Discord to pay another way."
+      : "This coin's network has not been confirmed yet, so it cannot be used. Contact BETVANTA on Discord to pay another way.");
   }
+  if (input.method === "other" && (!input.methodOther || input.methodOther.length < 2)) throw badRequest("Tell us which payment method you used.", { methodOther: ["Enter the payment method, for example Cash App."] });
+  // The address and network come only from BETVANTA's verified configuration, never from the customer.
+  const address = coin ? WALLETS[input.method as keyof typeof WALLETS].address : null;
+  const network = coin ? walletNetwork(input.method as keyof typeof WALLETS) : null;
   if (!input.reference && !proof) throw badRequest(coin ? "Add the transaction hash (TXID) or upload a screenshot of the payment." : "Add the payment ID or upload a screenshot of the payment.",
     { reference: ["Add a transaction or payment reference, or upload proof."] });
 
@@ -123,23 +126,70 @@ export const pendingForPlan = (userId: string, planCode: string) =>
 export const listManualPayments = (status: "pending_review" | "approved" | "rejected" | "all") =>
   q<ManualPayment>(`${SELECT} where ($1 = 'all' or m.status = $1) order by case when m.status = 'pending_review' then m.created_at end asc, m.created_at desc limit 200`, [status]);
 
-/** Approves a submission after an admin has checked the funds arrived. Grants access in the same transaction. */
-export async function approveManualPayment(adminId: string, id: string, note: string | null) {
+type Row = { id: string; reference: string; user_id: string; plan_id: string; status: string; amount_minor: string; method: string; network: string | null; customer_reference: string | null; chain_status: string | null };
+
+/** Runs the on-chain check for a crypto submission and stores the result for the admin. Read-only on the blockchain. */
+export async function checkManualPayment(adminId: string, id: string): Promise<ChainResult> {
+  const m = await one<Row>("select * from manual_payments where id = $1", [id]);
+  if (!m) throw notFound("Submission not found.");
+  if (!isCrypto(m.method)) throw badRequest("Only crypto payments can be checked on the blockchain.");
+  if (m.status !== "pending_review") throw conflict("This submission has already been decided.");
+  const r = await checkOnChain(m);
+  await q("update manual_payments set chain_status = $2, chain_summary = $3, chain_details = $4, chain_checked_at = now(), updated_at = now() where id = $1",
+    [id, r.status, r.summary.slice(0, 500), r.details ? JSON.stringify(r.details) : null]);
+  await audit(adminId, "admin.manual_payment_chain_check", "manual_payment", m.reference, { status: r.status, summary: r.summary });
+  return r;
+}
+
+export type ApproveInput = { note: string | null; verifiedManually?: boolean };
+
+/**
+ * Approves a submission and grants access in the same transaction, only after the payment is verified:
+ *  - Crypto: the on-chain check must pass. If it cannot run automatically (another network, no API key, no hash),
+ *    the admin must state they verified the transaction on the blockchain and describe how. A failed or unconfirmed
+ *    check can never be approved. One transaction can activate only one subscription.
+ *  - Other methods: the admin must describe the payment they found (for example the PayPal transaction ID).
+ * An uploaded screenshot on its own is never enough.
+ */
+export async function approveManualPayment(adminId: string, id: string, input: ApproveInput | string | null) {
+  const { note, verifiedManually = false } = typeof input === "object" && input !== null ? input : { note: input as string | null };
+  const pre = await one<Row>("select * from manual_payments where id = $1", [id]);
+  if (!pre) throw notFound("Submission not found.");
+  if (pre.status !== "pending_review") throw conflict(`This submission was already ${pre.status === "approved" ? "approved" : "rejected"}.`);
+  const coin = isCrypto(pre.method);
+  let chain: ChainResult | null = null;
+  if (coin) {
+    chain = await checkOnChain(pre);
+    await q("update manual_payments set chain_status = $2, chain_summary = $3, chain_details = $4, chain_checked_at = now() where id = $1",
+      [id, chain.status, chain.summary.slice(0, 500), chain.details ? JSON.stringify(chain.details) : null]);
+    if (chain.status === "failed") throw badRequest(`Blockchain check failed: ${chain.summary} Reject this submission instead.`);
+    if (chain.status === "pending") throw badRequest(`Not confirmed yet: ${chain.summary}`);
+    if (chain.status !== "verified") {
+      if (!verifiedManually || !note || note.trim().length < 20)
+        throw badRequest(`The automatic check could not confirm this payment (${chain.summary}) Verify it on the blockchain yourself, tick the confirmation box and describe what you saw (at least 20 characters).`, { note: ["Describe how you verified the transaction."] });
+    }
+    if (pre.customer_reference) {
+      const used = await one<{ reference: string }>("select reference from manual_payments where method = $1 and lower(customer_reference) = lower($2) and status = 'approved'", [pre.method, pre.customer_reference]);
+      if (used) throw conflict(`This transaction already activated ${used.reference}. One payment can activate only one plan.`);
+    }
+  } else if (!note || note.trim().length < 10) {
+    throw badRequest("Describe the payment you found before approving (for example the PayPal transaction ID and amount).", { note: ["Describe how you verified the payment (at least 10 characters)."] });
+  }
+  const manual = coin && chain?.status !== "verified";
   const r = await tx(async (c) => {
-    const m = await one<{ id: string; reference: string; user_id: string; plan_id: string; status: string; amount_minor: string; method: string }>(
-      "select * from manual_payments where id = $1 for update", [id], c);
-    if (!m) throw notFound("Submission not found.");
-    if (m.status !== "pending_review") throw conflict(`This submission was already ${m.status === "approved" ? "approved" : "rejected"}.`);
+    const m = await one<Row>("select * from manual_payments where id = $1 for update", [id], c);
+    if (!m || m.status !== "pending_review") throw conflict("This submission was already decided.");
     const sub = await grantAccess(c, m.user_id, m.plan_id, "payment", adminId, `Manual payment ${m.reference} (${m.method})`);
-    await q("update manual_payments set status = 'approved', reviewed_by = $2, reviewed_at = now(), review_note = $3, subscription_id = $4, updated_at = now() where id = $1",
-      [id, adminId, note, sub.id], c);
-    await audit(adminId, "admin.manual_payment_approved", "manual_payment", m.reference, { user: m.user_id, plan: sub.planLabel, amount: m.amount_minor, method: m.method, subscription: sub.id, note }, null, c);
+    await q("update manual_payments set status = 'approved', reviewed_by = $2, reviewed_at = now(), review_note = $3, subscription_id = $4, verified_manually = $5, updated_at = now() where id = $1",
+      [id, adminId, note, sub.id, manual], c);
+    await audit(adminId, "admin.manual_payment_approved", "manual_payment", m.reference, { user: m.user_id, plan: sub.planLabel, amount: m.amount_minor, method: m.method, subscription: sub.id, note,
+      verification: coin ? (manual ? "admin_attested" : "on_chain") : "admin_described", chain: chain?.summary ?? null }, null, c);
     return { ...m, sub };
   });
   const u = await one<{ email: string; display_name: string }>("select email, display_name from users where id = $1", [r.user_id]);
   if (u) await sendEmail({ to: u.email, ...templates.manualConfirmed(u.display_name, r.sub.planLabel, formatMoney(r.amount_minor), r.reference, r.sub.current_period_end === "lifetime" ? "Lifetime" : new Date(r.sub.current_period_end).toUTCString()) });
   await syncDiscordRoleSafe(r.user_id);
-  return { reference: r.reference, until: r.sub.current_period_end };
+  return { reference: r.reference, until: r.sub.current_period_end, verification: coin ? (manual ? "admin_attested" : "on_chain") : "admin_described" };
 }
 
 export async function rejectManualPayment(adminId: string, id: string, reason: string) {

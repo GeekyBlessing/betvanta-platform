@@ -17,6 +17,18 @@ export async function tableExists(qualified: string): Promise<boolean> {
   return ok;
 }
 
+/** True when table.column exists (for features whose migration adds columns). */
+export async function columnExists(table: string, column: string): Promise<boolean> {
+  const key = `${table}.${column}`;
+  const hit = cache.get(key);
+  if (hit && (hit.ok || Date.now() - hit.at < 30_000)) return hit.ok;
+  const r = await one<{ ok: boolean }>("select exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = $1 and column_name = $2) ok", [table, column]);
+  const ok = Boolean(r?.ok);
+  cache.set(key, { ok, at: Date.now() });
+  if (!ok) console.error(`[schema] public.${key} is missing: apply the pending migrations (Supabase check workflow, apply mode).`);
+  return ok;
+}
+
 export async function schemaStatus() {
   const r = await one<{ latest: string | null; n: number }>("select max(version) latest, count(*)::int n from schema_migrations");
   const latest = r?.latest ?? null;

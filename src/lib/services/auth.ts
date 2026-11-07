@@ -20,7 +20,9 @@ export async function register(input: z.infer<typeof registerSchema>, ip: string
   const exists = await one("select 1 from users where email = $1", [input.email]);
   if (exists) throw conflict("An account with this email already exists. Log in or reset your password.");
   const hash = await hashPassword(input.password);
-  const role = adminEmails().includes(input.email) ? "admin" : "member";
+  // Admin rights for ADMIN_EMAILS are granted only once the address is verified (see promoteIfAdmin), so nobody can
+  // claim an admin email by registering it first.
+  const role = "member";
   const user = await one<{ id: string }>(
     `insert into users(email, password_hash, display_name, role, age_confirmed_at, terms_accepted_at)
      values ($1,$2,$3,$4, now(), now()) returning id`, [input.email, hash, input.displayName, role]);
@@ -44,6 +46,7 @@ export async function verifyEmail(token: string) {
     await q("update auth_tokens set used_at = now() where id = $1", [t.id], c);
     await q("update users set email_verified_at = coalesce(email_verified_at, now()), updated_at = now() where id = $1", [t.user_id], c);
     await audit(t.user_id, "user.verify_email", "user", t.user_id, {}, null, c);
+    await promoteIfAdmin(t.user_id, c);
     return t.user_id;
   });
 }
@@ -53,7 +56,17 @@ export async function login(email: string, password: string) {
   const valid = await verifyPassword(password, u?.password_hash ?? DUMMY_HASH);
   if (!u || !valid) throw unauthorized("Email or password is incorrect.");
   if (u.status !== "active") throw unauthorized(`This account is suspended. Contact support at ${support().email}.`);
+  await promoteIfAdmin(u.id);
   return u.id;
+}
+
+/** Gives the admin role to a verified account whose email is listed in ADMIN_EMAILS (also when the list changes later). */
+export async function promoteIfAdmin(userId: string, c?: Parameters<typeof q>[2]) {
+  const list = adminEmails();
+  if (!list.length) return;
+  const r = await one<{ id: string; email: string }>(
+    "update users set role = 'admin', updated_at = now() where id = $1 and role = 'member' and email_verified_at is not null and email = any($2::text[]) returning id, email", [userId, list], c);
+  if (r) await audit(r.id, "user.promoted_admin", "user", r.id, { reason: "ADMIN_EMAILS" }, null, c);
 }
 
 export async function requestPasswordReset(email: string) {

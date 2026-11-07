@@ -1,4 +1,6 @@
-import { afterAll, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import type http from "node:http";
+import { chain, startChainStub } from "../chainStub";
 import { closePool, resetDb } from "../helpers";
 import { one, q } from "@/lib/db";
 import { discordSupportUrl, resetEnvCache } from "@/lib/env";
@@ -14,8 +16,17 @@ async function user(role = "member") {
 const input = (o: Record<string, unknown> = {}) => submissionSchema.parse({ planCode: "premium_1m", method: "btc", fullName: "Pat Payer", email: "pat@example.com", discordUsername: "@pat_payer", reference: "a".repeat(64), ...o });
 const withEnv = (vars: Record<string, string | undefined>) => { for (const [k, v] of Object.entries(vars)) { if (v === undefined) delete process.env[k]; else process.env[k] = v; } resetEnvCache(); };
 
-beforeEach(async () => { await resetDb(); withEnv({ CRYPTO_PAYMENTS_ENABLED: "true", CRYPTO_ETH_NETWORK: undefined, CRYPTO_USDT_NETWORK: undefined, DISCORD_SUPPORT_URL: undefined, DISCORD_INVITE_URL: undefined }); });
-afterAll(async () => { withEnv({ CRYPTO_PAYMENTS_ENABLED: undefined }); await closePool(); });
+const BTC = "bc1qu2pq8h060lpu3g5yg8zzc39lr85mal3vpek4dv";
+let stub: http.Server;
+beforeAll(async () => { stub = await startChainStub(4596); });
+beforeEach(async () => {
+  await resetDb();
+  withEnv({ CRYPTO_PAYMENTS_ENABLED: "true", CRYPTO_ETH_NETWORK: undefined, CRYPTO_USDT_NETWORK: undefined, DISCORD_SUPPORT_URL: undefined, DISCORD_INVITE_URL: undefined, ETHERSCAN_API_KEY: undefined });
+  chain.btc.clear(); chain.evm.clear();
+  // the default test submission's transaction: 0.0011 BTC to BETVANTA, 6 confirmations
+  chain.btc.set("a".repeat(64), { vout: [{ scriptpubkey_address: BTC, value: 110000 }], status: { confirmed: true, block_height: chain.tip - 5 } });
+});
+afterAll(async () => { withEnv({ CRYPTO_PAYMENTS_ENABLED: undefined }); await new Promise<void>((r) => stub.close(() => r())); await closePool(); });
 
 describe("manual payments: submission", () => {
   it("records a pending submission with the wallet address shown, and grants nothing", async () => {
@@ -34,17 +45,14 @@ describe("manual payments: submission", () => {
     await expect(submitManualPayment(u, input({ method: "venmo", reference: "VEN-1" }), null)).resolves.toMatchObject({ status: "pending_review" });
   });
 
-  it("does not assume a network for ETH or USDT until it is configured", async () => {
+  it("does not assume a network for ETH or USDT: they cannot be used until it is configured, and the customer cannot set it", async () => {
     const u = await user();
     expect(walletNetwork("eth")).toBeNull();
     expect(walletNetwork("usdt")).toBeNull();
-    await expect(submitManualPayment(u, input({ method: "usdt", reference: "0x" + "b".repeat(64) }), null)).rejects.toThrow(/network/);
-    const r = await submitManualPayment(u, input({ method: "usdt", network: "Ethereum (ERC-20)", reference: "0x" + "b".repeat(64) }), null);
-    expect((await one<{ network: string }>("select network from manual_payments where reference = $1", [r.reference]))!.network).toBe("Ethereum (ERC-20)");
-    withEnv({ CRYPTO_ETH_NETWORK: "Ethereum mainnet" });
-    expect(walletNetwork("eth")).toBe("Ethereum mainnet");
-    const e = await submitManualPayment(await user(), input({ method: "eth", network: "something else", reference: "0x" + "c".repeat(64) }), null);
-    expect((await one<{ network: string }>("select network from manual_payments where reference = $1", [e.reference]))!.network).toBe("Ethereum mainnet");
+    await expect(submitManualPayment(u, input({ method: "usdt", network: "Ethereum (ERC-20)", reference: "0x" + "b".repeat(64) }), null)).rejects.toThrow(/network has not been confirmed/);
+    withEnv({ CRYPTO_USDT_NETWORK: "Ethereum (ERC-20)" });
+    const r = await submitManualPayment(u, input({ method: "usdt", network: "BNB Chain", reference: "0x" + "b".repeat(64) }), null);
+    expect((await one<{ network: string; pay_to_address: string }>("select network, pay_to_address from manual_payments where reference = $1", [r.reference]))).toEqual({ network: "Ethereum (ERC-20)", pay_to_address: "0x7EE5E8D5149A55c6049f7b1042834cDAEB2f246d" });
   });
 
   it("needs a reference or proof, a real image or PDF, and a named method for Other", async () => {
@@ -114,6 +122,79 @@ describe("manual payments: review", () => {
     await approveManualPayment(a.id, (await listManualPayments("pending_review"))[0].id, null);
     expect((await q("select 1 from payments where user_id = $1", [u.id])).length).toBe(0);
     expect((await q("select 1 from sportsbook.wallets where user_id = $1", [u.id])).length).toBe(0);
+  });
+});
+
+describe("manual payments: on-chain verification before approval", () => {
+  const pending = async () => (await listManualPayments("pending_review"))[0].id;
+  it("approves a BTC payment only when the blockchain shows it reached the BETVANTA address with enough confirmations", async () => {
+    const u = await user(), a = await user("admin");
+    chain.btc.set("c".repeat(64), { vout: [{ scriptpubkey_address: "bc1qsomeoneelse000000000000000000000000000", value: 500000 }], status: { confirmed: true, block_height: chain.tip - 10 } });
+    await submitManualPayment(u, input({ reference: "c".repeat(64) }), { name: "shot.png", data: png });
+    await expect(approveManualPayment(a.id, await pending(), "looks fine")).rejects.toThrow(/does not pay the BETVANTA Bitcoin address/);
+    await expect(approveManualPayment(a.id, await pending(), { note: "I checked it myself on the explorer, trust me", verifiedManually: true })).rejects.toThrow(/Blockchain check failed/);
+    expect((await q("select 1 from subscriptions where user_id = $1", [u.id])).length).toBe(0);
+  });
+
+  it("waits for confirmations and refuses unknown transactions", async () => {
+    const u = await user(), a = await user("admin");
+    chain.btc.set("d".repeat(64), { vout: [{ scriptpubkey_address: BTC, value: 110000 }], status: { confirmed: false } });
+    await submitManualPayment(u, input({ reference: "d".repeat(64) }), null);
+    await expect(approveManualPayment(a.id, await pending(), null)).rejects.toThrow(/0 of 2 confirmations/);
+    chain.btc.set("d".repeat(64), { vout: [{ scriptpubkey_address: BTC, value: 110000 }], status: { confirmed: true, block_height: chain.tip } });
+    await expect(approveManualPayment(a.id, await pending(), null)).rejects.toThrow(/1 of 2 confirmations/);
+    chain.tip += 1;
+    await expect(approveManualPayment(a.id, await pending(), null)).resolves.toMatchObject({ verification: "on_chain" });
+    const u2 = await user();
+    await submitManualPayment(u2, input({ reference: "e".repeat(64) }), null);
+    await expect(approveManualPayment(a.id, await pending(), null)).rejects.toThrow(/does not exist/);
+  });
+
+  it("one transaction can activate only one plan", async () => {
+    const u = await user(), v = await user(), a = await user("admin");
+    await submitManualPayment(u, input(), null);
+    await approveManualPayment(a.id, await pending(), null);
+    await submitManualPayment(v, input(), null);
+    await expect(approveManualPayment(a.id, await pending(), null)).rejects.toThrow(/already activated/);
+  });
+
+  it("a screenshot without a hash needs the admin to verify the transaction and say how", async () => {
+    const u = await user(), a = await user("admin");
+    await submitManualPayment(u, input({ reference: undefined }), { name: "shot.png", data: png });
+    const id = await pending();
+    await expect(approveManualPayment(a.id, id, "ok")).rejects.toThrow(/could not confirm this payment/);
+    await expect(approveManualPayment(a.id, id, { note: "short", verifiedManually: true })).rejects.toThrow(/could not confirm/);
+    await expect(approveManualPayment(a.id, id, { note: "Found 0.0011 BTC to bc1qu2pq in wallet history, tx 4f2a, 3 confs", verifiedManually: true })).resolves.toMatchObject({ verification: "admin_attested" });
+    expect((await one<{ verified_manually: boolean; chain_status: string }>("select verified_manually, chain_status from manual_payments where id = $1", [id]))).toEqual({ verified_manually: true, chain_status: "unsupported" });
+  });
+
+  it("verifies USDT on Ethereum through Etherscan, including the amount", async () => {
+    withEnv({ CRYPTO_USDT_NETWORK: "Ethereum (ERC-20)", ETHERSCAN_API_KEY: "es_unit" });
+    const to = "0x" + "0".repeat(24) + "7ee5e8d5149a55c6049f7b1042834cdaeb2f246d";
+    const log = (amount: number) => ({ address: "0xdAC17F958D2ee523a2206206994597C13D831ec7", topics: ["0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef", "0x" + "0".repeat(64), to], data: "0x" + (amount * 1e6).toString(16) });
+    const h1 = "0x" + "1".repeat(64), h2 = "0x" + "2".repeat(64);
+    chain.evm.set(h1, { tx: { to: "0xdac17f958d2ee523a2206206994597c13d831ec7", value: "0x0", blockNumber: "0x" + (chain.evmHead - 20).toString(16), hash: h1 }, receipt: { status: "0x1", blockNumber: "0x" + (chain.evmHead - 20).toString(16), logs: [log(20)] } });
+    chain.evm.set(h2, { tx: { to: "0xdac17f958d2ee523a2206206994597c13d831ec7", value: "0x0", blockNumber: "0x" + (chain.evmHead - 20).toString(16), hash: h2 }, receipt: { status: "0x1", blockNumber: "0x" + (chain.evmHead - 20).toString(16), logs: [log(50)] } });
+    const u = await user(), v = await user(), a = await user("admin");
+    await submitManualPayment(u, input({ method: "usdt", reference: h1 }), null);
+    await expect(approveManualPayment(a.id, await pending(), null)).rejects.toThrow(/Only 20 USDT was received; the plan costs 50 USDT/);
+    await rejectManualPayment(a.id, await pending(), "Underpaid");
+    await submitManualPayment(v, input({ method: "usdt", reference: h2 }), null);
+    await expect(approveManualPayment(a.id, await pending(), null)).resolves.toMatchObject({ verification: "on_chain" });
+  });
+
+  it("other networks are verified by hand, never automatically approved", async () => {
+    withEnv({ CRYPTO_ETH_NETWORK: "BNB Smart Chain (BEP-20)", ETHERSCAN_API_KEY: "es_unit" });
+    const u = await user(), a = await user("admin");
+    await submitManualPayment(u, input({ method: "eth", reference: "0x" + "3".repeat(64) }), null);
+    await expect(approveManualPayment(a.id, await pending(), null)).rejects.toThrow(/Ethereum mainnet only/);
+  });
+
+  it("non-crypto approvals need a description of the payment found", async () => {
+    const u = await user(), a = await user("admin");
+    await submitManualPayment(u, input({ method: "paypal", reference: "PP-1" }), { name: "shot.png", data: png });
+    await expect(approveManualPayment(a.id, await pending(), null)).rejects.toThrow(/Describe the payment you found/);
+    await expect(approveManualPayment(a.id, await pending(), "PayPal 9XK21 $50 received 7 Nov")).resolves.toMatchObject({ verification: "admin_described" });
   });
 });
 

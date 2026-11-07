@@ -6,7 +6,7 @@ import type { SessionUser } from "../../session";
 import { formatMoney, periodLabel, type Plan } from "../billing";
 import { enabledProviders } from "../payments";
 import type { AssistantMethod, PaymentStatus, SubscribeAssistantProps } from "@/components/SubscribeAssistant";
-import { CRYPTO_METHODS, manualCryptoEnabled, METHOD_LABELS, OTHER_METHODS, walletNetwork, WALLETS } from "./methods";
+import { CRYPTO_METHODS, cryptoReadiness, METHOD_LABELS, OTHER_METHODS, walletNetwork, WALLETS } from "./methods";
 import { manualPaymentsReady, methodLabel, type ManualPayment } from "./index";
 
 const STATUS: Record<ManualPayment["status"], PaymentStatus["status"]> = { pending_review: "pending", approved: "confirmed", rejected: "rejected" };
@@ -30,14 +30,17 @@ export async function subscribeAssistantProps(user: SessionUser | null, returnPa
     user ? paymentStatuses(user.id) : Promise.resolve([]),
   ]);
   const card = enabledProviders().filter((p) => p.method === "card");
-  const cryptoOn = manualCryptoEnabled();
   const methods: AssistantMethod[] = [
     { id: "card", label: "Card", short: "Card", kind: "card", enabled: card.length > 0, providers: card.map((c) => ({ id: c.id, label: c.label.replace(/^Card \((.+)\)$/, "$1") })) },
-    ...(await Promise.all(CRYPTO_METHODS.map(async (id): Promise<AssistantMethod> => ({
-      id, label: METHOD_LABELS[id], short: SHORT[id], kind: "crypto", enabled: cryptoOn, symbol: WALLETS[id].symbol, walletName: WALLETS[id].name,
-      ...(cryptoOn ? { address: WALLETS[id].address, network: walletNetwork(id),
-        qrSvg: await QRCode.toString(WALLETS[id].address, { type: "svg", margin: 1, errorCorrectionLevel: "M", color: { dark: "#172322", light: "#FFFFFF" } }) } : {}),
-    })))),
+    // An address and QR code are sent to the browser only for a coin that is fully set up (crypto on, network confirmed).
+    ...(await Promise.all(CRYPTO_METHODS.map(async (id): Promise<AssistantMethod> => {
+      const r = cryptoReadiness(id);
+      return {
+        id, label: METHOD_LABELS[id], short: SHORT[id], kind: "crypto", enabled: r.ready, unavailable: r.reason, symbol: WALLETS[id].symbol, walletName: WALLETS[id].name,
+        ...(r.ready ? { address: WALLETS[id].address, network: walletNetwork(id),
+          qrSvg: await QRCode.toString(WALLETS[id].address, { type: "svg", margin: 1, errorCorrectionLevel: "M", color: { dark: "#172322", light: "#FFFFFF" } }) } : {}),
+      };
+    }))),
     ...OTHER_METHODS.map((id): AssistantMethod => ({ id, label: METHOD_LABELS[id], short: SHORT[id], kind: "contact", enabled: true })),
   ];
   const valid = (c?: string) => (c && plans.some((p) => p.code === c) ? c : null);

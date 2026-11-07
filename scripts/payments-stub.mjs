@@ -1,4 +1,4 @@
-// Local stand-in for the Paystack, Stripe and NOWPayments APIs, for development and end-to-end tests only.
+// Local stand-in for the Paystack, Stripe and NOWPayments APIs and the mempool.space Bitcoin API, for development and end-to-end tests only.
 // Mark a payment as paid:  POST /__pay/<reference>  {"status":"success"}   (works for all three providers)
 import http from "node:http";
 const port = Number(process.env.STUB_PORT ?? 4599);
@@ -15,6 +15,11 @@ http.createServer((req, res) => {
     if (url.startsWith("/v1/checkout/sessions/")) { const id = decodeURIComponent(url.split("/").pop()); const [ref, t] = [...byRef].find(([, v]) => v.sessionId === id) ?? []; if (!t) return send({ error: { message: "no such session" } }, 404); return send({ id, payment_status: t.status === "success" ? "paid" : "unpaid", status: t.status === "success" ? "complete" : "open", amount_total: t.amount, currency: t.currency, client_reference_id: ref }); }
     if (url === "/v1/invoice") { const j = JSON.parse(b); const paymentId = String(Date.now()) + String(++n); byRef.set(j.order_id, { provider: "nowpayments", amount: j.price_amount, currency: j.price_currency, status: "waiting", paymentId }); return send({ id: `inv_${n}`, invoice_url: `http://127.0.0.1:${port}/pay/${j.order_id}` }); }
     if (url.startsWith("/v1/payment/")) { const id = decodeURIComponent(url.split("/").pop()); const [ref, t] = [...byRef].find(([, v]) => v.paymentId === id) ?? []; if (!t) return send({ message: "not found" }, 404); return send({ payment_id: id, payment_status: t.status === "success" ? "finished" : t.status, price_amount: t.amount, price_currency: t.currency, order_id: ref }); }
+    // mempool.space stand-in: any txid starting with "b" pays the BETVANTA BTC address with 11 confirmations; others do not exist.
+    if (url === "/api/blocks/tip/height") { res.setHeader("content-type", "text/plain"); return res.end("1000"); }
+    if (url.startsWith("/api/tx/")) { const id = url.slice(8); return /^b[0-9a-f]{63}$/.test(id)
+      ? send({ txid: id, vout: [{ scriptpubkey_address: "bc1qu2pq8h060lpu3g5yg8zzc39lr85mal3vpek4dv", value: 110000 }], status: { confirmed: true, block_height: 990 } })
+      : (res.statusCode = 404, res.end("Transaction not found")); }
     send({}, 404);
   });
 }).listen(port, "127.0.0.1", () => console.log(`payments stub on :${port}`));
