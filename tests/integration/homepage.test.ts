@@ -6,7 +6,7 @@ import { submitTestimonial, approvedTestimonials, moderateTestimonial, withdrawT
 import { syncSportsData } from "@/lib/sports/sync";
 import { mockProvider, buildMockCompetitions } from "@/lib/sports/mock";
 import { runEngine } from "@/lib/services/predictions";
-import { discordInviteUrl, resetEnvCache } from "@/lib/env";
+import { discordInviteUrl, instagramHandle, instagramUrl, resetEnvCache } from "@/lib/env";
 
 async function member(role = "member") { return (await one(`insert into users(email, password_hash, display_name, role, age_confirmed_at, terms_accepted_at) values ('h${Math.random()}@x.com','x','Hana',$1,now(),now()) returning id`, [role]))!.id as string; }
 const review = { displayName: "Hana", location: "Austin, TX", rating: 5, body: "Clear picks and honest about the odds. Worth it.", consent: true as const };
@@ -75,6 +75,16 @@ describe("testimonials", () => {
   });
 });
 
+describe("official community links", () => {
+  it("uses the BETVANTA Instagram profile and accepts only instagram.com profiles", () => {
+    const set = (v?: string) => { if (v === undefined) delete process.env.INSTAGRAM_URL; else process.env.INSTAGRAM_URL = v; resetEnvCache(); return [instagramUrl(), instagramHandle()]; };
+    expect(set(undefined)).toEqual(["https://www.instagram.com/bet.vanta/", "@bet.vanta"]);
+    expect(set("https://evil.example/bet.vanta")).toEqual([null, null]);
+    expect(set("https://www.instagram.com/bet.vanta/?x=<script>")).toEqual(["https://www.instagram.com/bet.vanta/?x=%3Cscript%3E", "@bet.vanta"]);
+    set(undefined);
+  });
+});
+
 describe("Discord invite link", () => {
   it("accepts only real Discord invite URLs", () => {
     const check = (v?: string) => { if (v === undefined) delete process.env.DISCORD_INVITE_URL; else process.env.DISCORD_INVITE_URL = v; resetEnvCache(); return discordInviteUrl(); };
@@ -82,6 +92,6 @@ describe("Discord invite link", () => {
     expect(check("https://discord.com/invite/abc")).toBe("https://discord.com/invite/abc");
     expect(check("https://evil.example/discord.gg")).toBeNull();
     expect(check("http://discord.gg/x")).toBeNull();
-    expect(check(undefined)).toBeNull();
+    expect(check(undefined)).toBe("https://discord.com/invite/STDJ29shZS"); // the official BETVANTA server by default
   });
 });

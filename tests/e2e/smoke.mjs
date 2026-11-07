@@ -192,8 +192,10 @@ for (const [name, text] of [["platform and sports", "Your Smarter Sports Intelli
 check("homepage plans link to checkout or registration for all five plans", ["premium_1m", "premium_3m", "premium_6m", "premium_1y", "premium_lifetime"].every((c) => homePage.body.includes(`/register?next=/checkout/${c}`)));
 check("footer has contact, Discord and legal links", ["mailto:", "/contact", "/legal/terms", "/legal/privacy", "/responsible-gambling"].every((x) => homePage.body.includes(x)) && /Discord/.test(homePage.body));
 check("platform section is present", homePage.body.includes("Your Smarter Sports Intelligence Platform"));
-const invite = process.env.DISCORD_INVITE_URL;
-check("Join Discord opens the configured invite in a new tab", invite ? homePage.body.includes(`href="${invite}" target="_blank" rel="noopener noreferrer"`) : homePage.body.includes('href="/community"'));
+const invite = process.env.DISCORD_INVITE_URL || "https://discord.com/invite/STDJ29shZS";
+check("Join Discord opens the official BETVANTA server in a new tab", homePage.body.includes(`href="${invite}" target="_blank" rel="noopener noreferrer"`));
+check("footer links to the official Instagram", homePage.body.includes('href="https://www.instagram.com/bet.vanta/" target="_blank" rel="noopener noreferrer"') && homePage.body.includes("@bet.vanta"));
+{ const cm = await anon("/community"); check("community page has the Discord invite and Instagram", cm.body.includes(`href="${invite}"`) && cm.body.includes("instagram.com/bet.vanta")); }
 const textOf = (html) => html.replace(/<[^>]+>/g, " ").replace(/&nbsp;/g, " ").replace(/\s+/g, " ");
 const homeText = textOf(homePage.body);
 check("hero shows the four client figures", ["2,000 Happy Members", "75% Win Rate", "12,500 Winning Picks", "10 Sports Covered"].every((x) => homeText.includes(x)), homeText.slice(0, 300));

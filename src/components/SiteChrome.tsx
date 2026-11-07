@@ -5,7 +5,7 @@ import { ThemeToggle } from "./ThemeToggle";
 import { LogoutButton } from "./LogoutButton";
 import { HeaderScrollState } from "./HeaderScrollState";
 import { MobileMenu } from "./MobileMenu";
-import { discordInviteUrl } from "@/lib/env";
+import { discordInviteUrl, instagramHandle, instagramUrl } from "@/lib/env";
 import { support } from "@/lib/support";
 
 const NAV = [{ href: "/predictions", label: "Predictions" }, { href: "/sports", label: "Sports" }, { href: "/fixtures", label: "Fixtures" }, { href: "/performance", label: "Performance" }, { href: "/pricing", label: "Pricing" }, { href: "/community", label: "Community" }];
@@ -58,7 +58,7 @@ export function SiteFooter() {
           <Link href="/predictions" className="text-muted hover:text-ink">Predictions</Link><Link href="/fixtures" className="text-muted hover:text-ink">Fixtures and scores</Link><Link href="/sports" className="text-muted hover:text-ink">Sports</Link><Link href="/performance" className="text-muted hover:text-ink">Performance</Link><Link href="/pricing" className="text-muted hover:text-ink">Pricing</Link><Link href="/faq" className="text-muted hover:text-ink">FAQ</Link>
         </div>
         <div className="grid gap-2 content-start text-sm"><span className="eyebrow">Company</span>
-          <Link href="/about" className="text-muted hover:text-ink">About</Link>{discordInviteUrl() ? <a href={discordInviteUrl()!} target="_blank" rel="noopener noreferrer" className="text-muted hover:text-ink">Join our Discord<span className="sr-only"> (opens in a new tab)</span></a> : <Link href="/community" className="text-muted hover:text-ink">Discord community</Link>}<Link href="/contact" className="text-muted hover:text-ink">Contact</Link><Link href="/legal/terms" className="text-muted hover:text-ink">Terms</Link><Link href="/legal/privacy" className="text-muted hover:text-ink">Privacy</Link><Link href="/responsible-gambling" className="text-muted hover:text-ink">Responsible gambling</Link>
+          <Link href="/about" className="text-muted hover:text-ink">About</Link>{discordInviteUrl() ? <a href={discordInviteUrl()!} target="_blank" rel="noopener noreferrer" className="text-muted hover:text-ink">Join our Discord<span className="sr-only"> (opens in a new tab)</span></a> : <Link href="/community" className="text-muted hover:text-ink">Discord community</Link>}{instagramUrl() && <a href={instagramUrl()!} target="_blank" rel="noopener noreferrer" className="text-muted hover:text-ink">Instagram {instagramHandle()}<span className="sr-only"> (opens in a new tab)</span></a>}<Link href="/contact" className="text-muted hover:text-ink">Contact</Link><Link href="/legal/terms" className="text-muted hover:text-ink">Terms</Link><Link href="/legal/privacy" className="text-muted hover:text-ink">Privacy</Link><Link href="/responsible-gambling" className="text-muted hover:text-ink">Responsible gambling</Link>
         </div>
       </div>
       <div className="wrap pb-8 text-xs text-subtle">© {new Date().getFullYear()} BETVANTA. All rights reserved.</div>

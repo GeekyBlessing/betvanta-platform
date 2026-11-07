@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { currentUser } from "@/lib/session";
-import { discordInviteUrl, discordOAuthEnabled } from "@/lib/env";
+import { discordInviteUrl, discordOAuthEnabled, instagramHandle, instagramUrl } from "@/lib/env";
 import { JoinDiscordButton } from "@/components/Discord";
 import { Notice, PageHeader } from "@/components/ui";
 export const dynamic = "force-dynamic";
@@ -19,7 +19,8 @@ export default async function Community() {
         <li><strong>Link your BETVANTA account</strong> in <Link href={u ? "/dashboard/settings" : "/login?next=/dashboard/settings"} className="text-link font-semibold underline">Settings</Link>{discordOAuthEnabled() ? "" : " (available once automatic roles are switched on)"}. Premium and VIP members get the matching role automatically, and it updates when your plan changes.</li>
         <li><strong>Follow the announcements channel</strong> for new picks. Free picks are posted in full; paid picks are announced and unlocked in your dashboard.</li>
       </ol>
-      <p className="text-xs text-subtle">Discord is a separate service with its own terms. Be respectful; predictions are analysis, not guarantees.</p>
+      {instagramUrl() && <p className="text-[15px]">Follow BETVANTA on Instagram for match-day graphics and announcements: <a href={instagramUrl()!} target="_blank" rel="noopener noreferrer" className="text-link font-semibold underline">{instagramHandle()}<span className="sr-only"> (opens in a new tab)</span></a>.</p>}
+      <p className="text-xs text-subtle">Discord and Instagram are separate services with their own terms. Be respectful; predictions are analysis, not guarantees.</p>
     </div>
   );
 }

@@ -124,6 +124,6 @@ describe("Contact Tom on Discord link", () => {
     withEnv({ DISCORD_SUPPORT_URL: "https://evil.example/discord.com/users/1", DISCORD_INVITE_URL: "https://discord.gg/betvanta" });
     expect(discordSupportUrl()).toBe("https://discord.gg/betvanta");
     withEnv({ DISCORD_SUPPORT_URL: undefined, DISCORD_INVITE_URL: undefined });
-    expect(discordSupportUrl()).toBeNull();
+    expect(discordSupportUrl()).toBe("https://discord.com/invite/STDJ29shZS");
   });
 });
