@@ -1,66 +1,90 @@
 import Link from "next/link";
 import { currentUser } from "@/lib/session";
-import { one, q } from "@/lib/db";
-import { dashboardRecord } from "@/lib/services/dashboard";
+import { q } from "@/lib/db";
+import { publicHomepageStats, type PublicStat, type StatIcon } from "@/lib/services/homepage-stats";
 import { SPORTS, sportCoverage } from "@/lib/services/sports";
 import { formatMoney, periodLabel, type Plan } from "@/lib/services/billing";
-import { MIN_SETTLED_FOR_RATE } from "@/lib/services/stats";
 import { approvedTestimonials } from "@/lib/services/testimonials";
-import { discordInviteUrl } from "@/lib/env";
+import { JoinDiscordButton } from "@/components/Discord";
 import { SportsSelector } from "@/components/SportsSelector";
 import { CommunitySection } from "@/components/Community";
 import { SubscribeAssistant } from "@/components/SubscribeAssistant";
 import { subscribeAssistantProps } from "@/lib/services/manual-payments/assistant";
-import { RG_LINE, SampleBadge } from "@/components/ui";
+import { RG_LINE } from "@/components/ui";
 export const dynamic = "force-dynamic";
 
-const fmt = (n: number) => new Intl.NumberFormat("en-US").format(n);
+const ic = { width: 22, height: 22, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 1.5, strokeLinecap: "round" as const, strokeLinejoin: "round" as const, "aria-hidden": true };
+function StatGlyph({ icon }: { icon: StatIcon }) {
+  switch (icon) {
+    case "members": return <svg {...ic}><circle cx="9" cy="8" r="3.2" /><path d="M3.5 19c.6-3.2 2.8-5 5.5-5s4.9 1.8 5.5 5" /><circle cx="17" cy="9" r="2.4" /><path d="M16 14.2c2.4.1 4 1.7 4.5 4.3" /></svg>;
+    case "target": return <svg {...ic}><circle cx="12" cy="12" r="8.5" /><circle cx="12" cy="12" r="5" /><circle cx="12" cy="12" r="1.5" fill="currentColor" /></svg>;
+    case "trophy": return <svg {...ic}><path d="M8 4h8v5a4 4 0 0 1-8 0z" /><path d="M8 6H5a2.5 2.5 0 0 0 3 4M16 6h3a2.5 2.5 0 0 1-3 4M12 13v4M8.5 20h7M9.5 17h5" /></svg>;
+    case "sports": return <svg {...ic}><circle cx="12" cy="12" r="8.5" /><path d="M12 7.5l3.4 2.5-1.3 4h-4.2l-1.3-4zM12 3.5v4M15.4 10l4.4-1.6M14.1 14l2.6 4M9.9 14l-2.6 4M8.6 10L4.2 8.4" /></svg>;
+  }
+}
+function StatTile({ s, i }: { s: PublicStat; i: number }) {
+  return (
+    <div className="stat-tile hero-in px-3 py-5 sm:px-5 sm:py-6 grid justify-items-center text-center gap-2 content-start" style={{ animationDelay: `${360 + i * 80}ms` }}>
+      <span className="stat-icon h-11 w-11 rounded-full grid place-items-center"><StatGlyph icon={s.icon} /></span>
+      <span className="display font-bold tabular-nums text-[30px] leading-9 sm:text-[36px] sm:leading-[42px] lg:text-[42px] lg:leading-[48px] tracking-tight text-[#F4EEE5]">{s.value}</span>
+      <span className="text-[13px] sm:text-[14px] font-medium text-sand/80 leading-5">{s.label}</span>
+      {s.status !== "client" && <span className="text-[10px] font-semibold uppercase tracking-[.08em]" style={{ color: s.status === "verified" ? "#74C394" : "#7DB8AE" }}>{s.status === "verified" ? "Verified" : "Live record"}</span>}
+    </div>
+  );
+}
 
 export default async function Home() {
   const user = await currentUser();
-  const [record, coverage, plans, sample, assistant, reviews] = await Promise.all([
-    dashboardRecord(),
+  const [{ stats: heroStats }, coverage, plans, assistant, reviews] = await Promise.all([
+    publicHomepageStats(),
     sportCoverage(),
     q<Plan>("select * from plans where active order by level"),
-    one<{ n: number }>("select count(*)::int n from competitions where active and data_source = 'mock'"),
     subscribeAssistantProps(user, "/"),
     approvedTestimonials(3),
   ]);
-  const decided = record.won + record.lost;
-  const discord = discordInviteUrl();
-  // Every figure is counted from BETVANTA's own records. Nothing here is typed in or estimated.
-  const stats = [
-    { value: fmt(record.settled), label: "Picks graded" },
-    { value: record.winRate === null ? "n/a" : `${record.winRate.toFixed(1)}%`, label: "Hit rate" },
-    { value: fmt(record.upcoming7d), label: "Matches this week" },
-    { value: fmt(record.sports), label: "Sports covered" },
-  ];
+  const start = user ? (user.role === "member" ? "/dashboard" : "/admin") : "/register";
 
   return (
     <>
-      {/* Hero: full-width stadium artwork under a dark overlay; the header sits on top of it */}
-      <section className="hero" aria-labelledby="hero-h">
-        <div className="hero-bg" aria-hidden />
-        <div className="wrap pt-[112px] pb-12 md:pt-[168px] md:pb-20 grid gap-10 md:gap-14 text-center">
-          <div className="grid gap-6 md:gap-7 justify-items-center">
-            <p className="text-[12px] md:text-[13px] font-bold tracking-[.22em] uppercase text-[#E3A27C]">Smarter Insights. Better Decisions.</p>
-            <h1 id="hero-h" className="hero-title">Elevate Your Game<br />With Expert<br /><span className="accent">Sports Analysis</span></h1>
-            <p className="hero-lede">Access premium sports picks, AI-assisted insights, match analysis and proven strategies.</p>
-            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 w-full sm:w-auto justify-center pt-1">
-              <Link href="/packages" className="btn btn-accent hero-btn">Get Premium Picks</Link>
-              {discord
-                ? <a href={discord} target="_blank" rel="noopener noreferrer" className="btn hero-btn hero-btn-outline">Join Our Discord<span className="sr-only"> (opens in a new tab)</span></a>
-                : <Link href="/community" className="btn hero-btn hero-btn-outline">Join Our Discord</Link>}
-            </div>
+      {/* Hero: full-width stadium artwork, dark overlay, centred message, glass statistics panel */}
+      <section className="hero relative isolate overflow-hidden" aria-labelledby="hero-h">
+        <picture>
+          <source media="(max-width: 767px)" srcSet="/images/hero/stadium-tall.webp" type="image/webp" />
+          {/* eslint-disable-next-line @next/next/no-img-element -- art-directed background, sized by CSS */}
+          <img src="/images/hero/stadium-wide.webp" alt="" fetchPriority="high" decoding="async" className="hero-media absolute inset-0 -z-20 h-full w-full object-cover object-[50%_35%] max-md:object-top" />
+        </picture>
+        <div aria-hidden className="hero-scrim absolute inset-0 -z-10" />
+        <div aria-hidden className="hero-glow absolute inset-0 -z-10" />
+        <div className="wrap pt-[100px] md:pt-[124px] pb-10 md:pb-14 grid justify-items-center text-center gap-4 md:gap-5">
+          <span className="hero-in inline-flex items-center gap-2 rounded-full border border-sand/20 bg-white/5 px-3 py-1.5 text-[11px] sm:text-[12px] font-semibold tracking-[.12em] uppercase text-sand/85 display" style={{ animationDelay: "40ms" }}>
+            <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-copper" />Sports intelligence<span className="hidden sm:inline"> and predictions</span>
+          </span>
+          <h1 id="hero-h" className="hero-in display font-bold text-[32px] leading-[36px] sm:text-[48px] sm:leading-[52px] lg:text-[60px] lg:leading-[64px] tracking-[-.01em] text-[#F4EEE5] max-w-[22ch]" style={{ animationDelay: "100ms" }}>
+            Smarter sports insights. <span className="text-copper">Sharper predictions.</span>
+          </h1>
+          <p className="hero-in text-[15px] leading-6 sm:text-[17px] sm:leading-7 md:text-[19px] md:leading-8 max-w-[60ch] text-sand/85" style={{ animationDelay: "170ms" }}>
+            Expert picks and AI-assisted match analysis<span className="hidden sm:inline"> for soccer, American football, basketball and baseball</span>, with the probability and confidence behind every prediction.
+          </p>
+          <div className="hero-in grid grid-cols-2 sm:flex gap-2.5 sm:gap-3 w-full sm:w-auto pt-1" style={{ animationDelay: "240ms" }}>
+            <Link href="/packages" className="btn btn-accent sm:btn-lg hero-cta w-full sm:w-auto shadow-[0_10px_30px_-10px_rgba(196,124,82,.7)]">
+              <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M8 4h8v5a4 4 0 0 1-8 0z" /><path d="M8 6H5a2.5 2.5 0 0 0 3 4M16 6h3a2.5 2.5 0 0 1-3 4M12 13v4M8.5 20h7" /></svg>
+              Get Premium Picks
+            </Link>
+            <JoinDiscordButton label="Join Discord" className="btn sm:btn-lg hero-cta btn-onbrand w-full sm:w-auto bg-white/5 backdrop-blur-sm" />
           </div>
+          <p className="hero-in text-[13px] sm:text-sm text-sand/80" style={{ animationDelay: "280ms" }}>
+            New here? <Link href={start} className="font-semibold text-sand underline underline-offset-4 decoration-copper hover:decoration-2">{user ? "Open your dashboard" : "Create a free account"}</Link><span className="hidden sm:inline"> and get free picks today</span>.
+          </p>
 
-          <div className="grid gap-3">
-            <dl className="hero-stats" aria-label="BETVANTA record">
-              {stats.map((s) => <div key={s.label}><dt className="hero-stat-label order-2">{s.label}</dt><dd className="hero-stat-value order-1">{s.value}</dd></div>)}
-            </dl>
-            <p className="text-[12px] text-white/65 flex flex-wrap items-center justify-center gap-2">
-              Counted from BETVANTA&rsquo;s records.{record.winRate === null && ` Hit rate appears after ${MIN_SETTLED_FOR_RATE} decided picks (${decided} so far).`}
-              {(sample?.n ?? 0) > 0 && <SampleBadge />}
+          {/* Statistics panel: figures from Admin > Homepage (client-provided unless marked verified or live) */}
+          <div className="w-full max-w-[880px] grid gap-2.5 pt-2 md:pt-4">
+            <h2 className="sr-only">BETVANTA in numbers</h2>
+            <div className="glass hero-in overflow-hidden grid grid-cols-2 sm:grid-cols-4 [&>*]:border-sand/10 [&>*:nth-child(2n)]:border-l [&>*:nth-child(n+3)]:border-t sm:[&>*:nth-child(n+3)]:border-t-0 sm:[&>*:nth-child(n+2)]:border-l" style={{ animationDelay: "320ms" }}>
+              {heroStats.map((st, i) => <StatTile key={st.key} s={st} i={i} />)}
+            </div>
+            <p className="text-[11px] sm:text-xs text-sand/65 max-w-[80ch] mx-auto">
+              {heroStats.some((x) => x.status === "client") && "Figures provided by BETVANTA; not independently verified. "}Past results do not guarantee future outcomes. {RG_LINE}{" "}
+              <Link href="/performance" className="font-semibold text-sand/85 underline underline-offset-2">See our graded record</Link>
             </p>
           </div>
         </div>

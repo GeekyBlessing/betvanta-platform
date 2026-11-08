@@ -117,30 +117,37 @@ a.mobile-menu-link { display: block; }
 .mobile-menu-link[aria-current="page"] { color: #E3A27C; }
 .mobile-menu-secondary { background: transparent; color: #fff; border-color: rgba(234, 225, 212, .35); }
 
-/* Homepage hero: full-width stadium artwork, dark overlay, centred copy, stats panel underneath ------- */
-.hero { position: relative; isolation: isolate; color: #fff; background: #0f1d1c; overflow: hidden; }
-.hero-bg { position: absolute; inset: 0; z-index: -2; background: url("/images/hero/stadium-tall.webp") center 62% / cover no-repeat; }
-@media (min-width: 768px) { .hero-bg { background-image: url("/images/hero/stadium-wide.webp"); background-position: center 58%; } }
-.hero::before { content: ""; position: absolute; inset: 0; z-index: -1;
-  background: radial-gradient(ellipse 60% 55% at 50% 52%, rgba(23, 35, 34, .55), rgba(23, 35, 34, 0) 70%),
-    linear-gradient(180deg, rgba(23, 35, 34, .8) 0%, rgba(23, 35, 34, .66) 45%, rgba(18, 61, 59, .82) 78%, #172322 100%); }
-.hero-title { font-family: var(--font-display); font-weight: 900; text-transform: uppercase; letter-spacing: -.01em; line-height: .98; font-size: clamp(40px, 8.2vw, 92px); text-shadow: 0 4px 30px rgba(0, 0, 0, .35); }
-.hero-title .accent { color: #C47C52; }
-.hero-lede { font-size: clamp(16px, 2.1vw, 20px); line-height: 1.55; color: rgba(234, 225, 212, .92); max-width: 640px; }
-.hero-btn { min-width: 220px; padding: 16px 28px; font-size: 15px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; border-radius: 10px; }
-.hero-btn-outline { background: rgba(23, 35, 34, .35); color: #fff; border: 2px solid #EAE1D4; }
-.hero-btn-outline:hover { background: #EAE1D4; color: #172322; }
-.hero-stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); max-width: 920px; margin-inline: auto; background: rgba(23, 35, 34, .78); border: 1px solid rgba(234, 225, 212, .16); border-radius: 16px; backdrop-filter: blur(6px); }
-.hero-stats > div { padding: 18px 14px; text-align: center; display: grid; gap: 4px; align-content: center; }
-.hero-stats > div + div { border-left: 1px solid rgba(234, 225, 212, .14); }
-.hero-stat-value { font-family: var(--font-display); font-weight: 800; font-size: clamp(26px, 3.6vw, 38px); line-height: 1.05; color: #C47C52; font-variant-numeric: tabular-nums; }
-.hero-stat-label { font-size: 12px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: rgba(234, 225, 212, .85); }
-@media (max-width: 639px) {
-  .hero-btn { width: 100%; min-width: 0; }
-  .hero-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .hero-stats > div:nth-child(3) { border-left: 0; }
-  .hero-stats > div:nth-child(n+3) { border-top: 1px solid rgba(234, 225, 212, .14); }
+/* Homepage hero: stadium artwork, dark scrim, centred message, glass statistics panel ----------------- */
+.hero { background: #0B1615; color: #EAE1D4; }
+.hero-scrim {
+  background:
+    radial-gradient(120% 70% at 15% 30%, rgba(8, 18, 17, .55) 0%, rgba(8, 18, 17, 0) 60%),
+    linear-gradient(180deg, rgba(8, 18, 17, .82) 0%, rgba(10, 24, 23, .58) 38%, rgba(10, 24, 23, .70) 66%, rgba(11, 22, 21, .97) 100%);
 }
+@media (max-width: 767px) {
+  .hero-scrim { background: linear-gradient(180deg, rgba(8, 18, 17, .72) 0%, rgba(10, 24, 23, .48) 22%, rgba(10, 24, 23, .62) 48%, rgba(10, 24, 23, .74) 72%, rgba(11, 22, 21, .97) 100%); }
+}
+.hero-glow { background: radial-gradient(40% 35% at 85% 18%, rgba(196, 124, 82, .20) 0%, rgba(196, 124, 82, 0) 70%); }
+.hero-media { animation: bv-settle 1600ms cubic-bezier(.2, .7, .2, 1) both; }
+.hero-in { animation: bv-rise 640ms cubic-bezier(.2, .7, .2, 1) backwards; }
+@keyframes bv-settle { from { transform: scale(1.06); opacity: .6; } to { transform: scale(1); opacity: 1; } }
+@keyframes bv-rise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+
+/* Glass statistics card */
+.glass {
+  position: relative; border-radius: 20px; border: 1px solid rgba(234, 225, 212, .16);
+  background: linear-gradient(160deg, rgba(30, 90, 85, .38) 0%, rgba(18, 61, 59, .30) 45%, rgba(23, 35, 34, .42) 100%);
+  -webkit-backdrop-filter: blur(18px) saturate(140%); backdrop-filter: blur(18px) saturate(140%);
+  box-shadow: 0 1px 0 rgba(234, 225, 212, .10) inset, 0 24px 60px -24px rgba(0, 0, 0, .65);
+}
+.glass::before { content: ""; position: absolute; inset: 0 24px auto; height: 1px; background: linear-gradient(90deg, transparent, rgba(196, 124, 82, .7), transparent); }
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) { .glass { background: rgba(18, 40, 38, .94); } }
+.stat-tile { transition: background-color 200ms ease-out; }
+.stat-tile:hover { background: rgba(234, 225, 212, .04); }
+.stat-icon { background: rgba(196, 124, 82, .14); color: #D9956C; box-shadow: 0 0 0 1px rgba(196, 124, 82, .28) inset; }
+@media (min-width: 640px) { .sm\:btn-lg { padding: 13px 20px; font-size: 15px; } }
+@media (max-width: 639px) { .hero-cta { padding: 12px 8px; font-size: 14px; gap: 6px; } }
+@media (prefers-reduced-motion: reduce) { .hero-media, .hero-in { animation: none; } }
 
 /* Footer ------------------------------------------------------------------------------------------- */
 .site-footer { background: #172322; color: #fff; }

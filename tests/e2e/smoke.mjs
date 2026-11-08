@@ -200,17 +200,14 @@ check("navigation is Home, Packages, Contact and More, with Subscribe Now", /ari
 { const nav = homePage.body.match(/<nav aria-label="Main"[\s\S]*?<\/nav>/)?.[0] ?? "";
   check("main navigation has no Predictions, Fixtures, Sports or Performance links", nav.length > 0 && !/href="\/(predictions|fixtures|sports|performance|results)"/.test(nav) && !/Predictions|Fixtures|Performance/.test(nav), nav.slice(0, 300)); }
 check("no phone tab bar; phones use the menu button", !/aria-label="Quick navigation"/.test(homePage.body) && /Open menu/.test(homePage.body));
-check("hero: stadium background, headline and supporting text", homePage.body.includes('class="hero"') && homeText.includes("Elevate Your Game With Expert Sports Analysis") && homeText.includes("Access premium sports picks, AI-assisted insights, match analysis and proven strategies."));
-check("hero CTAs: Get Premium Picks and Join Discord", /href="\/packages"[^>]*>Get Premium Picks</.test(homePage.body) && />Join Our Discord</.test(homePage.body));
+check("hero: stadium background, headline and supporting text", homePage.body.includes("/images/hero/stadium-wide.webp") && homeText.includes("Smarter sports insights. Sharper predictions.") && homeText.includes("Expert picks and AI-assisted match analysis"));
+check("hero CTAs: Get Premium Picks, Join Discord and a free account", /href="\/packages"[^>]*>[\s\S]{0,600}Get Premium Picks</.test(homePage.body) && homeText.includes("Join Discord") && /href="\/register"[^>]*>Create a free account</.test(homePage.body));
 for (const [name, text] of [["sports selection", "Choose your sport"], ["packages", "Choose your package"], ["community", "Stay Ahead With the BETVANTA Community"]])
   check(`homepage section: ${name}`, homeText.includes(text));
-check("no client-entered figures on the homepage", !/2,000 Happy Members|75% Win Rate|12,500 Winning Picks|10 Sports Covered/.test(homeText));
+check("hero shows the four client figures", ["2,000 Happy Members", "75% Win Rate", "12,500 Winning Picks", "10 Sports Covered"].every((x) => homeText.includes(x)), homeText.slice(0, 400));
+check("client figures carry the not-independently-verified note", homeText.includes("Figures provided by BETVANTA; not independently verified"));
+check("empty live records never replace the hero figures", !/\b0 Winning Picks|Building Win Rate/.test(homeText));
 check("no betting odds on the homepage", (homeText.match(/\bodds\b/gi) ?? []).length === (homeText.match(/do not show betting odds/gi) ?? []).length);
-{ const rec = (await db.query("select count(*) filter (where result in ('won','lost','void'))::int settled, count(*) filter (where result='won')::int won, count(*) filter (where result='lost')::int lost from predictions where status='settled'")).rows[0];
-  const sports = (await db.query("select count(distinct c.sport)::int n from competitions c where c.active and exists (select 1 from fixtures f where f.competition_id = c.id)")).rows[0].n;
-  check("the stats panel shows database counts: graded picks and sports", homeText.includes(`Picks graded ${new Intl.NumberFormat("en-US").format(rec.settled)}`) && homeText.includes(`Sports covered ${sports}`), homeText.slice(0, 900));
-  check("hit rate is withheld until enough picks are decided", rec.won + rec.lost >= 20 ? /Hit rate \d+\.\d%/.test(homeText) : homeText.includes("Hit rate n/a")); }
-check("sample data is labelled", homePage.body.includes("Sample data"));
 { const pk = await anon("/packages"); check("Packages page shows the plans with Subscribe Now", pk.status === 200 && pk.body.includes("Choose your BETVANTA Premium package") && (pk.body.match(/data-subscribe="/g) ?? []).length >= 5); }
 { const old = await anon("/pricing?subscribe=premium_6m&method=usdt"); check("old /pricing links redirect to /packages with the plan kept", [301, 308].includes(old.status) && /\/packages\?subscribe=premium_6m&method=usdt$/.test(old.headers.get("location") ?? ""), `${old.status} ${old.headers.get("location")}`); }
 { const slugs = ["american-football", "soccer", "basketball", "baseball", "ice-hockey", "tennis", "boxing", "mma"];
@@ -240,7 +237,17 @@ check("footer links to the official Instagram", homePage.body.includes('href="ht
   check("navigation is still exactly Home, Packages, Contact, More", [...nav.matchAll(/class="nav-link[^"]*"[^>]*>([^<]+)</g)].map((m) => m[1].trim()).join("|") === "Home|Packages|Contact|More", nav.slice(0, 400)); }
 { const cm = await anon("/community"); check("community page has the Discord invite and Instagram", cm.body.includes(`href="${invite}"`) && cm.body.includes("instagram.com/bet.vanta")); }
 check("member cannot edit homepage statistics", (await member("/api/admin/homepage-stats/members", { method: "PATCH", json: { value: "9", label: "x", source: "manual", verification: "unverified", visible: true } })).status === 403);
-check("admin homepage statistics page says the figures are not shown publicly", /Not shown on the public site/.test((await admin("/admin/homepage")).body));
+check("admin cannot mark a figure verified without evidence", (await admin("/api/admin/homepage-stats/win_rate", { method: "PATCH", json: { value: "75%", label: "Win Rate", source: "manual", verification: "verified", visible: true } })).status === 400);
+check("admin switches members to the live figure", (await admin("/api/admin/homepage-stats/members", { method: "PATCH", json: { value: "2,000+", label: "Members", source: "live", verification: "unverified", visible: true } })).body.ok);
+const memberCount = (await db.query("select count(*)::int n from users where role='member' and status='active'")).rows[0].n;
+{ const t = textOf((await anon("/")).body);
+  check("live member statistic matches the database and is labelled as live", t.includes(`${new Intl.NumberFormat("en-US").format(memberCount)} Members Live record`), t.slice(0, 400)); }
+check("admin records a verified figure with its evidence", (await admin("/api/admin/homepage-stats/sports", { method: "PATCH", json: { value: "4", label: "Sports Covered", source: "manual", verification: "verified", verificationNote: "Counted from the live coverage list on 6 Nov 2026 by the admin team.", visible: true } })).body.ok);
+check("verified figure shows as Verified", textOf((await anon("/")).body).includes("4 Sports Covered Verified"));
+check("homepage statistic edits are audited", (await db.query("select count(*)::int n from audit_logs where action = 'admin.update_homepage_stat'")).rows[0].n >= 2);
+check("admin homepage statistics page loads", (await admin("/admin/homepage")).status === 200);
+// restore the client placeholders for later runs
+await db.query("update homepage_stats set value_text = v, label = l, source = 'manual', verification = 'unverified', verification_note = null, verified_by = null, verified_at = null, visible = true from (values ('members','2,000','Happy Members'),('sports','10','Sports Covered')) x(k, v, l) where key = k");
 const links = [...new Set([...homePage.body.matchAll(/href="(\/[^"#]*)"/g)].map((m) => m[1].replace(/&amp;/g, "&")))].filter((h) => !h.startsWith("/_next") && !h.startsWith("/api/"));
 const broken = [];
 for (const h of links) { const x = await anon(h); if (x.status >= 400) broken.push(`${h} ${x.status}`); }
