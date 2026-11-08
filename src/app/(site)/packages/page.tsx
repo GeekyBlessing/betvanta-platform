@@ -8,6 +8,7 @@ import { cardFeatures, FEATURES, LEVEL_NAMES } from "@/lib/services/plans";
 import { PROVIDERS } from "@/lib/services/payments";
 import { PageHeader, RG_LINE } from "@/components/ui";
 import { SubscribeAssistant } from "@/components/SubscribeAssistant";
+import { CommunityAccess, DiscordCta, InstagramCta } from "@/components/Community";
 import { subscribeAssistantProps } from "@/lib/services/manual-payments/assistant";
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Packages", description: "BETVANTA Premium packages in USD: Monthly, 3 Month, 6 Month, 1 Year and Lifetime." };
@@ -76,6 +77,15 @@ export default async function Packages(props: { searchParams: Promise<{ subscrib
           </article>
         )}
         <p className="text-sm text-muted">Questions before you subscribe? <Link href="/contact" className="text-link font-semibold underline">Contact BETVANTA</Link> or read the <Link href="/faq" className="text-link font-semibold underline">FAQ</Link>.</p>
+      </section>
+
+      <section aria-labelledby="access-h" className="grid gap-4">
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div className="grid gap-1"><h2 id="access-h" className="font-semibold text-[17px]">Free community and premium access</h2>
+            <p className="text-sm text-muted">Anyone can join our Discord and follow us on Instagram. A package unlocks the premium content.</p></div>
+          <div className="flex flex-wrap gap-2"><DiscordCta className="btn btn-secondary btn-sm" label="Join Our Discord" /><InstagramCta className="btn btn-secondary btn-sm" label="Follow Us on Instagram" /></div>
+        </div>
+        <CommunityAccess tone="light" />
       </section>
 
       <section aria-labelledby="pay-h" className="grid gap-3">

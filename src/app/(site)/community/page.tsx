@@ -1,26 +1,28 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { currentUser } from "@/lib/session";
-import { discordInviteUrl, discordOAuthEnabled, instagramHandle, instagramUrl } from "@/lib/env";
-import { JoinDiscordButton } from "@/components/Discord";
-import { Notice, PageHeader } from "@/components/ui";
+import { discordOAuthEnabled } from "@/lib/env";
+import { CommunitySection } from "@/components/Community";
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: "Community", description: "Join the BETVANTA Discord community." };
+export const metadata: Metadata = { title: "Community", description: "Join the BETVANTA Discord community and follow BETVANTA on Instagram for daily picks, match insights and announcements." };
+
 export default async function Community() {
   const u = await currentUser();
-  const invite = discordInviteUrl();
+  const settings = u ? "/dashboard/settings" : "/login?next=/dashboard/settings";
   return (
-    <div className="wrap py-10 max-w-[760px] grid gap-6">
-      <PageHeader eyebrow="Community" title="BETVANTA on Discord">Pick announcements, match discussion and live sessions with the BETVANTA team and other members.</PageHeader>
-      {invite ? <div><JoinDiscordButton className="btn btn-accent btn-lg" /></div>
-        : <Notice tone="info" title="The Discord server opens soon.">The invite link will appear here and on the homepage as soon as it is live.</Notice>}
-      <ol className="grid gap-4 list-decimal pl-5 text-[15px] leading-7">
-        <li><strong>Join the server</strong> with the button above. On a phone it opens the Discord app.</li>
-        <li><strong>Link your BETVANTA account</strong> in <Link href={u ? "/dashboard/settings" : "/login?next=/dashboard/settings"} className="text-link font-semibold underline">Settings</Link>{discordOAuthEnabled() ? "" : " (available once automatic roles are switched on)"}. Premium and VIP members get the matching role automatically, and it updates when your plan changes.</li>
-        <li><strong>Follow the announcements channel</strong> for new picks. Free picks are posted in full; paid picks are announced and unlocked in your dashboard.</li>
-      </ol>
-      {instagramUrl() && <p className="text-[15px]">Follow BETVANTA on Instagram for match-day graphics and announcements: <a href={instagramUrl()!} target="_blank" rel="noopener noreferrer" className="text-link font-semibold underline">{instagramHandle()}<span className="sr-only"> (opens in a new tab)</span></a>.</p>}
-      <p className="text-xs text-subtle">Discord and Instagram are separate services with their own terms. Be respectful; predictions are analysis, not guarantees.</p>
-    </div>
+    <>
+      <CommunitySection id="community-page-h" />
+      <section className="wrap py-14 md:py-16 grid gap-5 max-w-[820px]" aria-labelledby="premium-discord-h">
+        <h2 id="premium-discord-h" className="display font-extrabold text-[24px] md:text-[30px]">How premium Discord access works</h2>
+        <ol className="grid gap-4 list-decimal pl-5 text-[15px] leading-7">
+          <li><strong>Join the server</strong> with Join Our Discord. On a phone it opens the Discord app. The public channels are free for everyone.</li>
+          <li><strong>Choose a package</strong> on <Link href="/packages" className="text-link font-semibold underline">Packages</Link>. Premium picks and their full analysis unlock in your BETVANTA account as soon as your payment is confirmed.</li>
+          <li><strong>Link Discord</strong> in <Link href={settings} className="text-link font-semibold underline">Settings</Link>.{discordOAuthEnabled()
+            ? " BETVANTA gives you the premium or VIP role that matches your package, and removes it when the package ends."
+            : " Automatic premium and VIP roles switch on once BETVANTA connects its Discord bot."}</li>
+        </ol>
+        <p className="text-xs text-subtle">Discord and Instagram are separate services with their own terms. Be respectful. Predictions are analysis, not guarantees. 18+ only.</p>
+      </section>
+    </>
   );
 }

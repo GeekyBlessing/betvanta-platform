@@ -6,8 +6,9 @@ import { SPORTS, sportCoverage } from "@/lib/services/sports";
 import { formatMoney, periodLabel, type Plan } from "@/lib/services/billing";
 import { MIN_SETTLED_FOR_RATE } from "@/lib/services/stats";
 import { approvedTestimonials } from "@/lib/services/testimonials";
-import { discordInviteUrl, instagramHandle, instagramUrl } from "@/lib/env";
+import { discordInviteUrl } from "@/lib/env";
 import { SportsSelector } from "@/components/SportsSelector";
+import { CommunitySection } from "@/components/Community";
 import { SubscribeAssistant } from "@/components/SubscribeAssistant";
 import { subscribeAssistantProps } from "@/lib/services/manual-payments/assistant";
 import { RG_LINE, SampleBadge } from "@/components/ui";
@@ -48,8 +49,8 @@ export default async function Home() {
             <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 w-full sm:w-auto justify-center pt-1">
               <Link href="/packages" className="btn btn-accent hero-btn">Get Premium Picks</Link>
               {discord
-                ? <a href={discord} target="_blank" rel="noopener noreferrer" className="btn hero-btn hero-btn-outline">Join Discord<span className="sr-only"> (opens in a new tab)</span></a>
-                : <Link href="/community" className="btn hero-btn hero-btn-outline">Join Discord</Link>}
+                ? <a href={discord} target="_blank" rel="noopener noreferrer" className="btn hero-btn hero-btn-outline">Join Our Discord<span className="sr-only"> (opens in a new tab)</span></a>
+                : <Link href="/community" className="btn hero-btn hero-btn-outline">Join Our Discord</Link>}
             </div>
           </div>
 
@@ -67,6 +68,9 @@ export default async function Home() {
 
       {/* Sports selection: navy band, two columns of white circles */}
       <SportsSelector sports={SPORTS} coverage={coverage} intro="Fixtures, results and match predictions for each sport, in one place." />
+
+      {/* Community: Discord and Instagram, and what is free vs premium */}
+      <CommunitySection />
 
       {/* Packages: every plan one tap from the payment assistant */}
       <section aria-labelledby="packages-h" className="bg-surface">
@@ -88,6 +92,7 @@ export default async function Home() {
               </li>))}
           </ul>
           <p className="text-center"><Link href="/packages" className="text-link font-semibold hover:underline">Compare every package and its benefits<span aria-hidden> &rsaquo;</span></Link></p>
+          <p className="text-center text-[12px] text-subtle max-w-[720px] mx-auto">BETVANTA publishes analysis only. We do not take bets or hold funds, and we do not show betting odds. {RG_LINE}</p>
         </div>
       </section>
 
@@ -104,18 +109,6 @@ export default async function Home() {
               </figure>))}</div>
           </div>
         </section>)}
-
-      {/* Community */}
-      <section className="bg-brand text-on-brand" aria-labelledby="community-h">
-        <div className="wrap py-10 flex flex-col md:flex-row md:items-center gap-5 justify-between">
-          <div className="grid gap-1"><h2 id="community-h" className="display font-bold text-[22px]">Join the BETVANTA community</h2><p className="text-[15px] opacity-85">Pick announcements and match discussion on Discord; match-day updates on Instagram.</p></div>
-          <div className="flex flex-wrap gap-3">
-            {discord && <a href={discord} target="_blank" rel="noopener noreferrer" className="btn btn-accent">Join Discord<span className="sr-only"> (opens in a new tab)</span></a>}
-            {instagramUrl() && <a href={instagramUrl()!} target="_blank" rel="noopener noreferrer" className="btn hero-btn-outline">Instagram {instagramHandle()}<span className="sr-only"> (opens in a new tab)</span></a>}
-          </div>
-        </div>
-        <p className="wrap pb-6 text-[12px] opacity-70">BETVANTA publishes analysis only. We do not take bets or hold funds, and we do not show betting odds. {RG_LINE}</p>
-      </section>
 
       <SubscribeAssistant {...assistant} />
     </>

@@ -25,12 +25,12 @@ export default function Contact() {
         <div className="card p-5 grid gap-2 content-start">
           <span className="text-[13px] font-medium text-muted">Community</span>
           <span className="font-semibold text-[16px]">BETVANTA Discord</span>
-          <JoinDiscordButton className="btn btn-accent btn-sm w-fit" />
+          <JoinDiscordButton className="btn btn-accent btn-sm w-fit" label="Join Our Discord" />
         </div>
         {instagramUrl() && <a href={instagramUrl()!} target="_blank" rel="noopener noreferrer" className="card p-5 grid gap-1 content-start hover:border-[var(--accent)]">
           <span className="text-[13px] font-medium text-muted">Instagram</span>
           <span className="font-semibold text-[16px]">{instagramHandle()}</span>
-          <span className="text-xs text-subtle">Match-day updates<span className="sr-only"> (opens in a new tab)</span></span>
+          <span className="text-xs font-semibold text-link">Follow Us on Instagram<span className="sr-only"> (opens in a new tab)</span></span>
         </a>}
       </div>
       <section className="card p-6 grid gap-4 max-w-[640px]" aria-labelledby="form-h">

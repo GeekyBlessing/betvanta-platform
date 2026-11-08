@@ -193,6 +193,7 @@ console.log("payment assistant: manual crypto and Discord-arranged payments");
 
 console.log("homepage dashboard, links, testimonials, Discord");
 const homePage = await anon("/");
+const contactLinks = (pg, inv, ig) => pg.status === 200 && pg.body.includes(`href="${inv}"`) && pg.body.includes(`href="${ig}"`);
 const textOf = (html) => html.replace(/<[^>]+>/g, " ").replace(/&nbsp;/g, " ").replace(/&#x27;|&#39;/g, "'").replace(/&amp;/g, "&").replace(/\s+/g, " ");
 const homeText = textOf(homePage.body);
 check("navigation is Home, Packages, Contact and More, with Subscribe Now", /aria-label="Main"/.test(homePage.body) && ["/", "/packages", "/contact"].every((h) => homePage.body.includes(`href="${h}"`)) && />More</.test(homePage.body) && /href="\/packages"[^>]*>Subscribe Now</.test(homePage.body));
@@ -200,8 +201,8 @@ check("navigation is Home, Packages, Contact and More, with Subscribe Now", /ari
   check("main navigation has no Predictions, Fixtures, Sports or Performance links", nav.length > 0 && !/href="\/(predictions|fixtures|sports|performance|results)"/.test(nav) && !/Predictions|Fixtures|Performance/.test(nav), nav.slice(0, 300)); }
 check("no phone tab bar; phones use the menu button", !/aria-label="Quick navigation"/.test(homePage.body) && /Open menu/.test(homePage.body));
 check("hero: stadium background, headline and supporting text", homePage.body.includes('class="hero"') && homeText.includes("Elevate Your Game With Expert Sports Analysis") && homeText.includes("Access premium sports picks, AI-assisted insights, match analysis and proven strategies."));
-check("hero CTAs: Get Premium Picks and Join Discord", /href="\/packages"[^>]*>Get Premium Picks</.test(homePage.body) && />Join Discord</.test(homePage.body));
-for (const [name, text] of [["sports selection", "Choose your sport"], ["packages", "Choose your package"], ["community", "Join the BETVANTA community"]])
+check("hero CTAs: Get Premium Picks and Join Discord", /href="\/packages"[^>]*>Get Premium Picks</.test(homePage.body) && />Join Our Discord</.test(homePage.body));
+for (const [name, text] of [["sports selection", "Choose your sport"], ["packages", "Choose your package"], ["community", "Stay Ahead With the BETVANTA Community"]])
   check(`homepage section: ${name}`, homeText.includes(text));
 check("no client-entered figures on the homepage", !/2,000 Happy Members|75% Win Rate|12,500 Winning Picks|10 Sports Covered/.test(homeText));
 check("no betting odds on the homepage", (homeText.match(/\bodds\b/gi) ?? []).length === (homeText.match(/do not show betting odds/gi) ?? []).length);
@@ -226,6 +227,17 @@ check("footer has contact, Discord and legal links", ["mailto:", "/contact", "/l
 const invite = process.env.DISCORD_INVITE_URL || "https://discord.com/invite/STDJ29shZS";
 check("Join Discord opens the official BETVANTA server in a new tab", homePage.body.includes(`href="${invite}" target="_blank" rel="noopener noreferrer"`));
 check("footer links to the official Instagram", homePage.body.includes('href="https://www.instagram.com/bet.vanta/" target="_blank" rel="noopener noreferrer"') && homePage.body.includes("@bet.vanta"));
+{ const ig = "https://www.instagram.com/bet.vanta/";
+  const sec = homePage.body.match(/<section class="community"[\s\S]*?<\/section>/)?.[0] ?? "";
+  check("community section: heading and supporting text", homeText.includes("Get daily sports updates, expert picks, match insights and exclusive content. Join our Discord community and follow us on Instagram to stay connected."));
+  check("community section: JOIN OUR DISCORD opens the official invite in a new tab", sec.includes(`href="${invite}" target="_blank" rel="noopener noreferrer"`) && sec.includes("Join Our Discord"));
+  check("community section: FOLLOW US ON INSTAGRAM opens the official profile in a new tab", sec.includes(`href="${ig}" target="_blank" rel="noopener noreferrer"`) && sec.includes("Follow Us on Instagram"));
+  check("free community and premium content are clearly separated", homeText.includes("Free for everyone") && homeText.includes("Paid packages") && homeText.includes("checked on our servers"));
+  const pk = await anon("/packages");
+  check("Packages page explains free community vs premium and links Discord and Instagram", pk.body.includes("Free community and premium access") && pk.body.includes(`href="${invite}"`) && pk.body.includes(`href="${ig}"`));
+  check("Contact page and footer include Instagram and Discord", contactLinks(await anon("/contact"), invite, ig) && homePage.body.includes(`Follow Us on Instagram`) && /footer[\s\S]*instagram\.com\/bet\.vanta/.test(homePage.body));
+  const nav = homePage.body.match(/<nav aria-label="Main"[\s\S]*?<\/nav>/)?.[0] ?? "";
+  check("navigation is still exactly Home, Packages, Contact, More", [...nav.matchAll(/class="nav-link[^"]*"[^>]*>([^<]+)</g)].map((m) => m[1].trim()).join("|") === "Home|Packages|Contact|More", nav.slice(0, 400)); }
 { const cm = await anon("/community"); check("community page has the Discord invite and Instagram", cm.body.includes(`href="${invite}"`) && cm.body.includes("instagram.com/bet.vanta")); }
 check("member cannot edit homepage statistics", (await member("/api/admin/homepage-stats/members", { method: "PATCH", json: { value: "9", label: "x", source: "manual", verification: "unverified", visible: true } })).status === 403);
 check("admin homepage statistics page says the figures are not shown publicly", /Not shown on the public site/.test((await admin("/admin/homepage")).body));

@@ -46,8 +46,8 @@ export function SiteFooter() {
         </div>
         <div className="grid gap-2 content-start text-sm"><span className="footer-head">BETVANTA</span>
           {MAIN_NAV.map((n) => <Link key={n.href} href={n.href} className="footer-link">{n.label}</Link>)}
-          {discord ? <a href={discord} target="_blank" rel="noopener noreferrer" className="footer-link">Join our Discord<span className="sr-only"> (opens in a new tab)</span></a> : <Link href="/community" className="footer-link">Discord community</Link>}
-          {instagramUrl() && <a href={instagramUrl()!} target="_blank" rel="noopener noreferrer" className="footer-link">Instagram {instagramHandle()}<span className="sr-only"> (opens in a new tab)</span></a>}
+          {discord ? <a href={discord} target="_blank" rel="noopener noreferrer" className="footer-link">Join Our Discord<span className="sr-only"> (opens in a new tab)</span></a> : <Link href="/community" className="footer-link">Discord community</Link>}
+          {instagramUrl() && <a href={instagramUrl()!} target="_blank" rel="noopener noreferrer" className="footer-link">Follow Us on Instagram {instagramHandle()}<span className="sr-only"> (opens in a new tab)</span></a>}
         </div>
         <div className="grid gap-2 content-start text-sm"><span className="footer-head">More</span>
           {MORE_NAV.map((n) => <Link key={n.href} href={n.href} className="footer-link">{n.label}</Link>)}

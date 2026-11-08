@@ -147,3 +147,14 @@ a.mobile-menu-link { display: block; }
 .footer-head { font-size: 12px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: #C47C52; margin-bottom: 4px; }
 .footer-link { color: rgba(255, 255, 255, .75); } .footer-link:hover { color: #fff; }
 .footer-theme .btn { color: rgba(255, 255, 255, .75); }
+
+/* Community: Forest Teal band with Discord and Instagram ------------------------------------------- */
+.community { background: radial-gradient(ellipse 70% 60% at 50% 0%, rgba(196, 124, 82, .16), rgba(196, 124, 82, 0) 70%), linear-gradient(180deg, #123D3B 0%, #0f2f2d 60%, #172322 100%); color: #fff; }
+.community-btn { min-width: 250px; padding: 16px 26px; font-size: 15px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; border-radius: 10px; }
+.community-btn-outline { background: transparent; color: #fff; border: 2px solid #EAE1D4; }
+.community-btn-outline:hover { background: #EAE1D4; color: #172322; }
+.community-card { display: flex; flex-direction: column; gap: 16px; padding: 28px; border-radius: 16px; background: rgba(23, 35, 34, .55); border: 1px solid rgba(234, 225, 212, .14); }
+.community-icon { width: 44px; height: 44px; border-radius: 12px; display: grid; place-items: center; background: rgba(196, 124, 82, .18); color: #E3A27C; }
+.access-card { display: grid; gap: 16px; align-content: start; padding: 28px; border-radius: 16px; background: rgba(234, 225, 212, .06); border: 1px solid rgba(234, 225, 212, .16); color: #EAE1D4; }
+.access-card-premium { background: linear-gradient(160deg, rgba(196, 124, 82, .22), rgba(196, 124, 82, .06)); border-color: rgba(196, 124, 82, .55); }
+@media (max-width: 639px) { .community-btn { width: 100%; min-width: 0; } .community-card, .access-card { padding: 22px; } }
