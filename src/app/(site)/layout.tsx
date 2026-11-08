@@ -1,4 +1,4 @@
-import { SiteFooter, SiteHeader } from "@/components/SiteChrome";
+import { PublicShell } from "@/components/SiteChrome";
 export default function SiteLayout({ children }: { children: React.ReactNode }) {
-  return (<><SiteHeader /><main id="main" className="flex-1 pb-16">{children}</main><SiteFooter /></>);
+  return <PublicShell><div className="pb-16">{children}</div></PublicShell>;
 }

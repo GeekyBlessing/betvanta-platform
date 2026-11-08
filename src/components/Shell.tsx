@@ -2,7 +2,6 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { Logo } from "./ui";
 import { LogoutButton } from "./LogoutButton";
-import { ThemeToggle } from "./ThemeToggle";
 
 export function Shell({ nav, user, children, area }: { nav: { href: string; label: string }[]; user: { display_name: string; role: string }; children: ReactNode; area: string }) {
   return (
@@ -13,7 +12,7 @@ export function Shell({ nav, user, children, area }: { nav: { href: string; labe
           <nav aria-label={area} className="hidden lg:grid gap-1">
             {nav.map((n) => <Link key={n.href} href={n.href} className="px-3 py-2 rounded-md text-sm font-medium text-muted hover:text-ink hover:bg-sunken">{n.label}</Link>)}
           </nav>
-          <div className="flex lg:flex-col lg:items-start gap-2"><ThemeToggle /><LogoutButton /></div>
+          <div className="flex lg:flex-col lg:items-start gap-2"><LogoutButton /></div>
         </div>
         <nav aria-label={`${area} mobile`} className="lg:hidden flex gap-1 overflow-x-auto px-4 pb-3">
           {nav.map((n) => <Link key={n.href} href={n.href} className="px-3 py-1.5 rounded-md text-sm font-medium text-muted whitespace-nowrap hover:bg-sunken">{n.label}</Link>)}

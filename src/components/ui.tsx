@@ -1,20 +1,20 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 
-export function LogoMark({ size = 28, reversed = false }: { size?: number; reversed?: boolean }) {
+export function LogoMark({ size = 28 }: { size?: number; reversed?: boolean }) {
   return (
     <svg width={size} height={size} viewBox="0 0 40 40" aria-hidden="true">
-      <rect width="40" height="40" rx="9" fill={reversed ? "#EAE1D4" : "#123D3B"} />
-      <path d="M9.5 13.5 L18.5 29 L27 13" fill="none" stroke={reversed ? "#123D3B" : "#EAE1D4"} strokeWidth="4.2" strokeLinecap="round" strokeLinejoin="round" />
-      <circle cx="30.6" cy="8.6" r="3.4" fill="#C47C52" />
+      <rect width="40" height="40" rx="9" fill="#E41B23" />
+      <path d="M9.5 12.5 L18.5 29 L28 12" fill="none" stroke="#FFFFFF" strokeWidth="4.6" strokeLinecap="round" strokeLinejoin="round" />
+      <circle cx="31" cy="8.6" r="3.2" fill="#FFFFFF" />
     </svg>
   );
 }
 export function Logo({ size = 28, href = "/", onDark = false }: { size?: number; href?: string; onDark?: boolean }) {
   return (
-    <Link href={href} className={`inline-flex items-center gap-2.5 ${onDark ? "text-sand" : "text-ink"}`} aria-label="BETVANTA home">
-      <LogoMark size={size} reversed={onDark} />
-      <span className="display font-bold tracking-[.06em]" style={{ fontSize: Math.round(size * 0.62) }}>BETVANTA</span>
+    <Link href={href} className={`inline-flex items-center gap-2.5 text-white`} aria-label="BETVANTA home">
+      <LogoMark size={size} />
+      <span className="logo-word" style={{ fontSize: Math.round(size * 0.7) }}>BET<span className="text-red">VANTA</span></span>
     </Link>
   );
 }

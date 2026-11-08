@@ -38,7 +38,7 @@ export async function subscribeAssistantProps(user: SessionUser | null, returnPa
       return {
         id, label: METHOD_LABELS[id], short: SHORT[id], kind: "crypto", enabled: r.ready, unavailable: r.reason, symbol: WALLETS[id].symbol, walletName: WALLETS[id].name,
         ...(r.ready ? { address: WALLETS[id].address, network: walletNetwork(id),
-          qrSvg: await QRCode.toString(WALLETS[id].address, { type: "svg", margin: 1, errorCorrectionLevel: "M", color: { dark: "#172322", light: "#FFFFFF" } }) } : {}),
+          qrSvg: await QRCode.toString(WALLETS[id].address, { type: "svg", margin: 1, errorCorrectionLevel: "M", color: { dark: "#0B0B0D", light: "#FFFFFF" } }) } : {}),
       };
     }))),
     ...OTHER_METHODS.map((id): AssistantMethod => ({ id, label: METHOD_LABELS[id], short: SHORT[id], kind: "contact", enabled: true })),

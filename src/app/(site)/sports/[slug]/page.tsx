@@ -31,7 +31,7 @@ export default async function Sport(props: { params: Promise<{ slug: string }> }
   return (
     <div className="wrap py-10 grid gap-10">
       <header className="flex flex-wrap items-center gap-4">
-        <span className="h-16 w-16 rounded-full bg-brand text-[#EAE1D4] grid place-items-center"><SportIcon sport={sport.id} size={32} /></span>
+        <span className="h-16 w-16 rounded-full bg-brand text-[#F2F2F4] grid place-items-center"><SportIcon sport={sport.id} size={32} /></span>
         <div className="grid gap-1"><span className="eyebrow">Sport</span><h1 className="display text-[28px] leading-[34px] md:text-[36px] md:leading-[40px] font-bold">{sport.name}</h1></div>
         {sample && <span className="ml-auto"><SampleBadge /></span>}
       </header>
@@ -39,7 +39,7 @@ export default async function Sport(props: { params: Promise<{ slug: string }> }
       {!comps.length && <Notice tone="info" title={`${sport.name} coverage is on the way.`}>We are connecting a licensed data feed for {sport.name.toLowerCase()}. Schedules and scores appear here as soon as it is live.</Notice>}
 
       {sport.predictions ? (
-        <section className="grid gap-4"><div className="flex justify-between items-end gap-3 flex-wrap"><h2 className="font-semibold text-[20px]">Predictions and analysis</h2><Link href="/predictions" className="text-sm font-semibold text-link hover:underline">All predictions</Link></div>
+        <section className="grid gap-4"><div className="flex justify-between items-end gap-3 flex-wrap"><h2 className="font-semibold text-[20px]">Predictions and analysis</h2><Link href={`/?sport=${sport.slug}`} className="text-sm font-semibold text-link hover:underline">All {sport.name.toLowerCase()} matches</Link></div>
           {groups.length ? <div className="grid gap-4 md:grid-cols-2">{groups.map((g) => <FixtureCard key={g[0].fixture_id} preds={g} />)}</div> : <Notice>No {sport.name.toLowerCase()} predictions are published right now.</Notice>}
         </section>
       ) : comps.length > 0 && (

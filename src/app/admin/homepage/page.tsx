@@ -16,6 +16,7 @@ export default async function HomepageStatsAdmin() {
   </>);
   const [rows, live] = await Promise.all([listHomepageStats(), homeStats()]);
   return (<>
+    <Notice tone="info" title="Not shown on the public site.">The sportsbook homepage does not display member counts, win rates or winning-pick totals. These figures are kept for reference and can be edited, but no public page shows them.</Notice>
     <PageHeader eyebrow="Admin" title="Homepage statistics">
       The four figures in the homepage hero. Each one shows either a figure you enter, or the live figure from BETVANTA&apos;s own records.
       Entered figures are shown exactly as entered, with a note under the panel that they are provided by BETVANTA and not independently verified.

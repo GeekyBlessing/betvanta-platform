@@ -10,6 +10,7 @@ import { PageHeader, RG_LINE } from "@/components/ui";
 import { SubscribeAssistant } from "@/components/SubscribeAssistant";
 import { CommunityAccess, DiscordCta, InstagramCta } from "@/components/Community";
 import { subscribeAssistantProps } from "@/lib/services/manual-payments/assistant";
+import { approvedTestimonials } from "@/lib/services/testimonials";
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Packages", description: "BETVANTA Premium packages in USD: Monthly, 3 Month, 6 Month, 1 Year and Lifetime." };
 
@@ -20,7 +21,7 @@ const perMonth = (p: Plan) => (p.is_lifetime ? null : Number(p.amount_minor) / M
 
 export default async function Packages(props: { searchParams: Promise<{ subscribe?: string; method?: string }> }) {
   const sp = await props.searchParams;
-  const [plans, user] = await Promise.all([q<Plan>("select * from plans where active order by level"), currentUser()]);
+  const [plans, user, reviews] = await Promise.all([q<Plan>("select * from plans where active order by level"), currentUser(), approvedTestimonials(3)]);
   const assistant = await subscribeAssistantProps(user, "/packages", { plan: sp.subscribe, method: sp.method });
   const monthly = plans.find((p) => p.level === 1);
   const periodic = plans.filter((p) => !p.is_lifetime);
@@ -49,7 +50,7 @@ export default async function Packages(props: { searchParams: Promise<{ subscrib
               <article key={p.id} aria-label={p.name} className={`relative rounded-xl p-6 flex flex-col gap-5 border ${best ? "bg-brand text-on-brand border-transparent shadow-xl lg:-my-2 lg:py-8" : "bg-surface border-line"}`}>
                 {best && <span className="absolute -top-3 left-6 rounded-full bg-accent text-on-accent text-xs font-semibold px-3 py-1">Best value</span>}
                 <div className="grid gap-1">
-                  <h2 className="display text-[13px] font-bold tracking-[.14em] uppercase" style={best ? { color: "#C47C52" } : undefined}>{p.name}</h2>
+                  <h2 className="display text-[13px] font-bold tracking-[.14em] uppercase" style={best ? { color: "#E41B23" } : undefined}>{p.name}</h2>
                   {p.tagline && <p className={`text-sm ${best ? "opacity-85" : "text-muted"}`}>{p.tagline}</p>}
                 </div>
                 <div className="grid gap-1">
@@ -57,7 +58,7 @@ export default async function Packages(props: { searchParams: Promise<{ subscrib
                   <span className={`text-xs num ${best ? "opacity-80" : "text-subtle"}`}>{p.level === 1 ? "Billed once for 30 days" : `${formatMoney(Math.round(pm))} per month${saving > 0 ? `, save ${saving}%` : ""}`}</span>
                 </div>
                 <ul className="grid gap-2.5 text-sm">
-                  {cardFeatures(p.level).map((f, i) => <li key={f} className={`flex gap-2.5 ${i === 0 && p.level > 1 ? "font-semibold" : ""}`}><Tick className={best ? "text-[#C47C52]" : "text-link"} />{f}</li>)}
+                  {cardFeatures(p.level).map((f, i) => <li key={f} className={`flex gap-2.5 ${i === 0 && p.level > 1 ? "font-semibold" : ""}`}><Tick className={best ? "text-[#E41B23]" : "text-link"} />{f}</li>)}
                 </ul>
                 <a href={href(p)} data-subscribe={p.code} aria-label={`Subscribe Now to ${p.name}`} className={`btn btn-lg w-full mt-auto ${best ? "btn-accent" : "btn-secondary"}`}>Subscribe Now</a>
               </article>
@@ -78,6 +79,17 @@ export default async function Packages(props: { searchParams: Promise<{ subscrib
         )}
         <p className="text-sm text-muted">Questions before you subscribe? <Link href="/contact" className="text-link font-semibold underline">Contact BETVANTA</Link> or read the <Link href="/faq" className="text-link font-semibold underline">FAQ</Link>.</p>
       </section>
+
+      {reviews.length > 0 && (
+        <section aria-labelledby="reviews-h" className="grid gap-4">
+          <h2 id="reviews-h" className="font-semibold text-[17px]">What members say</h2>
+          <div className="grid gap-4 md:grid-cols-3">{reviews.map((rv) => (
+            <figure key={rv.id} className="card p-5 grid gap-2 content-start">
+              <span className="num text-[13px] text-accent-text" aria-label={`${rv.rating} out of 5`}>{"★".repeat(rv.rating)}{"☆".repeat(5 - rv.rating)}</span>
+              <blockquote className="text-[15px] leading-6">&ldquo;{rv.body}&rdquo;</blockquote>
+              <figcaption className="text-[13px] text-muted">{rv.display_name}{rv.location ? `, ${rv.location}` : ""}{rv.verified_subscriber ? " · Verified subscriber" : ""}</figcaption>
+            </figure>))}</div>
+        </section>)}
 
       <section aria-labelledby="access-h" className="grid gap-4">
         <div className="flex flex-wrap items-end justify-between gap-3">

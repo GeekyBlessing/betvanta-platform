@@ -13,7 +13,7 @@ const config: Config = {
         link: v("link"), accent: v("accent"), "accent-hover": v("accent-hover"), "accent-text": v("accent-text"),
         "accent-subtle": v("accent-subtle"), "teal-subtle": v("teal-subtle"), focus: v("focus"),
         success: v("success"), "success-subtle": v("success-subtle"), danger: v("danger"), "danger-subtle": v("danger-subtle"),
-        warning: v("warning"), "warning-subtle": v("warning-subtle"), copper: "#C47C52", teal: "#123D3B", sand: "#EAE1D4", charcoal: "#172322",
+        warning: v("warning"), "warning-subtle": v("warning-subtle"), copper: "#E41B23", red: "#E41B23", teal: "#1C1C20", sand: "#F2F2F4", charcoal: "#0B0B0D",
       },
       fontFamily: { display: v("font-display"), sans: v("font-sans"), mono: v("font-mono") },
       borderRadius: { sm: "4px", md: "8px", lg: "12px", xl: "20px" },
