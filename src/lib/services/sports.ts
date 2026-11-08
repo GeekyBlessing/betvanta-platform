@@ -7,9 +7,25 @@ export const SPORTS: SportInfo[] = [
   { id: "football", slug: "soccer", name: "Soccer", predictions: true, blurb: "Predictions, analysis, tables and form" },
   { id: "basketball", slug: "basketball", name: "Basketball", predictions: false, blurb: "Schedules, scores and team records" },
   { id: "baseball", slug: "baseball", name: "Baseball", predictions: false, blurb: "Schedules, scores and team records" },
+  { id: "ice_hockey", slug: "ice-hockey", name: "Ice Hockey", predictions: false, blurb: "Schedules, scores and team records" },
+  { id: "tennis", slug: "tennis", name: "Tennis", predictions: false, blurb: "Draws, results and player form" },
+  { id: "boxing", slug: "boxing", name: "Boxing", predictions: false, blurb: "Fight cards, results and records" },
+  { id: "mma", slug: "mma", name: "MMA", predictions: false, blurb: "Fight cards, results and records" },
 ];
 export const sportBySlug = (slug: string) => SPORTS.find((s) => s.slug === slug);
 export const sportById = (id: string) => SPORTS.find((s) => s.id === id);
+
+/** Per sport, from the database: active leagues with fixtures, games in the next 7 days and published upcoming picks. */
+export type SportCoverage = { sport: string; leagues: number; upcoming: number; picks: number };
+export async function sportCoverage(): Promise<Map<string, SportCoverage>> {
+  const rows = await q<SportCoverage>(
+    `select c.sport, count(distinct c.id)::int leagues,
+       count(distinct f.id) filter (where f.status = 'scheduled' and f.kickoff_at > now() and f.kickoff_at < now() + interval '7 days')::int upcoming,
+       (select count(*)::int from predictions p join fixtures pf on pf.id = p.fixture_id join competitions pc on pc.id = pf.competition_id
+         where pc.sport = c.sport and pc.active and p.status = 'published' and pf.kickoff_at > now()) picks
+     from competitions c join fixtures f on f.competition_id = c.id where c.active group by c.sport`);
+  return new Map(rows.map((r) => [r.sport, r]));
+}
 
 export type Competition = { id: string; name: string; country: string; season: number; sport: string; data_source: string; upcoming: number; favourite: boolean };
 export async function listCompetitions(userId: string | null, sport?: string) {

@@ -210,6 +210,15 @@ check("no betting odds on the homepage", (homeText.match(/\bodds\b/gi) ?? []).le
 check("featured predictions link to match analysis", /href="\/matches\/[0-9a-f-]{36}"/.test(homePage.body));
 check("sample data is labelled", homePage.body.includes("Sample data"));
 { const soccer = await anon("/?sport=soccer"); check("sport filter works", soccer.status === 200 && /aria-current="page"[^>]*>[\s\S]{0,400}Soccer/.test(soccer.body)); }
+{ const slugs = ["american-football", "soccer", "basketball", "baseball", "ice-hockey", "tennis", "boxing", "mma"];
+  check("sports selection lists all eight sports, each linking to its own page", slugs.every((x) => homePage.body.includes(`href="/sports/${x}"`)) && homePage.body.includes("Choose your sport"));
+  check("American Football and Soccer are separate sports with separate artwork", homePage.body.includes('src="/images/sports/american-football.svg"') && homePage.body.includes('src="/images/sports/soccer.svg"'));
+  const pages = await Promise.all(slugs.map((x) => anon(`/sports/${x}`)));
+  check("every sport card opens a working page", pages.every((p) => p.status === 200));
+  const art = await Promise.all(slugs.map((x) => fetch(`${BASE}/images/sports/${x}.svg`)));
+  check("every sport illustration is served", art.every((a) => a.status === 200 && (a.headers.get("content-type") ?? "").includes("svg")));
+  check("sports without a data feed say coverage is coming, not empty numbers", homePage.body.includes("Coverage coming soon") && pages[7].body.includes("MMA coverage is on the way"));
+  check("filter tabs list only sports with data", !/href="\/\?sport=mma"/.test(homePage.body) && homePage.body.includes('href="/?sport=soccer"')); }
 { const res = await anon("/results"); check("results page shows final scores and graded picks", res.status === 200 && res.body.includes("Final scores") && res.body.includes("Graded picks")); }
 check("homepage plans open the payment assistant for all five plans", ["premium_1m", "premium_3m", "premium_6m", "premium_1y", "premium_lifetime"].every((c) => homePage.body.includes(`data-subscribe="${c}"`)));
 check("footer has contact, Discord and legal links", ["mailto:", "/contact", "/legal/terms", "/legal/privacy", "/responsible-gambling"].every((x) => homePage.body.includes(x)) && /Discord/.test(homePage.body));

@@ -4,7 +4,7 @@ import { q } from "@/lib/db";
 import { tierFor } from "@/lib/services/entitlements";
 import { homeDashboard } from "@/lib/services/dashboard";
 import { approvedTestimonials } from "@/lib/services/testimonials";
-import { SPORTS } from "@/lib/services/sports";
+import { SPORTS, sportCoverage } from "@/lib/services/sports";
 import { MARKET_LABEL } from "@/lib/services/engine";
 import { formatMoney, periodLabel, type Plan } from "@/lib/services/billing";
 import { MIN_SETTLED_FOR_RATE } from "@/lib/services/stats";
@@ -12,6 +12,7 @@ import { FAQ } from "@/lib/content/faq";
 import { discordInviteUrl, instagramHandle, instagramUrl } from "@/lib/env";
 import { Empty, FixtureTable, FormStrip, MatchRow, PredictionTile, SectionHead, SettledLine } from "@/components/dashboard";
 import { SportIcon } from "@/components/SportIcon";
+import { SportsSelector } from "@/components/SportsSelector";
 import { SubscribeAssistant } from "@/components/SubscribeAssistant";
 import { subscribeAssistantProps } from "@/lib/services/manual-payments/assistant";
 import { RG_LINE, SampleBadge } from "@/components/ui";
@@ -27,12 +28,15 @@ export default async function Home(props: { searchParams: Promise<{ sport?: stri
   const sport = sportInfo?.id;
   const user = await currentUser();
   const tier = await tierFor(user);
-  const [d, reviews, plans, assistant] = await Promise.all([
+  const [d, reviews, plans, assistant, coverage] = await Promise.all([
     homeDashboard(tier, sport),
     approvedTestimonials(3),
     q<Plan>("select * from plans where active order by level"),
     subscribeAssistantProps(user, "/"),
+    sportCoverage(),
   ]);
+  // Filter tabs list only sports with data, so a tab never opens an empty dashboard.
+  const tabSports = SPORTS.filter((s) => coverage.has(s.id) || s.id === sport);
   const r = d.record;
   const decided = r.won + r.lost;
   const tab = (slug?: string) => (slug ? `/?sport=${slug}` : "/");
@@ -79,7 +83,7 @@ export default async function Home(props: { searchParams: Promise<{ sport?: stri
       {/* Sport filter */}
       <div className="bg-surface border-b border-line">
         <nav aria-label="Filter by sport" className="wrap sport-tabs flex gap-1 overflow-x-auto py-2">
-          {[{ slug: undefined, name: "All sports", id: "all" }, ...SPORTS].map((s) => {
+          {[{ slug: undefined, name: "All sports", id: "all" }, ...tabSports].map((s) => {
             const on = (s.slug ?? null) === (sportInfo?.slug ?? null);
             return (
               <Link key={s.id} href={tab(s.slug)} aria-current={on ? "page" : undefined}
@@ -158,6 +162,9 @@ export default async function Home(props: { searchParams: Promise<{ sport?: stri
           </section>
         </aside>
       </div>
+
+      {/* Sports selection: every sport we cover or are adding, each to its own page */}
+      <SportsSelector sports={SPORTS} coverage={coverage} intro="Fixtures, results and match predictions for each sport, in one place." />
 
       {/* Plans: compact, every plan one tap from the payment assistant */}
       <section aria-labelledby="plans-h" className="border-t border-line bg-surface">

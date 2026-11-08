@@ -6,7 +6,7 @@ import { FavouriteToggle } from "@/components/FavouriteToggle";
 import { SportIcon } from "@/components/SportIcon";
 import { Badge, PageHeader, SampleBadge } from "@/components/ui";
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: "Sports and leagues", description: "American football, soccer, basketball and baseball coverage on BETVANTA." };
+export const metadata: Metadata = { title: "Sports and leagues", description: "American football, soccer, basketball, baseball, ice hockey, tennis, boxing and MMA on BETVANTA." };
 export default async function Sports() {
   const u = await currentUser();
   const comps = await listCompetitions(u?.id ?? null);

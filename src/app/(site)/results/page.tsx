@@ -5,7 +5,7 @@ import { tierFor } from "@/lib/services/entitlements";
 import { listFixtures } from "@/lib/services/sports";
 import { listPredictions } from "@/lib/services/predictions";
 import { dashboardRecord } from "@/lib/services/dashboard";
-import { SPORTS } from "@/lib/services/sports";
+import { SPORTS, sportCoverage } from "@/lib/services/sports";
 import { FixtureTable, FormStrip, SectionHead, SettledLine, Empty } from "@/components/dashboard";
 import { PageHeader, tzLabel } from "@/components/ui";
 export const dynamic = "force-dynamic";
@@ -15,10 +15,11 @@ export default async function Results(props: { searchParams: Promise<{ sport?: s
   const sp = await props.searchParams;
   const sport = SPORTS.find((s) => s.slug === sp.sport)?.id;
   const user = await currentUser();
-  const [fixtures, picks, record] = await Promise.all([
+  const [fixtures, picks, record, coverage] = await Promise.all([
     listFixtures({ mode: "results", limit: 60, sport }),
     listPredictions(await tierFor(user), { settled: true, limit: 40, sport }),
     dashboardRecord(sport),
+    sportCoverage(),
   ]);
   const tab = (slug?: string) => `/results${slug ? `?sport=${slug}` : ""}`;
   return (
@@ -26,7 +27,7 @@ export default async function Results(props: { searchParams: Promise<{ sport?: s
       <PageHeader eyebrow="Results" title="Results and graded picks">Final scores, newest first, in {tzLabel()}. Every published pick is graded against the final score and never edited afterwards.</PageHeader>
       <nav aria-label="Filter by sport" className="sport-tabs -mt-4 flex gap-2 overflow-x-auto">
         <Link href={tab()} aria-current={!sport ? "page" : undefined} className={`btn btn-sm ${!sport ? "btn-primary" : "btn-secondary"}`}>All sports</Link>
-        {SPORTS.map((s) => <Link key={s.id} href={tab(s.slug)} aria-current={sport === s.id ? "page" : undefined} className={`btn btn-sm whitespace-nowrap ${sport === s.id ? "btn-primary" : "btn-secondary"}`}>{s.name}</Link>)}
+        {SPORTS.filter((s) => coverage.has(s.id) || s.id === sport).map((s) => <Link key={s.id} href={tab(s.slug)} aria-current={sport === s.id ? "page" : undefined} className={`btn btn-sm whitespace-nowrap ${sport === s.id ? "btn-primary" : "btn-secondary"}`}>{s.name}</Link>)}
       </nav>
       <div className="grid gap-6 lg:grid-cols-12">
         <section aria-labelledby="scores-h" className="lg:col-span-7">

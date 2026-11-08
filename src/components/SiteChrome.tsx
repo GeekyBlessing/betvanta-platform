@@ -16,10 +16,10 @@ export async function SiteHeader() {
   const account = u ? (u.role === "member" ? "/dashboard" : "/admin") : "/login";
   return (<>
     <header className="bg-surface border-b border-line sticky top-0 z-20" style={{ top: "env(safe-area-inset-top, 0px)" }}>
-      <div className="wrap flex items-center gap-6 h-14 md:h-16">
+      <div className="wrap flex items-center gap-3 sm:gap-6 h-14 md:h-16">
         <Logo size={28} />
         <NavLinks nav={NAV} />
-        <div className="flex items-center gap-2 ml-auto">
+        <div className="flex items-center gap-1.5 sm:gap-2 ml-auto">
           <span className="hidden sm:inline-flex"><ThemeToggle /></span>
           {u ? (<>
             <Link href={account} className="btn btn-secondary btn-sm">{u.role === "member" ? "Dashboard" : "Admin"}</Link>
