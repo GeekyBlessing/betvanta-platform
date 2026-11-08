@@ -86,3 +86,9 @@ The app reached a database that has no BETVANTA tables. Either migrations were n
 1. Run **Supabase check** in mode `inspect`. If it shows `schema_migrations table: MISSING` and every migration `PENDING`, run it again in mode `apply`.
 2. Call `/api/health/deep`. If `migrations` is ok but the site still fails, Vercel's `DATABASE_URL` is not the project the workflow migrated: compare the project ref in both strings (the part after `postgres.` or `betvanta_app.` in the user name).
 3. Once `apply` passes, set Vercel's `DATABASE_URL` to the `betvanta_app` transaction-pooler string and redeploy. `/api/health/deep` should then report `connected as betvanta_app` and every check ok.
+
+## Troubleshooting: `cannot connect (XX000 ... EMAXCONNSESSION ...)`
+Supabase's Session pooler (port 5432) accepts only `pool_size` clients in total (15 on the Nano plan). The Supabase check workflow logs in there as `postgres` for migrations, so if something else is holding those 15 slots the workflow is refused with `(EMAXCONNSESSION) max clients reached in session mode`. The usual culprit is the website: if Vercel's `DATABASE_URL` is the Session pooler string (or uses the `postgres` user), every serverless instance holds session connections and the pool fills.
+- Fix: set Vercel's `DATABASE_URL` to the **Transaction pooler** string for the app role, `postgresql://betvanta_app.<ref>:<APP_DB_PASSWORD>@aws-0-us-east-1.pooler.supabase.com:6543/postgres`, and redeploy.
+- Check without revealing anything: `https://<site>/api/health` returns `"connection": {"pooler_mode": "transaction", "app_role": true}` when it is right.
+- Supabase > Logs > Pooler shows the exact message and the user and mode of every refused connection.

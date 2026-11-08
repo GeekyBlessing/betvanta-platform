@@ -15,12 +15,28 @@ export function sslFor(url: string) {
   return remote ? { rejectUnauthorized: false } : undefined;
 }
 const stripSslMode = (url: string) => url.replace(/([?&])sslmode=[^&]*&?/, "$1").replace(/[?&]$/, "");
+/**
+ * How the app's DATABASE_URL reaches Supabase, without exposing it: which pooler mode (by port) and whether it uses the
+ * least-privilege app role. The app must use the Transaction pooler (6543) as betvanta_app; the Session pooler (5432)
+ * allows only pool_size clients in total, which serverless instances exhaust, and the postgres role bypasses the app's grants.
+ */
+export function dbConnectionShape(url = process.env.DATABASE_URL ?? "") {
+  try {
+    const u = new URL(url);
+    const pooler = /pooler\.supabase\.com$/.test(u.hostname);
+    const user = decodeURIComponent(u.username).split(".")[0];
+    return { pooler, mode: !pooler ? "n/a" : u.port === "6543" ? "transaction" : "session", appRole: user === "betvanta_app" };
+  } catch { return { pooler: false, mode: "n/a", appRole: false }; }
+}
 const isSupabaseDirectHost = (url: string) => { try { return /^db\.[a-z0-9]+\.supabase\.co$/.test(new URL(url).hostname); } catch { return false; } };
 function makePool() {
   const url = env().DATABASE_URL;
   if (!url) throw Object.assign(new Error("DATABASE_URL is not set"), { code: "NO_DATABASE_URL" });
   if (isSupabaseDirectHost(url)) console.error("[db] DATABASE_URL uses Supabase's IPv6-only direct host (db.<ref>.supabase.co); Vercel cannot reach it. Use the Transaction pooler string (…pooler.supabase.com:6543). See docs/SUPABASE.md.");
-  return new Pool({ connectionString: stripSslMode(url), ssl: sslFor(url), max: 3, idleTimeoutMillis: 10_000, connectionTimeoutMillis: 10_000 });
+  const shape = dbConnectionShape(url);
+  if (shape.pooler && (shape.mode !== "transaction" || !shape.appRole)) console.error(`[db] DATABASE_URL should be the betvanta_app Transaction pooler string (port 6543); it is using the ${shape.mode} pooler${shape.appRole ? "" : " with an admin role"}. See docs/SUPABASE.md.`);
+  // Serverless instances are many and short-lived: one connection each keeps the total small.
+  return new Pool({ connectionString: stripSslMode(url), ssl: sslFor(url), max: process.env.VERCEL ? 1 : 3, idleTimeoutMillis: 5_000, connectionTimeoutMillis: 10_000 });
 }
 export function pool(): Pool {
   if (!globalThis.__bvPool) globalThis.__bvPool = makePool();

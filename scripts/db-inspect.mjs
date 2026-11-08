@@ -10,7 +10,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import pg from "pg";
-import { connectionHint, sslFor, stripSslMode } from "./pg-ssl.mjs";
+import { connectionHint, describeConnectError, sslFor, stripSslMode } from "./pg-ssl.mjs";
 
 const args = new Set(process.argv.slice(2));
 const SCHEMAS = ["public", "sportsbook"];
@@ -32,8 +32,11 @@ export async function snapshot(client) {
     from pg_constraint k join pg_class c on c.oid = k.conrelid join pg_namespace n on n.oid = c.relnamespace
     where n.nspname = any($1) and k.contype in ('p','f','u','c','x') order by 1, 2, 3`);
   const indexes = await rows(`select schemaname s, tablename t, indexname name from pg_indexes where schemaname = any($1) order by 1, 2, 3`);
-  const functions = await rows(`select n.nspname s, p.proname name, pg_get_function_identity_arguments(p.oid) args from pg_proc p
-    join pg_namespace n on n.oid = p.pronamespace where n.nspname = any($1) and ${notExt("pg_proc", "p.oid")} order by 1, 2, 3`);
+  // Event-trigger functions are installed by the platform (Supabase's rls_auto_enable, for example); BETVANTA's migrations
+  // create none. They are reported separately and never counted as drift.
+  const allFunctions = await rows(`select n.nspname s, p.proname name, pg_get_function_identity_arguments(p.oid) args, p.prorettype = 'event_trigger'::regtype platform
+    from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = any($1) and ${notExt("pg_proc", "p.oid")} order by 1, 2, 3`);
+  const functions = allFunctions.filter((r) => !r.platform);
   const triggers = await rows(`select n.nspname s, c.relname t, tg.tgname name, pr.proname fn from pg_trigger tg join pg_class c on c.oid = tg.tgrelid
     join pg_namespace n on n.oid = c.relnamespace join pg_proc pr on pr.oid = tg.tgfoid where not tg.tgisinternal and n.nspname = any($1) order by 1, 2, 3`);
   const policies = await rows(`select schemaname s, tablename t, policyname name, cmd, array_to_string(roles, ',') roles from pg_policies
@@ -47,6 +50,7 @@ export async function snapshot(client) {
     functions: functions.map((r) => `${r.s}.${r.name}(${r.args})`),
     triggers: triggers.map((r) => `${r.s}.${r.t}: ${r.name} -> ${r.fn}`),
     policies: policies.map((r) => `${r.s}.${r.t}: ${r.name} ${r.cmd} to ${r.roles}`),
+    platformFunctions: allFunctions.filter((r) => r.platform).map((r) => `${r.s}.${r.name}(${r.args})`),
   };
 }
 
@@ -75,7 +79,7 @@ async function main() {
   if (!url) { console.error("db-inspect: MIGRATION_DATABASE_URL or DATABASE_URL is not set"); process.exit(1); }
   const client = new pg.Client({ connectionString: stripSslMode(url), ssl: sslFor(url), connectionTimeoutMillis: 15000 });
   try { await client.connect(); } catch (e) {
-    console.error(`db-inspect: cannot connect (${e.code ?? e.message})`);
+    console.error(`db-inspect: cannot connect (${describeConnectError(e)})`);
     const hint = connectionHint(e, url); if (hint) console.error(`db-inspect: ${hint}`);
     process.exit(1);
   }
@@ -84,7 +88,8 @@ async function main() {
     await client.query("set session characteristics as transaction read only");
     const live = await snapshot(client);
     if (args.has("--write-expected")) {
-      fs.writeFileSync(expectedPath, JSON.stringify(live, null, 2) + "\n");
+      const { platformFunctions: _platform, ...ours } = live; void _platform;
+      fs.writeFileSync(expectedPath, JSON.stringify(ours, null, 2) + "\n");
       console.log(`db-inspect: wrote ${path.relative(root, expectedPath)} (${live.tables.length} tables, ${live.columns.length} columns)`);
       return;
     }
@@ -128,6 +133,7 @@ async function main() {
     const expected = JSON.parse(fs.readFileSync(expectedPath, "utf8"));
     const d = diff(expected, live);
     console.log(`\n== Schema compared with db/schema.expected.json`);
+    if (live.platformFunctions?.length) console.log(`   (platform event-trigger functions, not part of BETVANTA's schema and not counted: ${live.platformFunctions.join(", ")})`);
     if (!Object.keys(d).length) console.log("   MATCH: every table, column, constraint, index, function, trigger, RLS flag and policy is present");
     for (const [k, { missing, unexpected }] of Object.entries(d)) {
       const show = (label, xs) => { if (!xs.length) return; console.log(`   ${k}: ${xs.length} ${label}`); for (const x of xs.slice(0, 60)) console.log(`      ${x}`); if (xs.length > 60) console.log(`      ... ${xs.length - 60} more`); };

@@ -3,7 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import pg from "pg";
 
-import { connectionHint, sslFor, stripSslMode } from "./pg-ssl.mjs";
+import { connectionHint, describeConnectError, sslFor, stripSslMode } from "./pg-ssl.mjs";
 // Migrations run as the schema owner (Supabase: the postgres role via the session pooler, port 5432).
 // The running app uses DATABASE_URL with the least-privilege betvanta_app role.
 // Migrations are a separate, deliberate step: they never run during `next build` / Vercel builds.
@@ -16,7 +16,7 @@ if (!url) {
 const client = new pg.Client({ connectionString: stripSslMode(url), ssl: sslFor(url) });
 const dir = path.join(process.cwd(), "db", "migrations");
 try { await client.connect(); } catch (e) {
-  console.error(`migrate: cannot connect (${e.code ?? e.message})`);
+  console.error(`migrate: cannot connect (${describeConnectError(e)})`);
   const hint = connectionHint(e, url); if (hint) console.error(`migrate: ${hint}`);
   process.exit(1);
 }
