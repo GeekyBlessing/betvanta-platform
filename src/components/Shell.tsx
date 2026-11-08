@@ -6,9 +6,9 @@ import { LogoutButton } from "./LogoutButton";
 export function Shell({ nav, user, children, area }: { nav: { href: string; label: string }[]; user: { display_name: string; role: string }; children: ReactNode; area: string }) {
   return (
     <div className="min-h-screen grid lg:grid-cols-[240px_1fr]">
-      <aside className="bg-surface border-b lg:border-b-0 lg:border-r border-line lg:min-h-screen">
+      <aside className="bg-black border-b-2 lg:border-b-0 lg:border-r-2 border-red lg:min-h-screen">
         <div className="p-4 lg:p-6 flex lg:flex-col gap-4 lg:gap-8 items-center lg:items-stretch justify-between">
-          <Logo size={26} />
+          <Logo size={34} />
           <nav aria-label={area} className="hidden lg:grid gap-1">
             {nav.map((n) => <Link key={n.href} href={n.href} className="px-3 py-2 rounded-md text-sm font-medium text-muted hover:text-ink hover:bg-sunken">{n.label}</Link>)}
           </nav>

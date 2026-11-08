@@ -7,7 +7,7 @@
 :root {
   --bg: #0B0B0D; --surface: #151518; --surface-raised: #1C1C20; --surface-sunken: #101013; --surface-brand: #1C1C20;
   --ink: #FFFFFF; --ink-muted: #B9B9C1; --ink-subtle: #8B8B95; --ink-on-brand: #FFFFFF; --ink-on-accent: #FFFFFF;
-  --border: #26262C; --border-strong: #3E3E46; --primary: #2A2A31; --primary-hover: #34343C; --link: #FF5A61;
+  --border: #26262C; --border-strong: #3E3E46; --primary: #E41B23; --primary-hover: #F52A32; --link: #FF5A61;
   --accent: #E41B23; --accent-hover: #F52A32; --accent-text: #FF5A61; --accent-subtle: #2B1214; --teal-subtle: #1F1F24; --focus: #FF5A61;
   --success: #34C77B; --success-subtle: #12291D; --danger: #FF6B6B; --danger-subtle: #2E1416; --warning: #F2B84B; --warning-subtle: #2E2410;
   --chart-grid: #26262C; --red: #E41B23;
@@ -271,3 +271,5 @@ a.menu-link { display: block; }
 .virt-title { font-family: var(--font-display); font-weight: 900; font-style: italic; text-transform: uppercase; font-size: clamp(38px, 8vw, 72px); line-height: .95; }
 .virt-sub { display: inline-block; margin-top: 8px; font-size: clamp(18px, 3.4vw, 28px); color: #fff; }
 .promo-x::before { background-image: url("/images/sports/basketball.svg"), radial-gradient(circle at 70% 20%, rgba(255, 255, 255, .14), transparent 55%), linear-gradient(135deg, #26262c, #0b0b0d); background-size: 58px, auto, auto; background-repeat: no-repeat; background-position: 86% 16%, center, center; }
+.brand-logo img { display: block; }
+@media (max-width: 359px) { .brand-word { display: none; } }

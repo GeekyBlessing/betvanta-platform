@@ -235,6 +235,9 @@ check("footer links to the official Instagram", homePage.body.includes('href="ht
   const ct = await anon("/contact"), cm = await anon("/community");
   check("Contact and Community pages link X", ct.body.includes(`href="${xu}"`) && cm.body.includes(`href="${xu}"`) && cm.body.includes("Follow Us on X"));
   check("structured data lists the X profile", homePage.body.includes('"sameAs":') && homePage.body.includes(xu)); }
+{ const icons = await Promise.all(["/favicon.ico", "/icon.png", "/apple-icon.png", "/brand/betvanta-mark-96.png", "/brand/betvanta-wordmark-64.png", "/brand/betvanta-lockup-400.png", "/brand/betvanta-dp-1024.png"].map((u) => fetch(BASE + u)));
+  check("the BETVANTA logo is in the header and footer, and the favicon and app icons are served", homePage.body.includes('src="/brand/betvanta-mark-96.png"') && homePage.body.includes('src="/brand/betvanta-lockup-400.png"') && /rel="icon"[^>]*favicon\.ico/.test(homePage.body) && /rel="apple-touch-icon"/.test(homePage.body) && icons.every((r) => r.status === 200));
+  check("login and registration pages carry the logo", (await anon("/login")).body.includes("/brand/betvanta-lockup-400.png") && (await anon("/register")).body.includes("/brand/betvanta-mark-96.png")); }
 { const ig = "https://www.instagram.com/bet.vanta/";
   const cmBody = (await anon("/community")).body; const cmText = textOf(cmBody);
   const sec = cmBody.match(/<section class="community"[\s\S]*?<\/section>/)?.[0] ?? "";

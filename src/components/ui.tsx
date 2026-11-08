@@ -1,23 +1,29 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 
+/* BETVANTA logo: the client's artwork, cropped and resized by scripts/artwork/brand-assets.py (never redrawn).
+   Transparent PNGs made against black, so they match the original exactly on the black header, footer and panels. */
+const MARK_RATIO = 116 / 96, WORD_RATIO = 448 / 64, LOCKUP_RATIO = 648 / 400;
+/* eslint-disable @next/next/no-img-element -- small static brand PNGs with explicit sizes; next/image adds nothing here */
 export function LogoMark({ size = 28 }: { size?: number; reversed?: boolean }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 40 40" aria-hidden="true">
-      <rect width="40" height="40" rx="9" fill="#E41B23" />
-      <path d="M9.5 12.5 L18.5 29 L28 12" fill="none" stroke="#FFFFFF" strokeWidth="4.6" strokeLinecap="round" strokeLinejoin="round" />
-      <circle cx="31" cy="8.6" r="3.2" fill="#FFFFFF" />
-    </svg>
-  );
+  return <img src="/brand/betvanta-mark-96.png" alt="" aria-hidden="true" width={Math.round(size * MARK_RATIO)} height={size} className="shrink-0" style={{ width: Math.round(size * MARK_RATIO), height: size }} />;
 }
-export function Logo({ size = 28, href = "/", onDark = false }: { size?: number; href?: string; onDark?: boolean }) {
+/** Header logo: the B mark with the BETVANTA wordmark beside it. `size` is the mark's height in pixels. */
+export function Logo({ size = 36, href = "/" }: { size?: number; href?: string; onDark?: boolean }) {
+  const wordH = Math.round(size * 0.5);
   return (
-    <Link href={href} className={`inline-flex items-center gap-2.5 text-white`} aria-label="BETVANTA home">
+    <Link href={href} className="brand-logo inline-flex items-center gap-2 shrink-0" aria-label="BETVANTA home">
       <LogoMark size={size} />
-      <span className="logo-word" style={{ fontSize: Math.round(size * 0.7) }}>BET<span className="text-red">VANTA</span></span>
+      <img src="/brand/betvanta-wordmark-64.png" alt="BETVANTA" width={Math.round(wordH * WORD_RATIO)} height={wordH} className="brand-word" style={{ width: Math.round(wordH * WORD_RATIO), height: wordH }} />
     </Link>
   );
 }
+/** The full stacked logo (mark, wordmark, tagline), for the footer and sign-in panels. `height` in pixels. */
+export function LogoLockup({ height = 120, href }: { height?: number; href?: string }) {
+  const img = <img src="/brand/betvanta-lockup-400.png" alt="BETVANTA: Sports, Predictions, Betting" width={Math.round(height * LOCKUP_RATIO)} height={height} style={{ width: Math.round(height * LOCKUP_RATIO), height }} />;
+  return href ? <Link href={href} aria-label="BETVANTA home" className="inline-block">{img}</Link> : img;
+}
+/* eslint-enable @next/next/no-img-element */
 
 const tones = {
   neutral: "bg-sunken text-muted", teal: "bg-teal-subtle text-link", copper: "bg-accent-subtle text-accent-text", brand: "bg-brand text-on-brand",

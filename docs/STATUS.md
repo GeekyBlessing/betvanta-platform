@@ -110,3 +110,9 @@ Every "Subscribe Now" button (pricing page and homepage plans) opens the payment
 - Vercel: CRYPTO_PAYMENTS_ENABLED=true, CRYPTO_ETH_NETWORK=Ethereum, CRYPTO_USDT_NETWORK=Ethereum (ERC-20), ETHERSCAN_API_KEY (recommended), plus ADMIN_EMAILS and APP_URL. Migrations 010 to 014 must be applied.
 - Verification: BTC on mempool.space (paid to the bc1 address, 2 confirmations); ETH via Etherscan (sent to the ETH address, 12 confirmations); USDT via Etherscan (a successful transfer of Tether's ERC-20 contract to the USDT address for at least the plan price, 12 confirmations). BTC and ETH dollar value is not checked automatically, so approval also needs the admin to confirm and record it.
 - Sportsbook deposits: none. The app role is read-only on the sportsbook schema and real-money play is blocked by a database constraint until a licensed operator is in place.
+
+## Logo and brand assets
+- Source: the client's artwork, public/brand/source/betvanta-logo-original.png (1536x1024). Every asset is cropped and resized from it by scripts/artwork/brand-assets.py; nothing is redrawn or recoloured. Transparent versions remove only the black background, so on black they match the original exactly.
+- Header: B mark plus wordmark (mark 42px desktop, 32px phones). Footer and sign-in panel: full stacked logo with tagline. Member dashboard and admin sidebars: mark plus wordmark on black.
+- Browser and app icons: src/app/favicon.ico (16/32/48), icon.png (512), apple-icon.png (180), manifest icons 192/512, opengraph-image.png (1200x630).
+- Brand account profile picture: public/brand/betvanta-dp-1024.png (full logo, square, from the original) and betvanta-dp-mark.png (B mark only, 690px); betvanta-dp-400.png for small slots.

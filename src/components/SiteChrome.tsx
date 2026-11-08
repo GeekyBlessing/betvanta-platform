@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Suspense, type ReactNode } from "react";
 import { currentUser } from "@/lib/session";
-import { Logo, LogoMark, RG_LINE } from "./ui";
+import { Logo, LogoLockup, RG_LINE } from "./ui";
 import { BottomNav, NavLinks, SportsBar } from "./NavLinks";
 import { MAIN_NAV, MORE_NAV } from "./nav-items";
 import { MobileSlip, SlipProvider } from "./sportsbook/slip";
@@ -19,7 +19,7 @@ export async function SiteHeader() {
     <header className="site-header">
       <div className="topbar">
         <div className="wrap flex items-center gap-3 h-14 md:h-16">
-          <Logo size={30} onDark />
+          <span className="sm:hidden"><Logo size={32} /></span><span className="hidden sm:inline-flex"><Logo size={42} /></span>
           <div className="hidden lg:flex flex-1 pl-6"><NavLinks /></div>
           <div className="flex items-center gap-2 ml-auto">
             <form action="/search" className="hidden md:flex items-center header-search" role="search">
@@ -52,7 +52,7 @@ export function SiteFooter() {
       </div>
       <div className="wrap py-10 grid gap-10 md:grid-cols-[1.6fr_1fr_1fr]">
         <div className="grid gap-3 content-start">
-          <div className="flex items-center gap-2.5"><LogoMark size={28} /><span className="logo-word text-[18px]">BET<span className="text-red">VANTA</span></span></div>
+          <LogoLockup height={104} href="/" />
           <p className="text-sm text-muted">Smarter Insights. Better Decisions.</p>
           <address className="not-italic text-sm text-muted grid gap-0.5">
             <span>Support: <a href={s.emailHref} className="text-white hover:underline">{s.email}</a></span>
