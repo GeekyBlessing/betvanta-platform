@@ -4,7 +4,7 @@ Verified by 61 unit/integration tests against Postgres and 110 end-to-end HTTP c
 
 | # | Requirement | Status | Evidence / note |
 | --- | --- | --- | --- |
-| 1 | Premium responsive homepage | Done | Hero with Get Premium Picks and Join Discord, live statistics, four sport categories, this week's picks, member reviews, community band; every homepage link checked by the e2e suite |
+| 1 | Homepage sports dashboard | Done | Compact intro, record counted from the database, sport filter, featured predictions, today's (or next) fixtures, recent results, performance history, plans, community; checked at desktop, tablet and phone by the e2e suite |
 | 2 | Registration, login, authentication | Done | auth tests, e2e |
 | 3 | User dashboard | Done | overview filtered by favourite leagues, predictions, history, billing, settings |
 | 4 | Sports and league selection | Done | `/sports` and `/sports/{american-football, soccer, basketball, baseball}`, favourites, "My leagues". Real data feed: soccer (API-Football). Other sports use labelled sample leagues until their feeds are connected; predictions are soccer-only because the model is built for soccer scoring |
@@ -16,7 +16,7 @@ Verified by 61 unit/integration tests against Postgres and 110 end-to-end HTTP c
 | 10 | Other approved payment methods | Done | Paystack card/bank in USD |
 | 11 | Prediction history and performance | Done | settles from final scores; record starts empty (no back-filled history) |
 | 12 | Email notifications | Done, needs key | verify, reset, password changed, receipt, cancellation, expiry reminder; logged in Admin > Emails until `RESEND_API_KEY` is set |
-| 13 | Discord community | Done, needs invite + keys | Join Discord buttons (hero, community band, footer, /community) open `DISCORD_INVITE_URL` in a new tab, or /community until it is set; only discord.gg / discord.com/invite links are accepted. OAuth link, auto roles, announcements |
+| 13 | Discord community | Done, needs invite + keys | Join Discord buttons (community band, footer, /community) open `DISCORD_INVITE_URL` in a new tab, or /community until it is set; only discord.gg / discord.com/invite links are accepted. OAuth link, auto roles, announcements |
 | 14 | Complete admin dashboard | Done | overview, predictions, sports data, users, subscriptions, payments, plans, emails, messages, audit |
 | 15 | User and subscription management | Done | roles, suspend, grant/extend/revoke access (audited) |
 | 16 | Prediction publishing and management | Done | drafts, tier choice, publish, discard, settle, AI analysis |
@@ -70,11 +70,10 @@ Email betvanta098@gmail.com, phone (314) 343-6703 (`SUPPORT_EMAIL`, `SUPPORT_PHO
 
 `npm run build` / Vercel runs `next build` only and needs no database (verified by building with no environment variables and with unreachable database URLs). Migrations are a separate step: the Supabase check workflow or `npm run db:migrate`.
 
-## Homepage hero and statistics (migration 010)
-- Hero: original stadium artwork rendered by `scripts/artwork/render-stadium.cjs` (no third-party image licence involved), dark scrim, overlay header, Explore Predictions and Join Our Community.
-  To use a licensed photo instead, replace `public/images/hero/stadium-wide.webp` (desktop, about 2560x1440) and `stadium-tall.webp` (mobile, about 1200x2000). Do not use photos of identifiable players or crowds without a model release.
-- Statistics: four slots in `homepage_stats`, edited in Admin > Homepage. Client figures (2,000 Happy Members, 75% Win Rate, 12,500 Winning Picks, 10 Sports Covered; migrations 012 and 013) are shown as entered with the note "Figures provided by BETVANTA; not independently verified. Past results do not guarantee future outcomes." They are kept separate from live platform statistics (Performance page, admin) and are never replaced by empty records. An admin can edit, hide, mark verified (with evidence) or switch a slot to the live figure. An admin can switch a slot to the live figure from BETVANTA's records, or mark it verified, which requires a written note on how it was verified (also enforced by a database constraint). Every change is in the audit log.
-- Production needs migration 010: run Supabase check in `inspect`, then `apply`. Until then the homepage shows live figures only and logs `homepage_stats table is missing`.
+## Homepage statistics (migration 010)
+- The public homepage shows only figures counted from BETVANTA's own records: picks graded, hit rate (withheld until 20 picks are decided), matches in the next 7 days and leagues covered. Sample data is labelled.
+- The client figures in `homepage_stats` (Admin > Homepage) are kept in the database but are not shown on the public site; the admin page says so.
+- The stadium artwork and its render scripts were removed.
 
 ## Payment assistant ("Chat with us", migration 011)
 - Checkout shows every method: BTC, ETH, USDT, PayPal, Venmo, Chime, Apple Pay, Other. Choosing one opens the assistant (also `?method=usdt` in the checkout URL, and the "Chat with us" button).
@@ -87,7 +86,7 @@ Email betvanta098@gmail.com, phone (314) 343-6703 (`SUPPORT_EMAIL`, `SUPPORT_PHO
 - Separate from provider payments (`payments`) and from sportsbook wallets (`sportsbook` schema).
 
 ## Homepage sections (current)
-Hero (centred, stadium background: headline, Get Premium Picks to /pricing, Join Discord, Create a free account, glass statistics panel), platform section (four sports, four features, Get Started Now to /register and View Predictions), upcoming matches, predictions and match analysis, Premium Picks plans (all five, each to checkout or registration), how it works, member dashboard preview (example data, labelled), testimonials, FAQ, community and footer (contact, Discord, legal). Phones get a Menu button listing every page. The e2e suite checks every section and that all homepage links resolve.
+White header with Home, Predictions, Fixtures, Results, Performance, Pricing and Community (active page underlined); phones get a bottom tab bar (Home, Picks, Fixtures, Results, Account). Teal intro band (headline, View Predictions, Premium Picks from $50, Get Started Now, and the database record), sport filter tabs (`/?sport=`), Live now, Featured predictions (swipeable on phones), Today's fixtures (or the next matchday, labelled), Recent results, Performance history (form strip, record by market, last graded picks), Premium Picks card, all five plans with Subscribe Now, how it works, member reviews, FAQ and community. New /results page lists final scores and graded picks. Teams show a three-letter mark; crests appear only once a licensed data provider supplies them. No odds are shown and the sportsbook stays disabled.
 
 ## Subscription journey (payment assistant)
 Every "Subscribe Now" button (pricing page and homepage plans) opens the payment assistant on the same page: welcome, plan and price, payment method (card when a provider is configured, Bitcoin, Ethereum, USDT, PayPal, Venmo, Chime, Apple Pay, Other), instructions with the verified wallet address and QR code, an Upload payment proof button, and the status: Pending, Confirmed or Rejected (with the reason). Signed-out visitors can read the instructions and are sent to create an account or log in, then returned to the same plan and method. The old /checkout/<plan> URL redirects to the assistant. A plan is activated only when an admin approves the payment after checking it (Admin > Manual payments); the member then gets a "Payment confirmed" email. Uploads never activate anything on their own.

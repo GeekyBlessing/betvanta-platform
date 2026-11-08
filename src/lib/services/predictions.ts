@@ -123,12 +123,13 @@ export type PublicPrediction = {
  * so the selection and analysis never reach the browser for users without access.
  * Settled predictions are public (the track record), but their analysis stays gated.
  */
-export async function listPredictions(viewerTier: Tier, opts: { upcoming?: boolean; settled?: boolean; fixtureId?: string; limit?: number } = {}): Promise<PublicPrediction[]> {
+export async function listPredictions(viewerTier: Tier, opts: { upcoming?: boolean; settled?: boolean; fixtureId?: string; limit?: number; sport?: string } = {}): Promise<PublicPrediction[]> {
   const where = ["p.status in ('published','settled')"];
   const params: unknown[] = [];
   if (opts.upcoming) where.push("p.status = 'published'");
   if (opts.settled) where.push("p.status = 'settled'");
   if (opts.fixtureId) { params.push(opts.fixtureId); where.push(`p.fixture_id = $${params.length}`); }
+  if (opts.sport) { params.push(opts.sport); where.push(`c.sport = $${params.length}`); }
   params.push(Math.min(opts.limit ?? 100, 500));
   const rows = await q<PublicPrediction>(
     `select p.id, p.market, p.access_tier, p.status, p.result, p.confidence, p.selection, p.probability, p.analysis, p.analysis_source, p.published_at,

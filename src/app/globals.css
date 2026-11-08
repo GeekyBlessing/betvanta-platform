@@ -63,45 +63,6 @@ h1, h2, h3 { text-wrap: balance; }
 /* Grid items default to min-width:auto, which lets a wide table push the page sideways on phones. */
 .grid > * { min-width: 0; }
 
-/* Homepage hero ------------------------------------------------------------------------------------ */
-/* Overlay header: transparent on the hero image, solid once the page scrolls. */
-.site-header-overlay { transition: background-color 200ms ease-out, border-color 200ms ease-out, backdrop-filter 200ms ease-out; }
-.site-header-overlay[data-scrolled] { background: rgba(11, 22, 21, .88); border-bottom-color: rgba(234, 225, 212, .10); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); }
-/* Buttons inside dark surfaces keep sand text in both themes. */
-.on-dark .btn-ghost { color: #EAE1D4; } .on-dark .btn-ghost:hover:not(:disabled) { background: rgba(234, 225, 212, .10); }
-.on-dark .btn-secondary { color: #EAE1D4; border-color: rgba(234, 225, 212, .55); } .on-dark .btn-secondary:hover:not(:disabled) { background: rgba(234, 225, 212, .08); }
-.on-dark :focus-visible { outline-color: #D9956C; }
-
-.hero { background: #0B1615; color: #EAE1D4; }
-.hero-scrim {
-  background:
-    radial-gradient(120% 70% at 15% 30%, rgba(8, 18, 17, .55) 0%, rgba(8, 18, 17, 0) 60%),
-    linear-gradient(180deg, rgba(8, 18, 17, .82) 0%, rgba(10, 24, 23, .58) 38%, rgba(10, 24, 23, .70) 66%, rgba(11, 22, 21, .97) 100%);
-}
-@media (max-width: 767px) {
-  .hero-scrim { background: linear-gradient(180deg, rgba(8, 18, 17, .72) 0%, rgba(10, 24, 23, .48) 22%, rgba(10, 24, 23, .62) 48%, rgba(10, 24, 23, .74) 72%, rgba(11, 22, 21, .97) 100%); }
-}
-.hero-glow { background: radial-gradient(40% 35% at 85% 18%, rgba(196, 124, 82, .20) 0%, rgba(196, 124, 82, 0) 70%); }
-.hero-media { animation: bv-settle 1600ms cubic-bezier(.2, .7, .2, 1) both; }
-.hero-in { animation: bv-rise 640ms cubic-bezier(.2, .7, .2, 1) backwards; }
-@keyframes bv-settle { from { transform: scale(1.06); opacity: .6; } to { transform: scale(1); opacity: 1; } }
-@keyframes bv-rise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
-
-/* Glass statistics card */
-.glass {
-  position: relative; border-radius: 20px; border: 1px solid rgba(234, 225, 212, .16);
-  background: linear-gradient(160deg, rgba(30, 90, 85, .38) 0%, rgba(18, 61, 59, .30) 45%, rgba(23, 35, 34, .42) 100%);
-  -webkit-backdrop-filter: blur(18px) saturate(140%); backdrop-filter: blur(18px) saturate(140%);
-  box-shadow: 0 1px 0 rgba(234, 225, 212, .10) inset, 0 24px 60px -24px rgba(0, 0, 0, .65);
-}
-.glass::before { content: ""; position: absolute; inset: 0 24px auto; height: 1px; background: linear-gradient(90deg, transparent, rgba(196, 124, 82, .7), transparent); }
-@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) { .glass { background: rgba(18, 40, 38, .94); } }
-.stat-tile { transition: background-color 200ms ease-out; }
-.stat-tile:hover { background: rgba(234, 225, 212, .04); }
-.stat-icon { background: rgba(196, 124, 82, .14); color: #D9956C; box-shadow: 0 0 0 1px rgba(196, 124, 82, .28) inset; }
-.feature-card { transition: border-color 200ms ease-out, transform 200ms ease-out; }
-.feature-card:hover { border-color: var(--accent); transform: translateY(-2px); }
-
 /* Payment assistant ------------------------------------------------------------------------------- */
 .chat-in { animation: bv-rise 260ms cubic-bezier(.2, .7, .2, 1) backwards; }
 .chat-panel { animation: bv-sheet 240ms cubic-bezier(.2, .7, .2, 1) backwards; }
@@ -110,9 +71,17 @@ h1, h2, h3 { text-wrap: balance; }
 .method-chip { transition: border-color 120ms ease-out, background-color 120ms ease-out; } .method-chip:hover { background: var(--accent-subtle); }
 .qr svg { width: 100%; height: 100%; display: block; }
 
-/* The phone menu opens on a light panel even under the dark overlay header. */
-.on-dark .menu-panel .btn-secondary { color: var(--ink); border-color: var(--border-strong); }
-.on-dark .menu-panel .btn-secondary:hover:not(:disabled) { background: var(--surface-sunken); }
-@media (min-width: 640px) { .sm\:btn-lg { padding: 13px 20px; font-size: 15px; } }
-@media (max-width: 639px) { .hero-cta { padding: 12px 8px; font-size: 14px; gap: 6px; } }
 .chat-panel h2[tabindex="-1"]:focus, .chat-panel h2[tabindex="-1"]:focus-visible { outline: none; }
+
+/* Navigation ------------------------------------------------------------------------------------- */
+.nav-link[aria-current="page"]::after { content: ""; position: absolute; left: 12px; right: 12px; bottom: -1px; height: 2px; border-radius: 2px; background: var(--accent); }
+@media (max-width: 767px) { body:has(.tabbar) { padding-bottom: calc(58px + env(safe-area-inset-bottom, 0px)); } }
+.tabbar a[aria-current="page"] svg { stroke-width: 2.1; }
+.sport-tabs { scrollbar-width: none; } .sport-tabs::-webkit-scrollbar { display: none; }
+.match-row { transition: background-color 120ms ease-out; }
+/* Phones: featured predictions scroll sideways like a scores app, one card and a peek of the next. */
+@media (max-width: 639px) {
+  .featured-rail { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; gap: 12px; margin-inline: -16px; padding-inline: 16px; scrollbar-width: none; }
+  .featured-rail::-webkit-scrollbar { display: none; }
+  .featured-rail > * { flex: 0 0 86%; scroll-snap-align: start; }
+}

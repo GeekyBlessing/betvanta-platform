@@ -16,6 +16,7 @@ export default async function HomepageStatsAdmin() {
   </>);
   const [rows, live] = await Promise.all([listHomepageStats(), homeStats()]);
   return (<>
+    <Notice tone="info" title="Not shown on the public site.">Since the dashboard redesign, the homepage shows only figures counted from BETVANTA&apos;s database (graded picks, hit rate, upcoming matches, leagues). The figures below are kept for reference and are not displayed.</Notice>
     <PageHeader eyebrow="Admin" title="Homepage statistics">
       The four figures in the homepage hero. Each one shows either a figure you enter, or the live figure from BETVANTA&apos;s own records.
       Entered figures are shown exactly as entered, with a note under the panel that they are provided by BETVANTA and not independently verified.

@@ -3,41 +3,37 @@ import { currentUser } from "@/lib/session";
 import { Logo, LogoMark, RG_LINE } from "./ui";
 import { ThemeToggle } from "./ThemeToggle";
 import { LogoutButton } from "./LogoutButton";
-import { HeaderScrollState } from "./HeaderScrollState";
+import { NavLinks, TabBar } from "./NavLinks";
 import { MobileMenu } from "./MobileMenu";
 import { discordInviteUrl, instagramHandle, instagramUrl } from "@/lib/env";
 import { support } from "@/lib/support";
 
-const NAV = [{ href: "/predictions", label: "Predictions" }, { href: "/sports", label: "Sports" }, { href: "/fixtures", label: "Fixtures" }, { href: "/performance", label: "Performance" }, { href: "/pricing", label: "Pricing" }, { href: "/community", label: "Community" }];
+const NAV = [{ href: "/", label: "Home" }, { href: "/predictions", label: "Predictions" }, { href: "/fixtures", label: "Fixtures" }, { href: "/results", label: "Results" },
+  { href: "/performance", label: "Performance" }, { href: "/pricing", label: "Pricing" }, { href: "/community", label: "Community" }];
 
-/** `overlay` sits on top of the homepage hero image: transparent at first, solid once the page scrolls. */
-export async function SiteHeader({ overlay = false }: { overlay?: boolean }) {
+export async function SiteHeader() {
   const u = await currentUser();
-  const link = overlay ? "text-sand/80 hover:text-sand hover:bg-white/10" : "text-muted hover:text-ink hover:bg-sunken";
-  return (
-    <header id={overlay ? "site-header-overlay" : undefined}
-      className={overlay ? "site-header-overlay on-dark fixed inset-x-0 top-0 z-30 border-b border-transparent text-sand" : "bg-surface border-b border-line sticky top-0 z-20"}
-      style={overlay ? { paddingTop: "env(safe-area-inset-top, 0px)" } : { top: "env(safe-area-inset-top, 0px)" }}>
-      {overlay && <HeaderScrollState targetId="site-header-overlay" />}
-      <div className={`wrap flex items-center gap-6 py-2 ${overlay ? "min-h-[72px]" : "min-h-16"}`}>
-        <Logo size={overlay ? 34 : 28} onDark={overlay} />
-        <nav aria-label="Main" className="hidden lg:flex gap-1 flex-1">
-          {NAV.map((n) => <Link key={n.href} href={n.href} className={`px-3 py-2 rounded-md text-sm font-medium ${link}`}>{n.label}</Link>)}
-        </nav>
+  const account = u ? (u.role === "member" ? "/dashboard" : "/admin") : "/login";
+  return (<>
+    <header className="bg-surface border-b border-line sticky top-0 z-20" style={{ top: "env(safe-area-inset-top, 0px)" }}>
+      <div className="wrap flex items-center gap-6 h-14 md:h-16">
+        <Logo size={28} />
+        <NavLinks nav={NAV} />
         <div className="flex items-center gap-2 ml-auto">
           <span className="hidden sm:inline-flex"><ThemeToggle /></span>
           {u ? (<>
-            <Link href={u.role === "member" ? "/dashboard" : "/admin"} className="btn btn-secondary btn-sm">{u.role === "member" ? "Dashboard" : "Admin"}</Link>
+            <Link href={account} className="btn btn-secondary btn-sm">{u.role === "member" ? "Dashboard" : "Admin"}</Link>
             <span className="hidden lg:inline-flex"><LogoutButton /></span>
           </>) : (<>
             <span className="hidden lg:inline-flex"><Link href="/login" className="btn btn-ghost btn-sm">Log in</Link></span>
             <Link href="/register" className="btn btn-accent btn-sm">Get started</Link>
           </>)}
-          <MobileMenu nav={NAV} signedIn={Boolean(u)} accountHref={u ? (u.role === "member" ? "/dashboard" : "/admin") : "/register"} accountLabel={u ? (u.role === "member" ? "Open dashboard" : "Open admin") : "Get started"} onDark={overlay} />
+          <MobileMenu nav={NAV.filter((n) => n.href !== "/")} signedIn={Boolean(u)} accountHref={u ? account : "/register"} accountLabel={u ? (u.role === "member" ? "Open dashboard" : "Open admin") : "Get started"} onDark={false} />
         </div>
       </div>
     </header>
-  );
+    <TabBar accountHref={u ? account : "/login"} accountLabel={u ? "Account" : "Log in"} />
+  </>);
 }
 
 export function SiteFooter() {

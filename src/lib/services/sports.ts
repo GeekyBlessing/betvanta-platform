@@ -38,15 +38,16 @@ export async function standings(competitionId: string) {
 }
 
 export type FixtureRow = { id: string; kickoff_at: string; status: string; home_goals: number | null; away_goals: number | null; venue: string | null; data_source: string;
-  competition_id: string; competition: string; home: string; home_short: string; away: string; away_short: string; predictions: number };
-export async function listFixtures(opts: { competitionId?: string; mode: "upcoming" | "results" | "live"; limit?: number; competitionIds?: string[] }) {
+  competition_id: string; competition: string; sport: string; home: string; home_short: string; away: string; away_short: string; predictions: number };
+export async function listFixtures(opts: { competitionId?: string; mode: "upcoming" | "results" | "live"; limit?: number; competitionIds?: string[]; sport?: string }) {
   const where = [opts.mode === "upcoming" ? "f.status = 'scheduled' and f.kickoff_at > now() - interval '2 hours'" : opts.mode === "live" ? "f.status = 'live'" : "f.status = 'finished'"];
   const params: unknown[] = [];
   if (opts.competitionId) { params.push(opts.competitionId); where.push(`f.competition_id = $${params.length}`); }
   if (opts.competitionIds?.length) { params.push(opts.competitionIds); where.push(`f.competition_id = any($${params.length}::uuid[])`); }
+  if (opts.sport) { params.push(opts.sport); where.push(`c.sport = $${params.length}`); }
   params.push(Math.min(opts.limit ?? 100, 300));
   return q<FixtureRow>(
-    `select f.id, f.kickoff_at, f.status, f.home_goals, f.away_goals, f.venue, f.data_source, c.id competition_id, c.name competition,
+    `select f.id, f.kickoff_at, f.status, f.home_goals, f.away_goals, f.venue, f.data_source, c.id competition_id, c.name competition, c.sport,
        ht.name home, ht.short_name home_short, at.name away, at.short_name away_short,
        (select count(*)::int from predictions p where p.fixture_id = f.id and p.status in ('published','settled')) predictions
      from fixtures f join competitions c on c.id = f.competition_id join teams ht on ht.id = f.home_team_id join teams at on at.id = f.away_team_id
