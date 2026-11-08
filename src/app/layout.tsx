@@ -1,4 +1,4 @@
-import { discordInviteUrl, instagramUrl } from "@/lib/env";
+import { discordInviteUrl, instagramUrl, xUrl } from "@/lib/env";
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { support } from "@/lib/support";
@@ -19,7 +19,7 @@ export const viewport: Viewport = { themeColor: "#0B0B0D", width: "device-width"
 function orgJsonLd() {
   const s = support();
   const data = { "@context": "https://schema.org", "@type": "Organization", name: "BETVANTA", slogan: "Smarter Insights. Better Decisions.", url: process.env.APP_URL,
-    sameAs: [discordInviteUrl(), instagramUrl()].filter(Boolean),
+    sameAs: [discordInviteUrl(), instagramUrl(), xUrl()].filter(Boolean),
     contactPoint: [{ "@type": "ContactPoint", contactType: "customer support", email: s.email, telephone: s.phoneHref.replace("tel:", ""), areaServed: "US", availableLanguage: "English" }] };
   return JSON.stringify(data).replace(/</g, "\\u003c");
 }

@@ -23,6 +23,7 @@ const schema = z.object({
   // Official community links (client-provided, public). Can be overridden per environment.
   DISCORD_INVITE_URL: z.string().url().default("https://discord.com/invite/STDJ29shZS"),
   INSTAGRAM_URL: z.string().url().default("https://www.instagram.com/bet.vanta/"),
+  X_URL: z.string().url().default("https://x.com/betvantaanalyst"),
   DISCORD_WEBHOOK_URL: z.string().url().optional(),
   DISCORD_API_BASE: z.string().url().default("https://discord.com/api/v10"),
   RESEND_API_KEY: z.string().optional(),
@@ -87,6 +88,11 @@ export function instagramUrl(): string | null {
   try { const x = new URL(env().INSTAGRAM_URL); return x.protocol === "https:" && /^(www\.)?instagram\.com$/.test(x.hostname) && /^\/[A-Za-z0-9._]+\/?$/.test(x.pathname) ? x.toString() : null; } catch { return null; }
 }
 export const instagramHandle = () => { const u = instagramUrl(); return u ? "@" + new URL(u).pathname.replace(/\//g, "") : null; };
+/** The official X (Twitter) profile; only x.com or twitter.com profile links are accepted. */
+export function xUrl(): string | null {
+  try { const x = new URL(env().X_URL); return x.protocol === "https:" && /^(www\.)?(x|twitter)\.com$/.test(x.hostname) && /^\/[A-Za-z0-9_]{1,15}\/?$/.test(x.pathname) ? x.toString() : null; } catch { return null; }
+}
+export const xHandle = () => { const u = xUrl(); return u ? "@" + new URL(u).pathname.replace(/\//g, "") : null; };
 export const discordOAuthEnabled = () => Boolean(env().DISCORD_CLIENT_ID && env().DISCORD_CLIENT_SECRET && env().DISCORD_BOT_TOKEN && env().DISCORD_GUILD_ID);
 export const emailEnabled = () => Boolean(env().RESEND_API_KEY);
 export const aiEnabled = () => Boolean(env().OPENAI_API_KEY);

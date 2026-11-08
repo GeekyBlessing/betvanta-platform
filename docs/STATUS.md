@@ -102,7 +102,7 @@ Every "Subscribe Now" button (pricing page and homepage plans) opens the payment
 - ADMIN_EMAILS accounts become admin only after their email is verified (on verification or next login).
 
 ## Community and premium access
-- Free: the public Discord server and Instagram (no account needed). Links come only from DISCORD_INVITE_URL and INSTAGRAM_URL; a button is hidden rather than pointing anywhere else if either is missing or not an official discord.gg / discord.com/invite or instagram.com link.
+- Free: the public Discord server, Instagram and X (@betvantaanalyst) (no account needed). Links come only from DISCORD_INVITE_URL, INSTAGRAM_URL and X_URL; a button is hidden rather than pointing anywhere else if either is missing or not an official discord.gg / discord.com/invite, instagram.com or x.com / twitter.com link.
 - Premium: premium picks and analysis are removed on the server before a page is sent to anyone without an active package (e2e: "locked analysis text never reaches the browser"). Private Discord channels are opened by roles that BETVANTA's bot grants when a member links Discord in Settings, and removes when the package ends (syncDiscordRole, nightly resync). This needs DISCORD_CLIENT_ID, DISCORD_CLIENT_SECRET, DISCORD_BOT_TOKEN, DISCORD_GUILD_ID, DISCORD_PREMIUM_ROLE_ID and DISCORD_VIP_ROLE_ID in Vercel, and the private channels in Discord restricted to those roles.
 
 ## Crypto subscription payments (configuration)

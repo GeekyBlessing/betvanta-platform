@@ -1,11 +1,21 @@
 import Link from "next/link";
-import { discordInviteUrl, instagramHandle, instagramUrl } from "@/lib/env";
+import { discordInviteUrl, instagramHandle, instagramUrl, xHandle, xUrl } from "@/lib/env";
 import { DiscordGlyph } from "./Discord";
 
 export const InstagramGlyph = ({ size = 18 }: { size?: number }) => (
   // Generic camera glyph (not Instagram's logo, which has its own brand rules).
   <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="3.5" y="3.5" width="17" height="17" rx="5" /><circle cx="12" cy="12" r="4" /><circle cx="17.2" cy="6.8" r="1" fill="currentColor" stroke="none" /></svg>
 );
+
+// Generic "@" glyph (not X's logo, which has its own brand rules).
+export const XGlyph = ({ size = 18 }: { size?: number }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><circle cx="12" cy="12" r="3.6" /><path d="M15.6 12v1.6a2.4 2.4 0 0 0 4.8 0V12a8.4 8.4 0 1 0-3.3 6.7" /></svg>
+);
+/** "FOLLOW US ON X": the official profile from X_URL, in a new tab. Renders nothing if none is configured. */
+export function XCta({ className = "btn community-btn community-btn-outline", label = "Follow Us on X" }: { className?: string; label?: string }) {
+  const u = xUrl();
+  return u ? <a href={u} target="_blank" rel="noopener noreferrer" className={className}><XGlyph size={20} />{label}<span className="sr-only"> (opens in a new tab)</span></a> : null;
+}
 
 /** "JOIN OUR DISCORD": the official invite from DISCORD_INVITE_URL, in a new tab. Renders nothing if no valid invite is configured. */
 export function DiscordCta({ className = "btn btn-accent community-btn", label = "Join Our Discord" }: { className?: string; label?: string }) {
@@ -25,6 +35,7 @@ export const FREE_COMMUNITY = [
   "Daily sports picks and predictions shared in the public Discord channels",
   "Match discussion and announcements from the BETVANTA team",
   "Daily sports updates, selected picks and match insights on Instagram",
+  "Analysis and match-day updates on X",
 ];
 export const PREMIUM_COMMUNITY = [
   "Every premium pick with its full match analysis, unlocked in your BETVANTA account",
@@ -50,10 +61,11 @@ export function CommunitySection({ id = "community-h", showTiers = true }: { id?
           <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 w-full sm:w-auto pt-2">
             <DiscordCta />
             <InstagramCta />
+            <XCta />
           </div>
         </div>
 
-        <div className="grid gap-5 md:grid-cols-2">
+        <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
           <article className="community-card">
             <div className="flex items-center gap-3"><span className="community-icon"><DiscordGlyph size={22} /></span><h3 className="font-bold text-[19px] text-white">Discord: our home base</h3></div>
             <p className="text-[15px] text-[#F2F2F4]/85">Our primary community. We publish daily sports picks and predictions here, talk through the day&rsquo;s matches and post every announcement first.</p>
@@ -66,6 +78,12 @@ export function CommunitySection({ id = "community-h", showTiers = true }: { id?
             <List items={["Daily sports updates and selected picks", "Match insights and announcements", "Exclusive content for followers"]} />
             <InstagramCta className="btn community-btn-outline w-full sm:w-fit mt-auto" label="Follow Us on Instagram" />
           </article>
+          {xUrl() && <article className="community-card">
+            <div className="flex items-center gap-3"><span className="community-icon"><XGlyph size={22} /></span><h3 className="font-bold text-[19px] text-white">X {xHandle()}</h3></div>
+            <p className="text-[15px] text-[#F2F2F4]/85">Quick analysis, match-day updates and announcements from the BETVANTA analyst.</p>
+            <List items={["Match-day analysis and talking points", "Pick announcements and results", "Live updates and news"]} />
+            <XCta className="btn community-btn-outline w-full sm:w-fit mt-auto" label="Follow Us on X" />
+          </article>}
         </div>
 
         {showTiers && <CommunityAccess />}
@@ -83,7 +101,7 @@ export function CommunityAccess({ tone = "dark" }: { tone?: "dark" | "light" }) 
         <div className="grid gap-1"><span className={`text-[12px] font-bold tracking-[.16em] uppercase ${dark ? "text-[#F2F2F4]/70" : "text-muted"}`}>Free for everyone</span>
           <h3 className={`font-bold text-[20px] ${dark ? "text-white" : ""}`}>Community</h3></div>
         <List items={FREE_COMMUNITY} />
-        <p className={`text-[13px] ${dark ? "text-[#F2F2F4]/70" : "text-subtle"}`}>No account or payment needed: join Discord and follow Instagram.</p>
+        <p className={`text-[13px] ${dark ? "text-[#F2F2F4]/70" : "text-subtle"}`}>No account or payment needed: join Discord and follow us on Instagram and X.</p>
       </div>
       <div className={dark ? "access-card access-card-premium" : "rounded-xl p-6 grid gap-4 content-start bg-brand text-on-brand"}>
         <div className="grid gap-1"><span className="text-[12px] font-bold tracking-[.16em] uppercase text-[#FF5A61]">Paid packages</span>

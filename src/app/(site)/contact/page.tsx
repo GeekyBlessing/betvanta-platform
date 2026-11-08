@@ -3,7 +3,7 @@ import { ApiForm, Field } from "@/components/ApiForm";
 import { JoinDiscordButton } from "@/components/Discord";
 import { PageHeader } from "@/components/ui";
 import { support } from "@/lib/support";
-import { instagramHandle, instagramUrl } from "@/lib/env";
+import { instagramHandle, instagramUrl, xHandle, xUrl } from "@/lib/env";
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Contact support", description: "Contact BETVANTA customer support by email, phone or message." };
 export default function Contact() {
@@ -11,7 +11,7 @@ export default function Contact() {
   return (
     <div className="wrap py-10 grid gap-8">
       <PageHeader eyebrow="Support" title="Contact BETVANTA">Questions about your account, billing or our predictions. Choose whichever is easiest for you.</PageHeader>
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <a href={s.emailHref} className="card p-5 grid gap-1 hover:border-[var(--accent)]">
           <span className="text-[13px] font-medium text-muted">Email</span>
           <span className="font-semibold text-[16px] break-all">{s.email}</span>
@@ -31,6 +31,11 @@ export default function Contact() {
           <span className="text-[13px] font-medium text-muted">Instagram</span>
           <span className="font-semibold text-[16px]">{instagramHandle()}</span>
           <span className="text-xs font-semibold text-link">Follow Us on Instagram<span className="sr-only"> (opens in a new tab)</span></span>
+        </a>}
+        {xUrl() && <a href={xUrl()!} target="_blank" rel="noopener noreferrer" className="card p-5 grid gap-1 content-start hover:border-[var(--accent)]">
+          <span className="text-[13px] font-medium text-muted">X</span>
+          <span className="font-semibold text-[16px]">{xHandle()}</span>
+          <span className="text-xs font-semibold text-link">Follow Us on X<span className="sr-only"> (opens in a new tab)</span></span>
         </a>}
       </div>
       <section className="card p-6 grid gap-4 max-w-[640px]" aria-labelledby="form-h">

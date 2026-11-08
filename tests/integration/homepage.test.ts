@@ -6,7 +6,7 @@ import { submitTestimonial, approvedTestimonials, moderateTestimonial, withdrawT
 import { syncSportsData } from "@/lib/sports/sync";
 import { mockProvider, buildMockCompetitions } from "@/lib/sports/mock";
 import { runEngine } from "@/lib/services/predictions";
-import { discordInviteUrl, instagramHandle, instagramUrl, resetEnvCache } from "@/lib/env";
+import { discordInviteUrl, instagramHandle, instagramUrl, resetEnvCache, xHandle, xUrl } from "@/lib/env";
 
 async function member(role = "member") { return (await one(`insert into users(email, password_hash, display_name, role, age_confirmed_at, terms_accepted_at) values ('h${Math.random()}@x.com','x','Hana',$1,now(),now()) returning id`, [role]))!.id as string; }
 const review = { displayName: "Hana", location: "Austin, TX", rating: 5, body: "Clear picks and honest about the odds. Worth it.", consent: true as const };
@@ -81,6 +81,14 @@ describe("official community links", () => {
     expect(set(undefined)).toEqual(["https://www.instagram.com/bet.vanta/", "@bet.vanta"]);
     expect(set("https://evil.example/bet.vanta")).toEqual([null, null]);
     expect(set("https://www.instagram.com/bet.vanta/?x=<script>")).toEqual(["https://www.instagram.com/bet.vanta/?x=%3Cscript%3E", "@bet.vanta"]);
+    set(undefined);
+  });
+  it("uses the BETVANTA X account and accepts only x.com or twitter.com profiles", () => {
+    const set = (v?: string) => { if (v === undefined) delete process.env.X_URL; else process.env.X_URL = v; resetEnvCache(); return [xUrl(), xHandle()]; };
+    expect(set(undefined)).toEqual(["https://x.com/betvantaanalyst", "@betvantaanalyst"]);
+    expect(set("https://twitter.com/betvantaanalyst")).toEqual(["https://twitter.com/betvantaanalyst", "@betvantaanalyst"]);
+    expect(set("https://evil.example/betvantaanalyst")).toEqual([null, null]);
+    expect(set("https://x.com/betvantaanalyst/status/1")).toEqual([null, null]);
     set(undefined);
   });
 });

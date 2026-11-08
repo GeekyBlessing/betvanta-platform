@@ -230,6 +230,11 @@ check("footer has contact, Discord and legal links", ["mailto:", "/contact", "/l
 const invite = process.env.DISCORD_INVITE_URL || "https://discord.com/invite/STDJ29shZS";
 check("Join Discord opens the official BETVANTA server in a new tab", homePage.body.includes(`href="${invite}" target="_blank" rel="noopener noreferrer"`));
 check("footer links to the official Instagram", homePage.body.includes('href="https://www.instagram.com/bet.vanta/" target="_blank" rel="noopener noreferrer"') && homePage.body.includes("@bet.vanta"));
+{ const xu = "https://x.com/betvantaanalyst";
+  check("X @betvantaanalyst is linked in the footer and homepage, opening in a new tab", homePage.body.includes(`href="${xu}" target="_blank" rel="noopener noreferrer"`) && homePage.body.includes("@betvantaanalyst"));
+  const ct = await anon("/contact"), cm = await anon("/community");
+  check("Contact and Community pages link X", ct.body.includes(`href="${xu}"`) && cm.body.includes(`href="${xu}"`) && cm.body.includes("Follow Us on X"));
+  check("structured data lists the X profile", homePage.body.includes('"sameAs":') && homePage.body.includes(xu)); }
 { const ig = "https://www.instagram.com/bet.vanta/";
   const cmBody = (await anon("/community")).body; const cmText = textOf(cmBody);
   const sec = cmBody.match(/<section class="community"[\s\S]*?<\/section>/)?.[0] ?? "";

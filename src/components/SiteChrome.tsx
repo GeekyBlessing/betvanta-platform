@@ -5,8 +5,8 @@ import { Logo, LogoMark, RG_LINE } from "./ui";
 import { BottomNav, NavLinks, SportsBar } from "./NavLinks";
 import { MAIN_NAV, MORE_NAV } from "./nav-items";
 import { MobileSlip, SlipProvider } from "./sportsbook/slip";
-import { DiscordCta, InstagramCta } from "./Community";
-import { discordInviteUrl, instagramHandle, instagramUrl } from "@/lib/env";
+import { DiscordCta, InstagramCta, XCta } from "./Community";
+import { discordInviteUrl, instagramHandle, instagramUrl, xHandle, xUrl } from "@/lib/env";
 import { support } from "@/lib/support";
 
 const SearchIcon = () => <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="11" cy="11" r="6.5" /><path d="M20 20l-4.2-4.2" /></svg>;
@@ -47,8 +47,8 @@ export function SiteFooter() {
     <footer className="site-footer">
       <div className="wrap py-8 grid gap-6 md:grid-cols-[1fr_auto] md:items-center border-b border-line">
         <div className="grid gap-1"><p className="font-bold text-[17px]">Daily picks live in our community</p>
-          <p className="text-[14px] text-muted">Join the BETVANTA Discord and follow {instagramHandle() ?? "us"} on Instagram for daily picks, updates and exclusive content.</p></div>
-        <div className="flex flex-wrap gap-2"><DiscordCta className="btn btn-accent" label="Join Our Discord" /><InstagramCta className="btn btn-secondary" label="Follow Us on Instagram" /></div>
+          <p className="text-[14px] text-muted">Join the BETVANTA Discord and follow us on Instagram{xHandle() ? ` and X (${xHandle()})` : ""} for daily picks, updates and exclusive content.</p></div>
+        <div className="flex flex-wrap gap-2"><DiscordCta className="btn btn-accent" label="Join Our Discord" /><InstagramCta className="btn btn-secondary" label="Follow Us on Instagram" /><XCta className="btn btn-secondary" label="Follow Us on X" /></div>
       </div>
       <div className="wrap py-10 grid gap-10 md:grid-cols-[1.6fr_1fr_1fr]">
         <div className="grid gap-3 content-start">
@@ -64,6 +64,7 @@ export function SiteFooter() {
           <Link href="/virtuals" className="footer-link">Virtual Sports</Link>
           {discord ? <a href={discord} target="_blank" rel="noopener noreferrer" className="footer-link">Join Our Discord<span className="sr-only"> (opens in a new tab)</span></a> : <Link href="/community" className="footer-link">Discord community</Link>}
           {instagramUrl() && <a href={instagramUrl()!} target="_blank" rel="noopener noreferrer" className="footer-link">Follow Us on Instagram {instagramHandle()}<span className="sr-only"> (opens in a new tab)</span></a>}
+          {xUrl() && <a href={xUrl()!} target="_blank" rel="noopener noreferrer" className="footer-link">Follow Us on X {xHandle()}<span className="sr-only"> (opens in a new tab)</span></a>}
         </div>
         <div className="grid gap-2 content-start text-sm"><span className="footer-head">More</span>
           {MORE_NAV.map((n) => <Link key={n.href} href={n.href} className="footer-link">{n.label}</Link>)}

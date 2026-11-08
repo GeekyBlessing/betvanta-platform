@@ -270,3 +270,4 @@ a.menu-link { display: block; }
 .virt-label { position: absolute; left: 0; right: 0; bottom: 0; padding: 7px 6px; background: #0b0b0d; color: #fff; font-family: var(--font-display); font-weight: 900; font-style: italic; text-transform: uppercase; font-size: clamp(11px, 2.6vw, 15px); letter-spacing: .02em; }
 .virt-title { font-family: var(--font-display); font-weight: 900; font-style: italic; text-transform: uppercase; font-size: clamp(38px, 8vw, 72px); line-height: .95; }
 .virt-sub { display: inline-block; margin-top: 8px; font-size: clamp(18px, 3.4vw, 28px); color: #fff; }
+.promo-x::before { background-image: url("/images/sports/basketball.svg"), radial-gradient(circle at 70% 20%, rgba(255, 255, 255, .14), transparent 55%), linear-gradient(135deg, #26262c, #0b0b0d); background-size: 58px, auto, auto; background-repeat: no-repeat; background-position: 86% 16%, center, center; }

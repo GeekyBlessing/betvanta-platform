@@ -5,7 +5,7 @@ import { tierFor } from "@/lib/services/entitlements";
 import { sportsbookBoard } from "@/lib/services/sportsbook";
 import { SPORTS } from "@/lib/services/sports";
 import { formatMoney, periodLabel, type Plan } from "@/lib/services/billing";
-import { discordInviteUrl, instagramHandle, instagramUrl } from "@/lib/env";
+import { discordInviteUrl, instagramHandle, instagramUrl, xHandle, xUrl } from "@/lib/env";
 import { FeaturedRail, MatchList } from "@/components/sportsbook/board";
 import { DesktopSlip } from "@/components/sportsbook/slip";
 import { SportIcon } from "@/components/SportIcon";
@@ -27,7 +27,7 @@ export default async function Home(props: { searchParams: Promise<Search> }) {
     q<Plan>("select * from plans where active order by level"),
     subscribeAssistantProps(user, "/"),
   ]);
-  const discord = discordInviteUrl(), ig = instagramUrl();
+  const discord = discordInviteUrl(), ig = instagramUrl(), xl = xUrl();
   const from = plans[0] ? formatMoney(plans[0].amount_minor) : null;
   const compName = comp ? board.competitions.find((c) => c.id === comp)?.name : null;
   const scope = compName ?? (sportInfo ? sportInfo.name.replace("Soccer", "Football") : win === "3h" ? "Next 3 hours" : win === "today" ? "Today" : null);
@@ -61,6 +61,7 @@ export default async function Home(props: { searchParams: Promise<Search> }) {
             <Link href="/packages" className="promo-tile promo-packages"><span className="promo-kicker">Premium</span><span className="promo-title">Packages{from ? ` from ${from}` : ""}</span></Link>
             <Link href="/virtuals" className="promo-tile promo-virtuals"><span className="promo-kicker">Coming soon</span><span className="promo-title">Virtual Sports</span></Link>
             {ig && <a href={ig} target="_blank" rel="noopener noreferrer" className="promo-tile promo-instagram"><span className="promo-kicker">Instagram</span><span className="promo-title">Follow {instagramHandle()}</span><span className="sr-only"> (opens in a new tab)</span></a>}
+            {xl && <a href={xl} target="_blank" rel="noopener noreferrer" className="promo-tile promo-x"><span className="promo-kicker">X</span><span className="promo-title">Follow {xHandle()}</span><span className="sr-only"> (opens in a new tab)</span></a>}
           </div>
 
           {/* Hero */}
