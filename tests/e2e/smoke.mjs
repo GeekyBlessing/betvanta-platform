@@ -177,7 +177,8 @@ console.log("payment assistant: manual crypto and Discord-arranged payments");
   { const ck = await admin(`/api/admin/manual-payments/${row.id}`, { method: "POST", json: { action: "check" } });
     check("admin checks the BTC transaction on the blockchain", ck.body.ok && ck.body.data.chain.status === "verified" && /0.0011 BTC/.test(ck.body.data.chain.summary), JSON.stringify(ck.body)); }
   check("admin overview shows the payment assistant setup", /Payment assistant setup/.test((await admin("/admin")).body));
-  const ap = await admin(`/api/admin/manual-payments/${row.id}`, { method: "POST", json: { action: "approve", note: "received, 2 confirmations" } });
+  check("a verified BTC payment still needs the admin to confirm its dollar value", /covers the plan price/.test(JSON.stringify((await admin(`/api/admin/manual-payments/${row.id}`, { method: "POST", json: { action: "approve", note: "received, 2 confirmations" } })).body)));
+  const ap = await admin(`/api/admin/manual-payments/${row.id}`, { method: "POST", json: { action: "approve", note: "0.0011 BTC received, worth about $60 when it arrived", amountConfirmed: true } });
   check("admin approves after verification and access is granted", ap.body.ok && (await db.query("select s.plan_level, s.source from subscriptions s join users u on u.id = s.user_id where u.email = $1 and s.status = 'active'", [payerEmail])).rows[0]?.plan_level === 1, JSON.stringify(ap.body));
   check("a submission cannot be approved twice", (await admin(`/api/admin/manual-payments/${row.id}`, { method: "POST", json: { action: "approve" } })).status === 409);
   check("approval is audited and a confirmation email is sent", (await db.query("select count(*)::int n from audit_logs where action = 'admin.manual_payment_approved' and entity_id = $1", [ref])).rows[0].n === 1

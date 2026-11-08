@@ -77,6 +77,7 @@ export default async function ManualPayments(props: { searchParams: Promise<{ st
                 <span id={id("ah")} className="text-[13px] text-subtle">{isCrypto(r.method)
                   ? "Approval runs the blockchain check again. It is refused if the check fails or is still waiting for confirmations."
                   : "Required. A screenshot alone is not proof: confirm the money arrived in the account."}</span>
+                {(r.method === "btc" || r.method === "eth") && <Check name="amountConfirmed">The {r.method.toUpperCase()} received is worth at least {formatMoney(r.amount_minor)} at the time it arrived. I recorded the amount and its dollar value above.</Check>}
                 {isCrypto(r.method) && r.chain_status !== "verified" && <Check name="verifiedManually">I checked this transaction on the blockchain myself and the full amount reached the BETVANTA address. Only needed when the automatic check cannot run.</Check>}
               </ApiForm>
               <ApiForm action={`/api/admin/manual-payments/${r.id}`} extra={{ action: "reject" }} submitLabel="Reject" variant="danger" size="sm" className="grid gap-2 content-start">

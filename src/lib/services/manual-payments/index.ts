@@ -141,7 +141,7 @@ export async function checkManualPayment(adminId: string, id: string): Promise<C
   return r;
 }
 
-export type ApproveInput = { note: string | null; verifiedManually?: boolean };
+export type ApproveInput = { note: string | null; verifiedManually?: boolean; amountConfirmed?: boolean };
 
 /**
  * Approves a submission and grants access in the same transaction, only after the payment is verified:
@@ -152,7 +152,7 @@ export type ApproveInput = { note: string | null; verifiedManually?: boolean };
  * An uploaded screenshot on its own is never enough.
  */
 export async function approveManualPayment(adminId: string, id: string, input: ApproveInput | string | null) {
-  const { note, verifiedManually = false } = typeof input === "object" && input !== null ? input : { note: input as string | null };
+  const { note, verifiedManually = false, amountConfirmed = false } = typeof input === "object" && input !== null ? input : { note: input as string | null };
   const pre = await one<Row>("select * from manual_payments where id = $1", [id]);
   if (!pre) throw notFound("Submission not found.");
   if (pre.status !== "pending_review") throw conflict(`This submission was already ${pre.status === "approved" ? "approved" : "rejected"}.`);
@@ -168,6 +168,11 @@ export async function approveManualPayment(adminId: string, id: string, input: A
       if (!verifiedManually || !note || note.trim().length < 20)
         throw badRequest(`The automatic check could not confirm this payment (${chain.summary}) Verify it on the blockchain yourself, tick the confirmation box and describe what you saw (at least 20 characters).`, { note: ["Describe how you verified the transaction."] });
     }
+    // BTC and ETH checks confirm the coins reached BETVANTA's address, not their dollar value (there is no price feed).
+    // The admin must confirm the value covers the plan price and record it. USDT is checked against the price on chain.
+    if (chain.status === "verified" && (pre.method === "btc" || pre.method === "eth") && (!amountConfirmed || !note || note.trim().length < 20))
+      throw badRequest(`${chain.summary.replace(/ Confirm the amount covers the plan price\.$/, "")} Confirm the value received covers the plan price (${formatMoney(pre.amount_minor)}): tick the box and record the amount and its dollar value (at least 20 characters).`,
+        { note: ["Record the amount received and its dollar value at the time (at least 20 characters)."] });
     if (pre.customer_reference) {
       const used = await one<{ reference: string }>("select reference from manual_payments where method = $1 and lower(customer_reference) = lower($2) and status = 'approved'", [pre.method, pre.customer_reference]);
       if (used) throw conflict(`This transaction already activated ${used.reference}. One payment can activate only one plan.`);
@@ -182,7 +187,7 @@ export async function approveManualPayment(adminId: string, id: string, input: A
     const sub = await grantAccess(c, m.user_id, m.plan_id, "payment", adminId, `Manual payment ${m.reference} (${m.method})`);
     await q("update manual_payments set status = 'approved', reviewed_by = $2, reviewed_at = now(), review_note = $3, subscription_id = $4, verified_manually = $5, updated_at = now() where id = $1",
       [id, adminId, note, sub.id, manual], c);
-    await audit(adminId, "admin.manual_payment_approved", "manual_payment", m.reference, { user: m.user_id, plan: sub.planLabel, amount: m.amount_minor, method: m.method, subscription: sub.id, note,
+    await audit(adminId, "admin.manual_payment_approved", "manual_payment", m.reference, { user: m.user_id, plan: sub.planLabel, amount: m.amount_minor, method: m.method, subscription: sub.id, note, amount_confirmed_by_admin: amountConfirmed,
       verification: coin ? (manual ? "admin_attested" : "on_chain") : "admin_described", chain: chain?.summary ?? null }, null, c);
     return { ...m, sub };
   });

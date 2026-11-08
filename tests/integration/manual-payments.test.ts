@@ -28,6 +28,8 @@ beforeEach(async () => {
 });
 afterAll(async () => { withEnv({ CRYPTO_PAYMENTS_ENABLED: undefined }); await new Promise<void>((r) => stub.close(() => r())); await closePool(); });
 
+const AMT = { note: "0.0011 BTC received, worth about $70 when it arrived", amountConfirmed: true };
+
 describe("manual payments: submission", () => {
   it("records a pending submission with the wallet address shown, and grants nothing", async () => {
     const u = await user();
@@ -78,7 +80,7 @@ describe("manual payments: review", () => {
     const u = await user(), a = await user("admin");
     const r = await submitManualPayment(u, input({ planCode: "premium_6m" }), null);
     const id = (await listManualPayments("pending_review"))[0].id;
-    const res = await approveManualPayment(a.id, id, "received");
+    const res = await approveManualPayment(a.id, id, AMT);
     expect(res.reference).toBe(r.reference);
     expect(await tierFor({ id: u.id } as never)).toBe("vip");
     const row = await one<{ status: string; subscription_id: string; reviewed_by: string }>("select * from manual_payments where id = $1", [id]);
@@ -119,7 +121,7 @@ describe("manual payments: review", () => {
   it("kept separate from provider payments and sportsbook wallets", async () => {
     const u = await user(), a = await user("admin");
     await submitManualPayment(u, input(), null);
-    await approveManualPayment(a.id, (await listManualPayments("pending_review"))[0].id, null);
+    await approveManualPayment(a.id, (await listManualPayments("pending_review"))[0].id, AMT);
     expect((await q("select 1 from payments where user_id = $1", [u.id])).length).toBe(0);
     expect((await q("select 1 from sportsbook.wallets where user_id = $1", [u.id])).length).toBe(0);
   });
@@ -144,7 +146,10 @@ describe("manual payments: on-chain verification before approval", () => {
     chain.btc.set("d".repeat(64), { vout: [{ scriptpubkey_address: BTC, value: 110000 }], status: { confirmed: true, block_height: chain.tip } });
     await expect(approveManualPayment(a.id, await pending(), null)).rejects.toThrow(/1 of 2 confirmations/);
     chain.tip += 1;
-    await expect(approveManualPayment(a.id, await pending(), null)).resolves.toMatchObject({ verification: "on_chain" });
+    // Confirmed on chain, but BTC's dollar value is not checked automatically: the admin must confirm and record it.
+    await expect(approveManualPayment(a.id, await pending(), null)).rejects.toThrow(/covers the plan price/);
+    await expect(approveManualPayment(a.id, await pending(), { note: "short", amountConfirmed: true })).rejects.toThrow(/covers the plan price/);
+    await expect(approveManualPayment(a.id, await pending(), AMT)).resolves.toMatchObject({ verification: "on_chain" });
     const u2 = await user();
     await submitManualPayment(u2, input({ reference: "e".repeat(64) }), null);
     await expect(approveManualPayment(a.id, await pending(), null)).rejects.toThrow(/does not exist/);
@@ -153,9 +158,9 @@ describe("manual payments: on-chain verification before approval", () => {
   it("one transaction can activate only one plan", async () => {
     const u = await user(), v = await user(), a = await user("admin");
     await submitManualPayment(u, input(), null);
-    await approveManualPayment(a.id, await pending(), null);
+    await approveManualPayment(a.id, await pending(), AMT);
     await submitManualPayment(v, input(), null);
-    await expect(approveManualPayment(a.id, await pending(), null)).rejects.toThrow(/already activated/);
+    await expect(approveManualPayment(a.id, await pending(), AMT)).rejects.toThrow(/already activated/);
   });
 
   it("a screenshot without a hash needs the admin to verify the transaction and say how", async () => {
