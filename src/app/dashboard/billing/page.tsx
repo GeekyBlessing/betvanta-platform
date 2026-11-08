@@ -23,7 +23,7 @@ export default async function Billing() {
       {subs.filter((s) => current(s) && s.status !== "expired").map((s) => (
         <div key={s.id} className="flex flex-wrap gap-3 items-center justify-between"><span><strong>{s.name}</strong> · {s.is_lifetime ? "lifetime access" : `${s.status === "cancelled" ? "cancelled, access ends" : "active until"} ${fmtDate(s.current_period_end)}`}</span></div>))}
       {!active && !subs.some((s) => s.status === "cancelled" && current(s)) && <p className="text-muted">You are on the Free plan.</p>}
-      <div className="flex gap-3 flex-wrap"><Link href="/pricing" className="btn btn-accent">{active ? "Renew or change plan" : "Choose a plan"}</Link>{active && !active.is_lifetime && <ActionButton action="/api/billing/cancel" label="Cancel subscription" confirmText="Confirm cancellation" variant="secondary" />}</div>
+      <div className="flex gap-3 flex-wrap"><Link href="/packages" className="btn btn-accent">{active ? "Renew or change plan" : "Choose a plan"}</Link>{active && !active.is_lifetime && <ActionButton action="/api/billing/cancel" label="Cancel subscription" confirmText="Confirm cancellation" variant="secondary" />}</div>
     </section>
     {manual.length > 0 && <>
       <h2 className="font-semibold text-[17px] mb-3">Payments sent through the payment assistant</h2>

@@ -32,7 +32,7 @@ export function FixtureCard({ preds }: { preds: PublicPrediction[] }) {
                 : <div className="font-semibold text-subtle">Locked</div>}
             </div>
             <div className="flex items-center gap-2 flex-wrap">
-              {p.status === "settled" ? resultBadge(p.result) : p.locked ? <Link href="/pricing" className="btn btn-secondary btn-sm">Unlock with {p.access_tier === "vip" ? "VIP" : "Premium"}</Link> : <Confidence band={p.confidence} />}
+              {p.status === "settled" ? resultBadge(p.result) : p.locked ? <Link href="/packages" className="btn btn-secondary btn-sm">Unlock with {p.access_tier === "vip" ? "VIP" : "Premium"}</Link> : <Confidence band={p.confidence} />}
               {tierBadge(p.access_tier)}
             </div>
           </li>

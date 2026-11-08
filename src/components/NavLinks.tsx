@@ -1,44 +1,83 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useId, useRef, useState } from "react";
 
-export type NavItem = { href: string; label: string };
+import { MAIN_NAV, MORE_NAV } from "./nav-items";
+
 const isActive = (path: string, href: string) => (href === "/" ? path === "/" : path === href || path.startsWith(href + "/"));
 
-/** Desktop navigation with a clear current-page marker. */
-export function NavLinks({ nav }: { nav: NavItem[] }) {
+const Chevron = ({ open }: { open: boolean }) => (
+  <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true" className={`transition-transform ${open ? "rotate-180" : ""}`}><path d="M2.5 4.5L6 8l3.5-3.5" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" /></svg>
+);
+
+/** Desktop: Home, Packages, Contact and a More dropdown. */
+export function NavLinks() {
   const path = usePathname();
+  const [open, setOpen] = useState(false);
+  const id = useId();
+  const box = useRef<HTMLDivElement>(null);
+  useEffect(() => { setOpen(false); }, [path]);
+  useEffect(() => {
+    if (!open) return;
+    const key = (e: KeyboardEvent) => { if (e.key === "Escape") setOpen(false); };
+    const click = (e: MouseEvent) => { if (!box.current?.contains(e.target as Node)) setOpen(false); };
+    document.addEventListener("keydown", key); document.addEventListener("mousedown", click);
+    return () => { document.removeEventListener("keydown", key); document.removeEventListener("mousedown", click); };
+  }, [open]);
+  const moreOn = MORE_NAV.some((n) => isActive(path, n.href));
   return (
-    <nav aria-label="Main" className="hidden lg:flex items-stretch self-stretch gap-1 flex-1">
-      {nav.map((n) => {
+    <nav aria-label="Main" className="hidden lg:flex items-center gap-1">
+      {MAIN_NAV.map((n) => {
         const on = isActive(path, n.href);
-        return <Link key={n.href} href={n.href} aria-current={on ? "page" : undefined}
-          className={`nav-link relative inline-flex items-center px-3 text-[14px] font-semibold ${on ? "text-ink" : "text-muted hover:text-ink"}`}>{n.label}</Link>;
+        return <Link key={n.href} href={n.href} aria-current={on ? "page" : undefined} className={`nav-link ${on ? "is-on" : ""}`}>{n.label}</Link>;
       })}
+      <div className="relative" ref={box}>
+        <button type="button" className={`nav-link inline-flex items-center gap-1.5 ${moreOn ? "is-on" : ""}`} aria-expanded={open} aria-controls={id} onClick={() => setOpen((o) => !o)}>More <Chevron open={open} /></button>
+        {open && (
+          <ul id={id} className="nav-dropdown">
+            {MORE_NAV.map((n) => <li key={n.href}><Link href={n.href} aria-current={isActive(path, n.href) ? "page" : undefined}>{n.label}</Link></li>)}
+          </ul>)}
+      </div>
     </nav>
   );
 }
 
-const TabIcon = ({ d }: { d: string }) => <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d={d} /></svg>;
-const TABS = [
-  { href: "/", label: "Home", d: "M4 11l8-6.5L20 11v8.5a1 1 0 0 1-1 1h-4.5v-6h-5v6H5a1 1 0 0 1-1-1z" },
-  { href: "/predictions", label: "Picks", d: "M4 15l5-5 4 4 7-7M14 7h6v6" },
-  { href: "/fixtures", label: "Fixtures", d: "M4 6.5h16M4 12h16M4 17.5h10M8 3.5v6M16 3.5v6" },
-  { href: "/results", label: "Results", d: "M5 12.5l4.5 4.5L19 7.5" },
-];
-/** Phone tab bar: the four places members go most, always one tap away. */
-export function TabBar({ accountHref, accountLabel }: { accountHref: string; accountLabel: string }) {
+/** Phones and tablets: a hamburger with the same four items; More expands in place. */
+export function MobileMenu({ signedIn, accountHref, accountLabel }: { signedIn: boolean; accountHref: string; accountLabel: string }) {
+  const [open, setOpen] = useState(false);
+  const [more, setMore] = useState(false);
+  const id = useId();
   const path = usePathname();
-  const tabs = [...TABS, { href: accountHref, label: accountLabel, d: "M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4.5 20.5c.8-3.6 3.9-6 7.5-6s6.7 2.4 7.5 6" }];
+  useEffect(() => { setOpen(false); setMore(false); }, [path]);
+  useEffect(() => {
+    if (!open) return;
+    const k = (e: KeyboardEvent) => { if (e.key === "Escape") setOpen(false); };
+    document.addEventListener("keydown", k);
+    return () => document.removeEventListener("keydown", k);
+  }, [open]);
   return (
-    <nav aria-label="Quick navigation" className="tabbar md:hidden fixed inset-x-0 bottom-0 z-30 bg-surface border-t border-line" style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}>
-      <ul className="grid grid-cols-5">
-        {tabs.map((t) => {
-          const on = isActive(path, t.href);
-          return <li key={t.label}><Link href={t.href} aria-current={on ? "page" : undefined}
-            className={`flex flex-col items-center gap-0.5 pt-2 pb-1.5 text-[11px] font-semibold ${on ? "text-link" : "text-subtle"}`}><TabIcon d={t.d} />{t.label}</Link></li>;
-        })}
-      </ul>
-    </nav>
+    <div className="lg:hidden">
+      <button type="button" aria-expanded={open} aria-controls={id} onClick={() => setOpen((o) => !o)} className="h-11 w-10 -mr-2 grid place-items-center rounded-md text-white hover:bg-white/10">
+        <span className="sr-only">{open ? "Close menu" : "Open menu"}</span>
+        <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+          {open ? <path d="M6 6l12 12M18 6L6 18" /> : <path d="M4 7h16M4 12h16M4 17h16" />}
+        </svg>
+      </button>
+      {open && (
+        <nav id={id} aria-label="Main mobile" className="mobile-menu">
+          <ul className="wrap py-2 grid">
+            {MAIN_NAV.map((n) => <li key={n.href}><Link href={n.href} aria-current={isActive(path, n.href) ? "page" : undefined} className="mobile-menu-link">{n.label}</Link></li>)}
+            <li>
+              <button type="button" className="mobile-menu-link w-full flex items-center justify-between" aria-expanded={more} onClick={() => setMore((m) => !m)}>More <Chevron open={more} /></button>
+              {more && <ul className="pb-2">{MORE_NAV.map((n) => <li key={n.href}><Link href={n.href} className="block py-2.5 pl-4 text-[15px] text-white/80 hover:text-white">{n.label}</Link></li>)}</ul>}
+            </li>
+          </ul>
+          <div className="wrap pb-5 pt-2 grid gap-2">
+            <Link href="/packages" className="btn btn-accent btn-lg w-full">Subscribe Now</Link>
+            <Link href={signedIn ? accountHref : "/login"} className="btn btn-lg w-full mobile-menu-secondary">{signedIn ? accountLabel : "Log in"}</Link>
+          </div>
+        </nav>)}
+    </div>
   );
 }

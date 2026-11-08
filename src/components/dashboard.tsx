@@ -108,7 +108,7 @@ export function PredictionTile({ preds }: { preds: PublicPrediction[] }) {
                 ? <span className="justify-self-end inline-flex items-center gap-1 text-[12px] font-semibold text-accent-text"><svg width="12" height="12" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><rect x="5" y="11" width="14" height="9" rx="2" /><path d="M8 11V8a4 4 0 0 1 8 0v3" /></svg>{p.access_tier === "vip" ? "VIP" : "Premium"}</span>
                 : <span className="justify-self-end num text-[13px] font-semibold">{pct !== null ? `${pct}%` : ""}</span>}
               {p.locked
-                ? <span className="col-span-2 text-[13px] text-subtle">Pick hidden. <Link href="/pricing" className="font-semibold text-link hover:underline">Unlock</Link></span>
+                ? <span className="col-span-2 text-[13px] text-subtle">Pick hidden. <Link href="/packages" className="font-semibold text-link hover:underline">Unlock</Link></span>
                 : <>
                   <span className="font-semibold text-[14px] truncate">{p.selection}</span>
                   <span className="justify-self-end"><Confidence band={p.confidence} /></span>

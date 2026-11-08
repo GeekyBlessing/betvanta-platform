@@ -73,10 +73,6 @@ h1, h2, h3 { text-wrap: balance; }
 
 .chat-panel h2[tabindex="-1"]:focus, .chat-panel h2[tabindex="-1"]:focus-visible { outline: none; }
 
-/* Navigation ------------------------------------------------------------------------------------- */
-.nav-link[aria-current="page"]::after { content: ""; position: absolute; left: 12px; right: 12px; bottom: -1px; height: 2px; border-radius: 2px; background: var(--accent); }
-@media (max-width: 767px) { body:has(.tabbar) { padding-bottom: calc(58px + env(safe-area-inset-bottom, 0px)); } }
-.tabbar a[aria-current="page"] svg { stroke-width: 2.1; }
 .sport-tabs { scrollbar-width: none; } .sport-tabs::-webkit-scrollbar { display: none; }
 .match-row { transition: background-color 120ms ease-out; }
 /* Phones: featured predictions scroll sideways like a scores app, one card and a peek of the next. */
@@ -101,3 +97,53 @@ h1, h2, h3 { text-wrap: balance; }
   .sport-card:hover .sport-circle img { transform: scale(1.04); }
   .sport-card:hover .sport-name { text-decoration: underline; text-decoration-color: var(--accent, #C47C52); text-decoration-thickness: 3px; text-underline-offset: 6px; }
 }
+
+/* Header (Deep Charcoal, or transparent over the homepage hero) -------------------------------------- */
+.site-header { z-index: 30; color: #fff; }
+.site-header-solid { position: sticky; top: 0; background: #172322; border-bottom: 1px solid rgba(234, 225, 212, .08); }
+.site-header-overlay { position: absolute; inset-inline: 0; top: 0; background: linear-gradient(180deg, rgba(10, 18, 17, .72), rgba(10, 18, 17, 0)); }
+.nav-link { position: relative; padding: 10px 16px; font-size: 15px; font-weight: 600; color: rgba(255, 255, 255, .82); border-radius: 8px; letter-spacing: .01em; }
+.nav-link:hover, .nav-link.is-on { color: #fff; }
+.nav-link.is-on::after { content: ""; position: absolute; left: 16px; right: 16px; bottom: 2px; height: 2px; border-radius: 2px; background: #C47C52; }
+.nav-dropdown { position: absolute; right: 0; top: calc(100% + 10px); min-width: 230px; background: #172322; border: 1px solid rgba(234, 225, 212, .14); border-radius: 12px; padding: 6px; box-shadow: 0 18px 40px rgba(0, 0, 0, .35); }
+.nav-dropdown a { display: block; padding: 10px 12px; border-radius: 8px; font-size: 14px; font-weight: 500; color: rgba(255, 255, 255, .85); }
+.nav-dropdown a:hover, .nav-dropdown a[aria-current="page"] { background: rgba(234, 225, 212, .08); color: #fff; }
+.header-cta { padding: 11px 20px; font-size: 14px; font-weight: 700; letter-spacing: .02em; box-shadow: 0 6px 18px rgba(196, 124, 82, .35); }
+@media (max-width: 639px) { .header-cta { padding: 9px 14px; font-size: 13px; } }
+@media (max-width: 359px) { .header-cta { padding: 8px 10px; font-size: 12px; } }
+.mobile-menu { position: absolute; inset-inline: 0; top: 100%; background: #172322; border-top: 1px solid rgba(234, 225, 212, .1); box-shadow: 0 24px 40px rgba(0, 0, 0, .4); max-height: calc(100svh - 64px); overflow-y: auto; }
+.mobile-menu-link { padding: 15px 0; font-size: 17px; font-weight: 600; color: #fff; border-bottom: 1px solid rgba(234, 225, 212, .1); text-align: left; }
+a.mobile-menu-link { display: block; }
+.mobile-menu-link[aria-current="page"] { color: #E3A27C; }
+.mobile-menu-secondary { background: transparent; color: #fff; border-color: rgba(234, 225, 212, .35); }
+
+/* Homepage hero: full-width stadium artwork, dark overlay, centred copy, stats panel underneath ------- */
+.hero { position: relative; isolation: isolate; color: #fff; background: #0f1d1c; overflow: hidden; }
+.hero-bg { position: absolute; inset: 0; z-index: -2; background: url("/images/hero/stadium-tall.webp") center 62% / cover no-repeat; }
+@media (min-width: 768px) { .hero-bg { background-image: url("/images/hero/stadium-wide.webp"); background-position: center 58%; } }
+.hero::before { content: ""; position: absolute; inset: 0; z-index: -1;
+  background: radial-gradient(ellipse 60% 55% at 50% 52%, rgba(23, 35, 34, .55), rgba(23, 35, 34, 0) 70%),
+    linear-gradient(180deg, rgba(23, 35, 34, .8) 0%, rgba(23, 35, 34, .66) 45%, rgba(18, 61, 59, .82) 78%, #172322 100%); }
+.hero-title { font-family: var(--font-display); font-weight: 900; text-transform: uppercase; letter-spacing: -.01em; line-height: .98; font-size: clamp(40px, 8.2vw, 92px); text-shadow: 0 4px 30px rgba(0, 0, 0, .35); }
+.hero-title .accent { color: #C47C52; }
+.hero-lede { font-size: clamp(16px, 2.1vw, 20px); line-height: 1.55; color: rgba(234, 225, 212, .92); max-width: 640px; }
+.hero-btn { min-width: 220px; padding: 16px 28px; font-size: 15px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; border-radius: 10px; }
+.hero-btn-outline { background: rgba(23, 35, 34, .35); color: #fff; border: 2px solid #EAE1D4; }
+.hero-btn-outline:hover { background: #EAE1D4; color: #172322; }
+.hero-stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); max-width: 920px; margin-inline: auto; background: rgba(23, 35, 34, .78); border: 1px solid rgba(234, 225, 212, .16); border-radius: 16px; backdrop-filter: blur(6px); }
+.hero-stats > div { padding: 18px 14px; text-align: center; display: grid; gap: 4px; align-content: center; }
+.hero-stats > div + div { border-left: 1px solid rgba(234, 225, 212, .14); }
+.hero-stat-value { font-family: var(--font-display); font-weight: 800; font-size: clamp(26px, 3.6vw, 38px); line-height: 1.05; color: #C47C52; font-variant-numeric: tabular-nums; }
+.hero-stat-label { font-size: 12px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: rgba(234, 225, 212, .85); }
+@media (max-width: 639px) {
+  .hero-btn { width: 100%; min-width: 0; }
+  .hero-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .hero-stats > div:nth-child(3) { border-left: 0; }
+  .hero-stats > div:nth-child(n+3) { border-top: 1px solid rgba(234, 225, 212, .14); }
+}
+
+/* Footer ------------------------------------------------------------------------------------------- */
+.site-footer { background: #172322; color: #fff; }
+.footer-head { font-size: 12px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: #C47C52; margin-bottom: 4px; }
+.footer-link { color: rgba(255, 255, 255, .75); } .footer-link:hover { color: #fff; }
+.footer-theme .btn { color: rgba(255, 255, 255, .75); }

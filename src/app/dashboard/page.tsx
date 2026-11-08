@@ -31,7 +31,7 @@ export default async function Dashboard() {
       <div className="grid gap-3 md:grid-cols-3 mb-8">
         <div className="card p-5 grid gap-2"><span className="text-[13px] font-medium text-muted">Your access</span><span>{tierBadge(tier)}</span><span className="text-xs text-subtle">{sub ? (sub.is_lifetime ? `${sub.name}, lifetime access` : `${sub.name}, ${sub.status === "cancelled" ? "ends" : "until"} ${fmtDate(sub.current_period_end)}`) : u.role !== "member" ? "Staff access" : "Free plan"}</span></div>
         <Stat label="Predictions available to you" value={String(preds.length)} foot="Upcoming fixtures" />
-        <div className="card p-5 grid gap-3 content-start"><span className="text-[13px] font-medium text-muted">Plan</span>{tier === "free" ? <Link href="/pricing" className="btn btn-accent">Upgrade to Premium</Link> : <Link href="/dashboard/billing" className="btn btn-secondary">Manage billing</Link>}</div>
+        <div className="card p-5 grid gap-3 content-start"><span className="text-[13px] font-medium text-muted">Plan</span>{tier === "free" ? <Link href="/packages" className="btn btn-accent">Upgrade to Premium</Link> : <Link href="/dashboard/billing" className="btn btn-secondary">Manage billing</Link>}</div>
       </div>
       {level > 0 && (
         <section className="card p-6 grid gap-3 mb-8">

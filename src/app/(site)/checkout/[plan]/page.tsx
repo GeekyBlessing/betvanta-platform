@@ -7,5 +7,5 @@ export default async function Checkout(props: { params: Promise<{ plan: string }
   const { method } = await props.searchParams;
   const code = /^[a-z0-9_]{3,40}$/.test(plan) ? plan : "";
   const m = method && /^[a-z_]{2,12}$/.test(method) ? `&method=${method}` : "";
-  redirect(code ? `/pricing?subscribe=${code}${m}` : "/pricing");
+  redirect(code ? `/packages?subscribe=${code}${m}` : "/packages");
 }

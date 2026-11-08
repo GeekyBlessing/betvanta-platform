@@ -27,7 +27,7 @@ export const stripeProvider: PaymentProvider = {
       "line_items[0][quantity]": "1", "line_items[0][price_data][currency]": "usd",
       "line_items[0][price_data][unit_amount]": String(i.amountMinor), "line_items[0][price_data][product_data][name]": `BETVANTA ${i.planLabel}`,
       "metadata[reference]": i.reference, "metadata[user_id]": i.userId,
-      success_url: `${env().APP_URL}/billing/callback?reference=${i.reference}`, cancel_url: `${env().APP_URL}/pricing?cancelled=1`,
+      success_url: `${env().APP_URL}/billing/callback?reference=${i.reference}`, cancel_url: `${env().APP_URL}/packages?cancelled=1`,
     });
     return { redirectUrl: s.url, providerSessionId: s.id };
   },

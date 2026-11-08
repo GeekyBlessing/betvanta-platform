@@ -26,7 +26,7 @@ export const nowpayments: PaymentProvider = {
     const inv = await np<Invoice>("/v1/invoice", {
       price_amount: i.amountMinor / 100, price_currency: "usd", pay_currency: COIN[i.payCurrency], order_id: i.reference,
       order_description: `BETVANTA ${i.planLabel}`, ipn_callback_url: `${env().APP_URL}/api/webhooks/nowpayments`,
-      success_url: `${env().APP_URL}/billing/callback?reference=${i.reference}`, cancel_url: `${env().APP_URL}/pricing?cancelled=1`,
+      success_url: `${env().APP_URL}/billing/callback?reference=${i.reference}`, cancel_url: `${env().APP_URL}/packages?cancelled=1`,
     });
     return { redirectUrl: inv.invoice_url, providerSessionId: String(inv.id) };
   },

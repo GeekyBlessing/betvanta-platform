@@ -2,62 +2,61 @@ import Link from "next/link";
 import { currentUser } from "@/lib/session";
 import { Logo, LogoMark, RG_LINE } from "./ui";
 import { ThemeToggle } from "./ThemeToggle";
-import { LogoutButton } from "./LogoutButton";
-import { NavLinks, TabBar } from "./NavLinks";
-import { MobileMenu } from "./MobileMenu";
+import { MobileMenu, NavLinks } from "./NavLinks";
+import { MAIN_NAV, MORE_NAV } from "./nav-items";
 import { discordInviteUrl, instagramHandle, instagramUrl } from "@/lib/env";
 import { support } from "@/lib/support";
 
-const NAV = [{ href: "/", label: "Home" }, { href: "/predictions", label: "Predictions" }, { href: "/fixtures", label: "Fixtures" }, { href: "/results", label: "Results" },
-  { href: "/performance", label: "Performance" }, { href: "/pricing", label: "Pricing" }, { href: "/community", label: "Community" }];
-
-export async function SiteHeader() {
+/**
+ * Public header: logo, four navigation items (Home, Packages, Contact, More) and Subscribe Now.
+ * `overlay` lays it over the homepage hero; elsewhere it is a solid Deep Charcoal bar that stays at the top.
+ */
+export async function SiteHeader({ overlay = false }: { overlay?: boolean }) {
   const u = await currentUser();
   const account = u ? (u.role === "member" ? "/dashboard" : "/admin") : "/login";
-  return (<>
-    <header className="bg-surface border-b border-line sticky top-0 z-20" style={{ top: "env(safe-area-inset-top, 0px)" }}>
-      <div className="wrap flex items-center gap-3 sm:gap-6 h-14 md:h-16">
-        <Logo size={28} />
-        <NavLinks nav={NAV} />
-        <div className="flex items-center gap-1.5 sm:gap-2 ml-auto">
-          <span className="hidden sm:inline-flex"><ThemeToggle /></span>
-          {u ? (<>
-            <Link href={account} className="btn btn-secondary btn-sm">{u.role === "member" ? "Dashboard" : "Admin"}</Link>
-            <span className="hidden lg:inline-flex"><LogoutButton /></span>
-          </>) : (<>
-            <span className="hidden lg:inline-flex"><Link href="/login" className="btn btn-ghost btn-sm">Log in</Link></span>
-            <Link href="/register" className="btn btn-accent btn-sm">Get started</Link>
-          </>)}
-          <MobileMenu nav={NAV.filter((n) => n.href !== "/")} signedIn={Boolean(u)} accountHref={u ? account : "/register"} accountLabel={u ? (u.role === "member" ? "Open dashboard" : "Open admin") : "Get started"} onDark={false} />
+  const accountLabel = u ? (u.role === "member" ? "Dashboard" : "Admin") : "Log in";
+  return (
+    <header className={`site-header ${overlay ? "site-header-overlay" : "site-header-solid"}`}>
+      <div className="wrap flex items-center gap-3 h-16 md:h-[76px]">
+        <span className="sm:hidden"><Logo size={26} onDark /></span><span className="hidden sm:inline-flex"><Logo size={32} onDark /></span>
+        <div className="hidden lg:flex flex-1 justify-center"><NavLinks /></div>
+        <div className="flex items-center gap-2 sm:gap-3 ml-auto lg:ml-0">
+          <Link href={account} className="hidden lg:inline-flex text-[14px] font-semibold text-white/85 hover:text-white px-2">{accountLabel}</Link>
+          <Link href="/packages" className="btn btn-accent header-cta">Subscribe Now</Link>
+          <MobileMenu signedIn={Boolean(u)} accountHref={account} accountLabel={u ? `Open ${accountLabel.toLowerCase()}` : "Log in"} />
         </div>
       </div>
     </header>
-    <TabBar accountHref={u ? account : "/login"} accountLabel={u ? "Account" : "Log in"} />
-  </>);
+  );
 }
 
 export function SiteFooter() {
   const s = support();
+  const discord = discordInviteUrl();
   return (
-    <footer className="border-t border-line mt-16 bg-surface">
-      <div className="wrap py-10 grid gap-8 md:grid-cols-[1.5fr_1fr_1fr]">
+    <footer className="site-footer">
+      <div className="wrap py-12 grid gap-10 md:grid-cols-[1.6fr_1fr_1fr]">
         <div className="grid gap-3 content-start">
-          <div className="flex items-center gap-2.5"><LogoMark size={24} /><span className="display font-bold tracking-[.06em]">BETVANTA</span></div>
-          <p className="text-sm text-muted">Smarter Insights. Better Decisions.</p>
-          <address className="not-italic text-sm text-muted grid gap-0.5">
-            <span>Support: <a href={s.emailHref} className="text-link hover:underline">{s.email}</a></span>
-            <span>Phone: <a href={s.phoneHref} className="text-link hover:underline num">{s.phoneDisplay}</a></span>
+          <div className="flex items-center gap-2.5"><LogoMark size={28} reversed /><span className="display font-bold tracking-[.06em] text-white">BETVANTA</span></div>
+          <p className="text-sm text-white/70">Smarter Insights. Better Decisions.</p>
+          <address className="not-italic text-sm text-white/70 grid gap-0.5">
+            <span>Support: <a href={s.emailHref} className="text-[#E3A27C] hover:underline">{s.email}</a></span>
+            <span>Phone: <a href={s.phoneHref} className="text-[#E3A27C] hover:underline num">{s.phoneDisplay}</a></span>
           </address>
-          <p className="text-xs text-subtle max-w-[48ch]">{RG_LINE} If betting stops being fun, take a break and seek support.</p>
         </div>
-        <div className="grid gap-2 content-start text-sm"><span className="eyebrow">Product</span>
-          <Link href="/predictions" className="text-muted hover:text-ink">Predictions</Link><Link href="/fixtures" className="text-muted hover:text-ink">Fixtures and scores</Link><Link href="/sports" className="text-muted hover:text-ink">Sports</Link><Link href="/performance" className="text-muted hover:text-ink">Performance</Link><Link href="/pricing" className="text-muted hover:text-ink">Pricing</Link><Link href="/faq" className="text-muted hover:text-ink">FAQ</Link>
+        <div className="grid gap-2 content-start text-sm"><span className="footer-head">BETVANTA</span>
+          {MAIN_NAV.map((n) => <Link key={n.href} href={n.href} className="footer-link">{n.label}</Link>)}
+          {discord ? <a href={discord} target="_blank" rel="noopener noreferrer" className="footer-link">Join our Discord<span className="sr-only"> (opens in a new tab)</span></a> : <Link href="/community" className="footer-link">Discord community</Link>}
+          {instagramUrl() && <a href={instagramUrl()!} target="_blank" rel="noopener noreferrer" className="footer-link">Instagram {instagramHandle()}<span className="sr-only"> (opens in a new tab)</span></a>}
         </div>
-        <div className="grid gap-2 content-start text-sm"><span className="eyebrow">Company</span>
-          <Link href="/about" className="text-muted hover:text-ink">About</Link>{discordInviteUrl() ? <a href={discordInviteUrl()!} target="_blank" rel="noopener noreferrer" className="text-muted hover:text-ink">Join our Discord<span className="sr-only"> (opens in a new tab)</span></a> : <Link href="/community" className="text-muted hover:text-ink">Discord community</Link>}{instagramUrl() && <a href={instagramUrl()!} target="_blank" rel="noopener noreferrer" className="text-muted hover:text-ink">Instagram {instagramHandle()}<span className="sr-only"> (opens in a new tab)</span></a>}<Link href="/contact" className="text-muted hover:text-ink">Contact</Link><Link href="/legal/terms" className="text-muted hover:text-ink">Terms</Link><Link href="/legal/privacy" className="text-muted hover:text-ink">Privacy</Link><Link href="/responsible-gambling" className="text-muted hover:text-ink">Responsible gambling</Link>
+        <div className="grid gap-2 content-start text-sm"><span className="footer-head">More</span>
+          {MORE_NAV.map((n) => <Link key={n.href} href={n.href} className="footer-link">{n.label}</Link>)}
         </div>
       </div>
-      <div className="wrap pb-8 text-xs text-subtle">© {new Date().getFullYear()} BETVANTA. All rights reserved.</div>
+      <div className="wrap pb-8 grid gap-3 md:flex md:items-center md:justify-between text-xs text-white/55">
+        <p className="max-w-[70ch]">{RG_LINE} If betting stops being fun, take a break and seek support. © {new Date().getFullYear()} BETVANTA. All rights reserved.</p>
+        <span className="footer-theme"><ThemeToggle /></span>
+      </div>
     </footer>
   );
 }

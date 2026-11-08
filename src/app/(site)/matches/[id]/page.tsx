@@ -51,7 +51,7 @@ export default async function Match(props: { params: Promise<{ id: string }> }) 
       <section className="grid gap-3">
         <h2 className="font-semibold text-[17px]">Analysis</h2>
         {analysis ? <div className="card p-6 prose-bv text-[16px] leading-7">{analysis.split("\n\n").map((para, i) => <p key={i}>{para}</p>)}</div>
-          : anyLocked ? <Notice tone="info" title="Analysis is for members.">Full analysis is included with Premium and VIP. <Link href="/pricing" className="font-semibold text-link underline">See plans</Link>.</Notice>
+          : anyLocked ? <Notice tone="info" title="Analysis is for members.">Full analysis is included with Premium and VIP. <Link href="/packages" className="font-semibold text-link underline">See plans</Link>.</Notice>
           : <Notice>No analysis has been published for this match yet.</Notice>}
       </section>
       <p className="text-xs text-subtle">{RG_LINE}</p>

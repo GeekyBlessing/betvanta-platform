@@ -68,8 +68,8 @@ check("unverified member cannot check out", r.status === 403);
 const vt = await tokenFor(memberEmail);
 check("verification email recorded", Boolean(vt));
 check("email verification succeeds", (await member("/api/auth/verify", { method: "POST", json: { token: vt } })).body.ok);
-check("old checkout links open the payment assistant for that plan", await (async () => { const x = await member("/checkout/premium_6m"); return [307, 308].includes(x.status) && /\/pricing\?subscribe=premium_6m$/.test(x.headers.get("location") ?? ""); })());
-check("the assistant offers card and crypto with the verified wallets", await (async () => { const x = await member("/pricing?subscribe=premium_6m"); return x.status === 200 && x.body.includes("Stripe") && x.body.includes("bc1qu2pq8h060lpu3g5yg8zzc39lr85mal3vpek4dv"); })());
+check("old checkout links open the payment assistant for that plan", await (async () => { const x = await member("/checkout/premium_6m"); return [307, 308].includes(x.status) && /\/packages\?subscribe=premium_6m$/.test(x.headers.get("location") ?? ""); })());
+check("the assistant offers card and crypto with the verified wallets", await (async () => { const x = await member("/packages?subscribe=premium_6m"); return x.status === 200 && x.body.includes("Stripe") && x.body.includes("bc1qu2pq8h060lpu3g5yg8zzc39lr85mal3vpek4dv"); })());
 r = await member("/api/billing/checkout", { method: "POST", json: { planCode: "premium_1m", provider: "stripe" } });
 check("Stripe checkout starts in USD", r.body.ok && (await db.query("select currency, amount_minor from payments where reference=$1", [r.body.data.reference])).rows[0].currency === "USD", JSON.stringify(r.body));
 const sref = r.body.data.reference;
@@ -109,11 +109,11 @@ check("signed Paystack webhook accepted; replay ignored", (await anon("/api/webh
 check("member can cancel and keeps access", (await member("/api/billing/cancel", { method: "POST", json: {} })).body.ok && (await member("/api/predictions")).body.data.tier === "vip");
 
 console.log("five-plan pricing and lifetime");
-const pricing = await anon("/pricing");
+const pricing = await anon("/packages");
 check("pricing shows the five USD plans", ["Monthly Premium", "3 Month Premium", "6 Month Premium", "1 Year Premium", "Lifetime Premium", "$50", "$100", "$150", "$300", "$600"].every((s) => pricing.body.includes(s)));
 check("pricing highlights one best-value plan", (pricing.body.match(/Best value</g) ?? []).length === 1);
-check("pricing has comparison table and payment options", pricing.body.includes("Compare plans") && pricing.body.includes("Weekly private video analysis calls") && pricing.body.includes("Payment options"));
-check("every plan has a Subscribe Now button that opens the assistant", ["premium_1m", "premium_3m", "premium_6m", "premium_1y", "premium_lifetime"].every((c) => pricing.body.includes(`data-subscribe="${c}"`)) && (pricing.body.match(/>Subscribe Now</g) ?? []).length === 5);
+check("pricing has comparison table and payment options", pricing.body.includes("Compare packages") && pricing.body.includes("Weekly private video analysis calls") && pricing.body.includes("Payment options"));
+check("every plan has a Subscribe Now button that opens the assistant", ["premium_1m", "premium_3m", "premium_6m", "premium_1y", "premium_lifetime"].every((c) => pricing.body.includes(`data-subscribe="${c}"`)) && (pricing.body.match(/data-subscribe="[^"]*"[^>]*>Subscribe Now</g) ?? []).length === 5);
 const life = client(); const lifeEmail = `life${stamp}@example.com`;
 await life("/api/auth/register", { method: "POST", json: { displayName: "Life", email: lifeEmail, password: "lifetime passphrase", confirmAge: true, acceptTerms: true } });
 await life("/api/auth/verify", { method: "POST", json: { token: await tokenFor(lifeEmail) } });
@@ -144,7 +144,7 @@ console.log("payment assistant: manual crypto and Discord-arranged payments");
 {
   const payer = client(), payerEmail = `payer${stamp}@example.com`;
   await payer("/api/auth/register", { method: "POST", json: { displayName: "Pat Payer", email: payerEmail, password: "payer passphrase long", confirmAge: true, acceptTerms: true } });
-  const co = await payer("/pricing?subscribe=premium_1m");
+  const co = await payer("/packages?subscribe=premium_1m");
   check("the payment assistant lists every method", co.status === 200 && ["Bitcoin (BTC)", "Ethereum (ETH)", "Tether (USDT)", "PayPal", "Venmo", "Chime", "Apple Pay", "Other method"].every((x) => co.body.includes(x)));
   check("the assistant carries the BTC wallet and QR code", co.body.includes("bc1qu2pq8h060lpu3g5yg8zzc39lr85mal3vpek4dv") && (co.body.match(/crispEdges/g) ?? []).length >= 1);
   check("ETH and USDT addresses are not shown while their network is unconfirmed", !co.body.includes("0x283bed6B2dB8b70FB245a9734fc6479C60C59E9C") && !co.body.includes("0x7EE5E8D5149A55c6049f7b1042834cDAEB2f246d") && co.body.includes("network_unconfirmed"));
@@ -161,7 +161,7 @@ console.log("payment assistant: manual crypto and Discord-arranged payments");
   const ref = sub.body.data?.reference;
   check("a pending submission grants no access", (await db.query("select count(*)::int n from subscriptions s join users u on u.id = s.user_id where u.email = $1", [payerEmail])).rows[0].n === 0);
   check("a second submission for the same plan is refused while one is pending", (await payer("/api/billing/manual", { method: "POST", raw: form({ ...base, method: "paypal", reference: "PP-1" }) })).status === 409);
-  check("the assistant shows the pending status for that plan", (await payer("/pricing?subscribe=premium_1m")).body.includes(ref));
+  check("the assistant shows the pending status for that plan", (await payer("/packages?subscribe=premium_1m")).body.includes(ref));
   { const st = await payer("/api/billing/manual"); check("members can refresh their payment status", st.body.ok && st.body.data.statuses.some((x) => x.reference === ref && x.status === "pending")); }
   check("member sees the Pending status in billing", />Pending</.test((await payer("/dashboard/billing")).body));
   check("member and admin were emailed", (await db.query("select count(*)::int n from email_outbox where template in ('manual_received','manual_to_review') and body_text like $1", [`%${ref}%`])).rows[0].n === 2);
@@ -195,21 +195,23 @@ console.log("homepage dashboard, links, testimonials, Discord");
 const homePage = await anon("/");
 const textOf = (html) => html.replace(/<[^>]+>/g, " ").replace(/&nbsp;/g, " ").replace(/&#x27;|&#39;/g, "'").replace(/&amp;/g, "&").replace(/\s+/g, " ");
 const homeText = textOf(homePage.body);
-check("navigation lists Home, Predictions, Fixtures, Results, Performance, Pricing and Community", ["/", "/predictions", "/fixtures", "/results", "/performance", "/pricing", "/community"].every((h) => homePage.body.includes(`href="${h}"`)) && /aria-label="Main"/.test(homePage.body));
-check("phones get a tab bar", /aria-label="Quick navigation"/.test(homePage.body));
-check("compact introduction with View Predictions and Premium Picks", /href="\/predictions"[^>]*>View Predictions</.test(homePage.body) && /href="\/pricing"[^>]*>Premium Picks/.test(homePage.body));
-check("Get Started Now opens registration", /href="\/register"[^>]*>Get Started Now</.test(homePage.body));
-for (const [name, text] of [["featured predictions", "Featured predictions"], ["fixtures", "fixtures"], ["recent results", "Recent results"], ["performance history", "Performance history"], ["plans", "Plans"], ["how it works", "How it works"], ["reviews", "What members say"], ["questions", "Questions"], ["community", "Join the BETVANTA community"]])
+check("navigation is Home, Packages, Contact and More, with Subscribe Now", /aria-label="Main"/.test(homePage.body) && ["/", "/packages", "/contact"].every((h) => homePage.body.includes(`href="${h}"`)) && />More</.test(homePage.body) && /href="\/packages"[^>]*>Subscribe Now</.test(homePage.body));
+{ const nav = homePage.body.match(/<nav aria-label="Main"[\s\S]*?<\/nav>/)?.[0] ?? "";
+  check("main navigation has no Predictions, Fixtures, Sports or Performance links", nav.length > 0 && !/href="\/(predictions|fixtures|sports|performance|results)"/.test(nav) && !/Predictions|Fixtures|Performance/.test(nav), nav.slice(0, 300)); }
+check("no phone tab bar; phones use the menu button", !/aria-label="Quick navigation"/.test(homePage.body) && /Open menu/.test(homePage.body));
+check("hero: stadium background, headline and supporting text", homePage.body.includes('class="hero"') && homeText.includes("Elevate Your Game With Expert Sports Analysis") && homeText.includes("Access premium sports picks, AI-assisted insights, match analysis and proven strategies."));
+check("hero CTAs: Get Premium Picks and Join Discord", /href="\/packages"[^>]*>Get Premium Picks</.test(homePage.body) && />Join Discord</.test(homePage.body));
+for (const [name, text] of [["sports selection", "Choose your sport"], ["packages", "Choose your package"], ["community", "Join the BETVANTA community"]])
   check(`homepage section: ${name}`, homeText.includes(text));
-check("no stadium hero, glass panel or client figures", !homePage.body.includes("stadium-wide") && !/2,000 Happy Members|75% Win Rate|12,500 Winning Picks|10 Sports Covered/.test(homeText));
+check("no client-entered figures on the homepage", !/2,000 Happy Members|75% Win Rate|12,500 Winning Picks|10 Sports Covered/.test(homeText));
 check("no betting odds on the homepage", (homeText.match(/\bodds\b/gi) ?? []).length === (homeText.match(/do not show betting odds/gi) ?? []).length);
 { const rec = (await db.query("select count(*) filter (where result in ('won','lost','void'))::int settled, count(*) filter (where result='won')::int won, count(*) filter (where result='lost')::int lost from predictions where status='settled'")).rows[0];
-  const leagues = (await db.query("select count(distinct c.id)::int n from competitions c where c.active and exists (select 1 from fixtures f where f.competition_id = c.id)")).rows[0].n;
-  check("the record shows database counts: graded picks and leagues", homeText.includes(`Picks graded ${new Intl.NumberFormat("en-US").format(rec.settled)}`) && homeText.includes(`Leagues covered ${leagues}`), homeText.slice(0, 600));
+  const sports = (await db.query("select count(distinct c.sport)::int n from competitions c where c.active and exists (select 1 from fixtures f where f.competition_id = c.id)")).rows[0].n;
+  check("the stats panel shows database counts: graded picks and sports", homeText.includes(`Picks graded ${new Intl.NumberFormat("en-US").format(rec.settled)}`) && homeText.includes(`Sports covered ${sports}`), homeText.slice(0, 900));
   check("hit rate is withheld until enough picks are decided", rec.won + rec.lost >= 20 ? /Hit rate \d+\.\d%/.test(homeText) : homeText.includes("Hit rate n/a")); }
-check("featured predictions link to match analysis", /href="\/matches\/[0-9a-f-]{36}"/.test(homePage.body));
 check("sample data is labelled", homePage.body.includes("Sample data"));
-{ const soccer = await anon("/?sport=soccer"); check("sport filter works", soccer.status === 200 && /aria-current="page"[^>]*>[\s\S]{0,400}Soccer/.test(soccer.body)); }
+{ const pk = await anon("/packages"); check("Packages page shows the plans with Subscribe Now", pk.status === 200 && pk.body.includes("Choose your BETVANTA Premium package") && (pk.body.match(/data-subscribe="/g) ?? []).length >= 5); }
+{ const old = await anon("/pricing?subscribe=premium_6m&method=usdt"); check("old /pricing links redirect to /packages with the plan kept", [301, 308].includes(old.status) && /\/packages\?subscribe=premium_6m&method=usdt$/.test(old.headers.get("location") ?? ""), `${old.status} ${old.headers.get("location")}`); }
 { const slugs = ["american-football", "soccer", "basketball", "baseball", "ice-hockey", "tennis", "boxing", "mma"];
   check("sports selection lists all eight sports, each linking to its own page", slugs.every((x) => homePage.body.includes(`href="/sports/${x}"`)) && homePage.body.includes("Choose your sport"));
   check("American Football and Soccer are separate sports with separate artwork", homePage.body.includes('src="/images/sports/american-football.svg"') && homePage.body.includes('src="/images/sports/soccer.svg"'));
@@ -217,8 +219,7 @@ check("sample data is labelled", homePage.body.includes("Sample data"));
   check("every sport card opens a working page", pages.every((p) => p.status === 200));
   const art = await Promise.all(slugs.map((x) => fetch(`${BASE}/images/sports/${x}.svg`)));
   check("every sport illustration is served", art.every((a) => a.status === 200 && (a.headers.get("content-type") ?? "").includes("svg")));
-  check("sports without a data feed say coverage is coming, not empty numbers", homePage.body.includes("Coverage coming soon") && pages[7].body.includes("MMA coverage is on the way"));
-  check("filter tabs list only sports with data", !/href="\/\?sport=mma"/.test(homePage.body) && homePage.body.includes('href="/?sport=soccer"')); }
+  check("sports without a data feed say coverage is coming, not empty numbers", homePage.body.includes("Coverage coming soon") && pages[7].body.includes("MMA coverage is on the way")); }
 { const res = await anon("/results"); check("results page shows final scores and graded picks", res.status === 200 && res.body.includes("Final scores") && res.body.includes("Graded picks")); }
 check("homepage plans open the payment assistant for all five plans", ["premium_1m", "premium_3m", "premium_6m", "premium_1y", "premium_lifetime"].every((c) => homePage.body.includes(`data-subscribe="${c}"`)));
 check("footer has contact, Discord and legal links", ["mailto:", "/contact", "/legal/terms", "/legal/privacy", "/responsible-gambling"].every((x) => homePage.body.includes(x)) && /Discord/.test(homePage.body));
@@ -228,7 +229,6 @@ check("footer links to the official Instagram", homePage.body.includes('href="ht
 { const cm = await anon("/community"); check("community page has the Discord invite and Instagram", cm.body.includes(`href="${invite}"`) && cm.body.includes("instagram.com/bet.vanta")); }
 check("member cannot edit homepage statistics", (await member("/api/admin/homepage-stats/members", { method: "PATCH", json: { value: "9", label: "x", source: "manual", verification: "unverified", visible: true } })).status === 403);
 check("admin homepage statistics page says the figures are not shown publicly", /Not shown on the public site/.test((await admin("/admin/homepage")).body));
-check("sport pages are linked from the homepage filter", ["/?sport=american-football", "/?sport=soccer", "/?sport=basketball", "/?sport=baseball"].every((h) => homePage.body.includes(`href="${h}"`)));
 const links = [...new Set([...homePage.body.matchAll(/href="(\/[^"#]*)"/g)].map((m) => m[1].replace(/&amp;/g, "&")))].filter((h) => !h.startsWith("/_next") && !h.startsWith("/api/"));
 const broken = [];
 for (const h of links) { const x = await anon(h); if (x.status >= 400) broken.push(`${h} ${x.status}`); }
@@ -239,7 +239,7 @@ for (const s of ["american-football", "soccer", "basketball", "baseball"]) {
 check("soccer page shows predictions; basketball says predictions are not live", (await anon("/sports/soccer")).body.includes("Predictions and analysis") && (await anon("/sports/basketball")).body.includes("Predictions for this sport are not live yet"));
 check("American football standings use W/L/Pct", await (async () => { const id = (await db.query("select id from competitions where sport='american_football' limit 1")).rows[0].id; const x = await anon(`/leagues/${id}`); return x.body.includes(">Pct<") && x.body.includes("Standings"); })());
 check("community page renders", (await anon("/community")).status === 200);
-check("no reviews are shown before approval", homePage.body.includes("Reviews from verified members will appear here"));
+check("no reviews are shown before approval", !homePage.body.includes("What members say"));
 check("anonymous visitors cannot post reviews", (await anon("/api/testimonials", { method: "POST", json: { displayName: "X", rating: 5, body: "A long enough review body.", consent: true } })).status === 401);
 check("review without consent is rejected", (await member("/api/testimonials", { method: "POST", json: { displayName: "Mia", rating: 5, body: "Clear, honest analysis every week.", consent: false } })).status === 422);
 r = await member("/api/testimonials", { method: "POST", json: { displayName: "Mia", location: "Denver, CO", rating: 5, body: "Clear, honest analysis every week.", consent: true } });
@@ -255,7 +255,7 @@ check("member withdraws the review and it disappears", (await member(`/api/testi
 console.log("customer support contact");
 const contactPage = await anon("/contact");
 check("contact page shows support email and phone links", contactPage.body.includes('href="mailto:betvanta098@gmail.com"') && contactPage.body.includes('href="tel:+13143436703"') && contactPage.body.includes("(314) 343-6703"));
-check("footer shows support contact on every page", (await anon("/pricing")).body.includes("betvanta098@gmail.com") && (await anon("/sports")).body.includes("(314) 343-6703"));
+check("footer shows support contact on every page", (await anon("/packages")).body.includes("betvanta098@gmail.com") && (await anon("/sports")).body.includes("(314) 343-6703"));
 check("structured data lists the support contact", homePage.body.includes('"contactType":"customer support"'));
 const before = (await db.query("select count(*)::int n from email_outbox where to_email = 'betvanta098@gmail.com'")).rows[0].n;
 check("contact form message is accepted", (await anon("/api/contact", { method: "POST", json: { name: "Jordan", email: "jordan@example.com", message: "How do I change my plan?" } })).body.ok);
@@ -271,7 +271,7 @@ check("logout clears session", (await member("/api/auth/logout", { method: "POST
 console.log("headers and pages");
 const h = (await anon("/")).headers;
 check("security headers present", h.get("content-security-policy")?.includes("frame-ancestors 'none'") && h.get("x-frame-options") === "DENY" && h.get("x-content-type-options") === "nosniff" && !h.get("x-powered-by"));
-for (const p of ["/community", "/sports/soccer", "/sports", "/fixtures", "/fixtures?mode=live", "/", "/pricing", "/performance", "/about", "/faq", "/contact", "/legal/terms", "/legal/privacy", "/responsible-gambling", "/login", "/register", "/forgot-password"]) {
+for (const p of ["/community", "/sports/soccer", "/sports", "/fixtures", "/fixtures?mode=live", "/", "/packages", "/performance", "/about", "/faq", "/contact", "/legal/terms", "/legal/privacy", "/responsible-gambling", "/login", "/register", "/forgot-password"]) {
   const x = await anon(p); check(`page ${p} renders with BETVANTA title`, x.status === 200 && /<title>[^<]*BETVANTA/.test(x.body));
 }
 for (const p of ["/admin/testimonials", "/admin/subscriptions", "/admin", "/admin/predictions", "/admin/users", "/admin/payments", "/admin/plans", "/admin/audit", "/admin/data", "/admin/emails"]) check(`admin page ${p}`, (await admin(p)).status === 200);
