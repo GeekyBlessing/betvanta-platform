@@ -35,6 +35,6 @@ export async function moderateTestimonial(adminId: string, id: string, action: "
 }
 export type PublicTestimonial = { id: string; display_name: string; location: string | null; rating: number; body: string; verified_subscriber: boolean; created_at: string };
 /** Only reviews with recorded consent, approved by an admin, from accounts that still exist. */
-export const approvedTestimonials = (limit = 6) => q<PublicTestimonial>(
+export const approvedTestimonials = (limit = 6, shuffle = false) => q<PublicTestimonial>(
   `select t.id, t.display_name, t.location, t.rating, t.body, t.verified_subscriber, t.created_at from testimonials t join users u on u.id = t.user_id
-   where t.status = 'approved' and t.consent_at is not null and u.status = 'active' order by t.reviewed_at desc limit $1`, [limit]);
+   where t.status = 'approved' and t.consent_at is not null and u.status = 'active' order by ${shuffle ? "random()" : "t.reviewed_at desc"} limit $1`, [limit]);

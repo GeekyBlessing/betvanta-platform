@@ -53,6 +53,13 @@ Plans are ordered levels 1 to 5; each includes everything below it. Subscription
 
 Legal review needed before launch: in the US, giveaways tied to a paid subscription can fall under state sweepstakes and lottery rules (typically requiring a free alternative entry and official rules), and "lotto selections" marketing should be checked against state lottery advertising rules.
 
+## Public site layout (client reference)
+The public site follows the client's reference layout: Home, Packages, Contact and a More menu (VIP Access, Notifications, My Account), with Subscribe Now in the header.
+- Homepage: hero with the Admin > Homepage figures (marked "Figures provided by BETVANTA; not independently verified" while they are client figures), sports, Connect With BETVANTA, Premium Services, Why Choose BETVANTA, approved member reviews with Refresh Testimonials, Share Your Feedback, Premium Updates and a final call to action.
+- The public sportsbook (board, bet slip, Virtuals, search) and the Predictions, Fixtures, Results, Performance, Community, About and FAQ pages were removed; their old addresses redirect to the homepage.
+- Premium Updates links a member's email to new-pick emails when the email matches an active paid package and the Premium Membership Code (the reference of their latest confirmed payment, shown on Dashboard > Billing).
+- Intentional differences from the reference: BETVANTA branding and logo, only real approved reviews, no third-party sportsbook logos, X added to the social links, and responsible gambling links kept in the footer.
+
 ## Homepage statistics and testimonials
 
 - Statistics come straight from the database: active member accounts, settled predictions (won, lost, void), sports with fixtures in the feed. The win rate stays hidden ("Building") until at least 20 picks have settled. When any figure includes sample data, a "Sample data" label is shown under the panel.

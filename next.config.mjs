@@ -24,6 +24,11 @@ const nextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
   serverExternalPackages: ["pg"],
+  // The public site follows the client's reference (Home, Packages, Contact). Retired public pages go home.
+  async redirects() {
+    return ["/predictions", "/virtuals", "/search", "/fixtures", "/results", "/performance", "/community", "/about", "/faq"]
+      .map((source) => ({ source, destination: "/", permanent: false }));
+  },
   async headers() {
     return [
       { source: "/(.*)", headers: securityHeaders },

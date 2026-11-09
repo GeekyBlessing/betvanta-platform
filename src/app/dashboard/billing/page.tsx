@@ -4,6 +4,7 @@ import { pageUser } from "@/lib/auth";
 import { q } from "@/lib/db";
 import { formatMoney } from "@/lib/services/billing";
 import { listMyManualPayments, manualPaymentsReady, methodLabel } from "@/lib/services/manual-payments";
+import { membershipCode } from "@/lib/services/premium-updates";
 import { ActionButton } from "@/components/ActionButton";
 import { Badge, fmtDate, Notice, PageHeader } from "@/components/ui";
 export const metadata: Metadata = { title: "Billing" };
@@ -11,6 +12,7 @@ export default async function Billing() {
   const u = await pageUser("/dashboard/billing");
   const subs = await q(`select s.*, p.name from subscriptions s join plans p on p.id = s.plan_id where s.user_id = $1 order by s.current_period_end desc limit 20`, [u.id]);
   const pays = await q(`select y.reference, y.amount_minor, y.currency, y.status, y.created_at, y.verified_at, p.name, y.provider from payments y join plans p on p.id = y.plan_id where y.user_id = $1 order by y.created_at desc limit 50`, [u.id]);
+  const code = await membershipCode(u.id);
   const manual = (await manualPaymentsReady()) ? await listMyManualPayments(u.id) : [];
   // Lifetime rows end at Infinity (Postgres "infinity"), which new Date() cannot represent.
   const current = (s: { is_lifetime: boolean; current_period_end: string | number }) => s.is_lifetime || new Date(s.current_period_end) > new Date();
@@ -23,6 +25,7 @@ export default async function Billing() {
       {subs.filter((s) => current(s) && s.status !== "expired").map((s) => (
         <div key={s.id} className="flex flex-wrap gap-3 items-center justify-between"><span><strong>{s.name}</strong> · {s.is_lifetime ? "lifetime access" : `${s.status === "cancelled" ? "cancelled, access ends" : "active until"} ${fmtDate(s.current_period_end)}`}</span></div>))}
       {!active && !subs.some((s) => s.status === "cancelled" && current(s)) && <p className="text-muted">You are on the Free plan.</p>}
+      {active && code && <p className="text-sm text-muted">Premium Membership Code: <strong className="num text-white">{code}</strong>. Use it with your account email in Premium Updates on the homepage to get new picks by email.</p>}
       <div className="flex gap-3 flex-wrap"><Link href="/packages" className="btn btn-accent">{active ? "Renew or change plan" : "Choose a plan"}</Link>{active && !active.is_lifetime && <ActionButton action="/api/billing/cancel" label="Cancel subscription" confirmText="Confirm cancellation" variant="secondary" />}</div>
     </section>
     {manual.length > 0 && <>

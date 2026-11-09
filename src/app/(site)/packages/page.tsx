@@ -1,142 +1,65 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { q } from "@/lib/db";
 import { currentUser } from "@/lib/session";
-import { cryptoApproved, env } from "@/lib/env";
-import { formatMoney, MONTHS, periodLabel, type Plan } from "@/lib/services/billing";
-import { cardFeatures, FEATURES, LEVEL_NAMES } from "@/lib/services/plans";
+import { cryptoApproved } from "@/lib/env";
+import { formatMoney, type Plan } from "@/lib/services/billing";
 import { PROVIDERS } from "@/lib/services/payments";
-import { PageHeader, RG_LINE } from "@/components/ui";
+import { RG_LINE } from "@/components/ui";
 import { SubscribeAssistant } from "@/components/SubscribeAssistant";
-import { CommunityAccess, DiscordCta, InstagramCta } from "@/components/Community";
 import { subscribeAssistantProps } from "@/lib/services/manual-payments/assistant";
-import { approvedTestimonials } from "@/lib/services/testimonials";
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: "Packages", description: "BETVANTA Premium packages in USD: Monthly, 3 Month, 6 Month, 1 Year and Lifetime." };
+export const metadata: Metadata = { title: "Packages", description: "BETVANTA subscription packages: Monthly, 3 Month, 6 Month, 1 Year and Lifetime Premium." };
 
-const Tick = ({ className = "" }: { className?: string }) => (
-  <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" className={`shrink-0 mt-[3px] ${className}`}><path d="M3 8.5l3 3 7-7" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg>
-);
-const perMonth = (p: Plan) => (p.is_lifetime ? null : Number(p.amount_minor) / MONTHS[p.interval]);
+/** Package copy as the client specified it, by plan level (1 Monthly ... 5 Lifetime). Access itself comes from the plan's level. */
+const COPY: Record<number, { tagline: string; features: string[]; duration: string }> = {
+  1: { tagline: "Most popular choice", duration: "30 days of service", features: ["Expert well analyzed picks", "AI-powered daily analysis", "Weekly premium giveaways", "Building bankroll strategies", "Lotto selections", "Video live analysis", "Discord community access"] },
+  2: { tagline: "Best value for regular bettors", duration: "90 days of service", features: ["All Monthly Premium features", "Priority access to giveaways", "Enhanced bankroll building", "Advanced AI insights", "Early access to lotto picks", "Extended video analysis sessions"] },
+  3: { tagline: "Extended access package", duration: "180 days of service", features: ["All 3 Month Premium features", "VIP-exclusive picks", "1-on-1 bankroll consultation", "Personalized AI analysis reports", "Exclusive lotto strategy sessions", "Premium live video Q&A sessions"] },
+  4: { tagline: "Ultimate yearly access", duration: "365 days of service", features: ["All 6 Month Premium features", "Premium VIP status", "Exclusive yearly mega giveaways", "Priority 24/7 support", "Custom AI-driven betting strategies", "VIP lotto selection service", "Weekly private video analysis calls"] },
+  5: { tagline: "Ultimate VIP experience", duration: "Unlimited service duration", features: ["All Premium features for life", "Lifetime VIP status", "Exclusive lifetime access to all giveaways", "Personal betting advisor", "Customized AI analysis dashboard", "Priority lotto number generation", "On-demand video analysis sessions"] },
+};
+const Tick = () => <svg width="15" height="15" viewBox="0 0 16 16" aria-hidden="true" className="shrink-0 mt-[3px] text-red"><path d="M3 8.5l3 3 7-7" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>;
 
 export default async function Packages(props: { searchParams: Promise<{ subscribe?: string; method?: string }> }) {
   const sp = await props.searchParams;
-  const [plans, user, reviews] = await Promise.all([q<Plan>("select * from plans where active order by level"), currentUser(), approvedTestimonials(3)]);
+  const [plans, user] = await Promise.all([q<Plan>("select * from plans where active order by level"), currentUser()]);
   const assistant = await subscribeAssistantProps(user, "/packages", { plan: sp.subscribe, method: sp.method });
-  const monthly = plans.find((p) => p.level === 1);
-  const periodic = plans.filter((p) => !p.is_lifetime);
-  const lifetime = plans.find((p) => p.is_lifetime);
-  // Subscribe Now opens the payment assistant on this page (data-subscribe); the link is the no-JavaScript fallback.
-  const href = (p: Plan) => `/packages?subscribe=${p.code}`;
+  // Ways to pay that actually work right now (the payment assistant shows the details for each).
   const methods = [
-    { label: "Card", detail: "Visa, Mastercard, Amex via Stripe", on: PROVIDERS.stripe.enabled() || PROVIDERS.paystack.enabled() },
-    { label: "Crypto", detail: "BTC, ETH, USDT", on: PROVIDERS.nowpayments.enabled() || cryptoApproved(), pending: !cryptoApproved() },
-    { label: "PayPal, Venmo, Chime, Apple Pay", detail: "Instructions from BETVANTA in our Discord, verified by our team", on: true },
+    ...(PROVIDERS.stripe.enabled() || PROVIDERS.paystack.enabled() ? ["Card"] : []),
+    ...(PROVIDERS.nowpayments.enabled() || cryptoApproved() ? ["Crypto"] : []),
+    "Chime", "Venmo", "Apple Pay",
   ];
-
   return (
-    <div className="wrap py-10 grid gap-12">
-      <PageHeader eyebrow="Packages" title="Choose your BETVANTA Premium package">
-        All prices in US dollars. Each plan is a one-time payment for its period, with no automatic renewal. Longer plans add more, and every plan includes everything in the one before it.
-      </PageHeader>
-
-      <section aria-label="Plans" className="grid gap-4 -mt-4">
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 items-stretch">
-          {periodic.map((p) => {
-            const best = p.best_value;
-            const pm = perMonth(p)!;
-            const saving = monthly && p.level > 1 ? Math.round((1 - pm / Number(monthly.amount_minor)) * 100) : 0;
-            return (
-              <article key={p.id} aria-label={p.name} className={`relative rounded-xl p-6 flex flex-col gap-5 border ${best ? "bg-brand text-on-brand border-transparent shadow-xl lg:-my-2 lg:py-8" : "bg-surface border-line"}`}>
-                {best && <span className="absolute -top-3 left-6 rounded-full bg-accent text-on-accent text-xs font-semibold px-3 py-1">Best value</span>}
-                <div className="grid gap-1">
-                  <h2 className="display text-[13px] font-bold tracking-[.14em] uppercase" style={best ? { color: "#E41B23" } : undefined}>{p.name}</h2>
-                  {p.tagline && <p className={`text-sm ${best ? "opacity-85" : "text-muted"}`}>{p.tagline}</p>}
-                </div>
-                <div className="grid gap-1">
-                  <div className="flex items-baseline gap-2"><span className="display num text-[40px] leading-[44px] font-bold">{formatMoney(p.amount_minor)}</span><span className={`text-sm ${best ? "opacity-80" : "text-subtle"}`}>{periodLabel(p)}</span></div>
-                  <span className={`text-xs num ${best ? "opacity-80" : "text-subtle"}`}>{p.level === 1 ? "Billed once for 30 days" : `${formatMoney(Math.round(pm))} per month${saving > 0 ? `, save ${saving}%` : ""}`}</span>
-                </div>
-                <ul className="grid gap-2.5 text-sm">
-                  {cardFeatures(p.level).map((f, i) => <li key={f} className={`flex gap-2.5 ${i === 0 && p.level > 1 ? "font-semibold" : ""}`}><Tick className={best ? "text-[#E41B23]" : "text-link"} />{f}</li>)}
-                </ul>
-                <a href={href(p)} data-subscribe={p.code} aria-label={`Subscribe Now to ${p.name}`} className={`btn btn-lg w-full mt-auto ${best ? "btn-accent" : "btn-secondary"}`}>Subscribe Now</a>
-              </article>
-            );
-          })}
-        </div>
-
-        {lifetime && (
-          <article aria-label={lifetime.name} className="rounded-xl border border-line bg-sunken p-6 md:p-8 grid gap-6 md:grid-cols-[1.1fr_1.4fr_auto] md:items-center">
-            <div className="grid gap-1">
-              <h2 className="display text-[13px] font-bold tracking-[.14em] uppercase">{lifetime.name}</h2>
-              <div className="flex items-baseline gap-2"><span className="display num text-[40px] leading-[44px] font-bold">{formatMoney(lifetime.amount_minor)}</span><span className="text-sm text-subtle">one-time payment</span></div>
-              {lifetime.tagline && <p className="text-sm text-muted">{lifetime.tagline}</p>}
-            </div>
-            <ul className="grid gap-2.5 text-sm sm:grid-cols-2">{cardFeatures(5).map((f) => <li key={f} className="flex gap-2.5"><Tick className="text-link" />{f}</li>)}<li className="flex gap-2.5"><Tick className="text-link" />Everything in 1 Year, with no expiry</li></ul>
-            <a href={href(lifetime)} data-subscribe={lifetime.code} aria-label={`Subscribe Now to ${lifetime.name}`} className="btn btn-primary btn-lg w-full md:w-auto">Subscribe Now</a>
-          </article>
-        )}
-        <p className="text-sm text-muted">Questions before you subscribe? <Link href="/contact" className="text-link font-semibold underline">Contact BETVANTA</Link> or read the <Link href="/faq" className="text-link font-semibold underline">FAQ</Link>.</p>
+    <div className="wrap py-10 md:py-14 grid gap-10">
+      <header className="text-center grid gap-2 justify-items-center">
+        <h1 className="tb-h1 flex items-center gap-3">
+          <svg width="38" height="38" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="text-red hidden sm:block"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9zM12 12l8-4.5M12 12v9M12 12L4 7.5" /></svg>
+          <span>Subscription <span className="text-red">Packages</span></span>
+        </h1>
+        <p className="text-muted">Choose the package that best suits your needs</p>
+      </header>
+      <section aria-label="Packages" className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5 items-stretch">
+        {plans.map((p) => {
+          const c = COPY[p.level];
+          const lifetime = p.is_lifetime;
+          return (
+            <article key={p.id} aria-label={p.name} className={`pkg ${lifetime ? "pkg-lifetime" : ""} ${p.best_value ? "pkg-best-value" : ""}`}>
+              {p.best_value && <span className="pkg-ribbon">Best value</span>}
+              <div className="grid gap-1"><h2 className="font-bold text-[18px] leading-6">{p.name}</h2><p className="text-[13px] text-muted">{c?.tagline ?? p.tagline}</p></div>
+              <span className={`num text-[32px] font-bold ${lifetime ? "text-[#F2B84B]" : "text-red"}`}>{formatMoney(p.amount_minor)}</span>
+              <ul className="grid gap-2 text-[13.5px]">
+                {(c?.features ?? []).map((f) => <li key={f} className="flex gap-2"><Tick />{f}</li>)}
+                <li className="flex gap-2 font-semibold"><Tick />{c?.duration ?? `${p.duration_days} days of service`}</li>
+              </ul>
+              <div className="mt-auto grid gap-3">
+                <p className="flex flex-wrap gap-1.5" aria-label="Ways to pay">{methods.map((m) => <span key={m} className="pay-chip">{m}</span>)}</p>
+                <a href={`/packages?subscribe=${p.code}`} data-subscribe={p.code} aria-label={`Subscribe Now to ${p.name}`} className="btn btn-accent w-full">Subscribe Now</a>
+              </div>
+            </article>);
+        })}
       </section>
-
-      {reviews.length > 0 && (
-        <section aria-labelledby="reviews-h" className="grid gap-4">
-          <h2 id="reviews-h" className="font-semibold text-[17px]">What members say</h2>
-          <div className="grid gap-4 md:grid-cols-3">{reviews.map((rv) => (
-            <figure key={rv.id} className="card p-5 grid gap-2 content-start">
-              <span className="num text-[13px] text-accent-text" aria-label={`${rv.rating} out of 5`}>{"★".repeat(rv.rating)}{"☆".repeat(5 - rv.rating)}</span>
-              <blockquote className="text-[15px] leading-6">&ldquo;{rv.body}&rdquo;</blockquote>
-              <figcaption className="text-[13px] text-muted">{rv.display_name}{rv.location ? `, ${rv.location}` : ""}{rv.verified_subscriber ? " · Verified subscriber" : ""}</figcaption>
-            </figure>))}</div>
-        </section>)}
-
-      <section aria-labelledby="access-h" className="grid gap-4">
-        <div className="flex flex-wrap items-end justify-between gap-3">
-          <div className="grid gap-1"><h2 id="access-h" className="font-semibold text-[17px]">Free community and premium access</h2>
-            <p className="text-sm text-muted">Anyone can join our Discord and follow us on Instagram. A package unlocks the premium content.</p></div>
-          <div className="flex flex-wrap gap-2"><DiscordCta className="btn btn-secondary btn-sm" label="Join Our Discord" /><InstagramCta className="btn btn-secondary btn-sm" label="Follow Us on Instagram" /></div>
-        </div>
-        <CommunityAccess tone="light" />
-      </section>
-
-      <section aria-labelledby="pay-h" className="grid gap-3">
-        <h2 id="pay-h" className="font-semibold text-[17px]">Payment options</h2>
-        <div className="flex flex-wrap gap-3">
-          {methods.map((m) => (
-            <div key={m.label} className="card px-4 py-3 flex items-center gap-3 min-w-[240px]">
-              <div className="grid"><span className="font-semibold text-sm">{m.label}</span><span className="text-xs text-subtle">{m.detail}</span></div>
-              <span className={`ml-auto text-xs font-semibold rounded-sm px-2 py-0.5 ${m.on ? "bg-success-subtle text-success" : "bg-sunken text-muted"}`}>{m.on ? "Available" : m.pending ? "Coming soon" : "Not yet available"}</span>
-            </div>))}
-        </div>
-        <p className="text-xs text-subtle">Press Subscribe Now and the payment assistant walks you through your chosen method. Card details are handled by the payment processor and never reach BETVANTA. Subscription payments are kept separate from any betting funds; BETVANTA does not take bets or deposits.</p>
-      </section>
-
-      <section aria-labelledby="cmp-h" className="grid gap-3">
-        <h2 id="cmp-h" className="font-semibold text-[17px]">Compare packages</h2>
-        <div className="card overflow-x-auto relative">
-          <table className="table min-w-[760px]">
-            <caption className="sr-only">Features included in each BETVANTA Premium plan</caption>
-            <thead><tr>
-              <th scope="col" className="sticky left-0 z-10 bg-sunken min-w-[220px]">Feature</th>
-              {plans.map((p) => <th key={p.id} scope="col" className={`text-center ${p.best_value ? "text-ink" : ""}`}>{LEVEL_NAMES[p.level]}<div className="num normal-case tracking-normal font-semibold text-ink">{formatMoney(p.amount_minor)}</div></th>)}
-            </tr></thead>
-            <tbody>
-              {FEATURES.map((f) => (
-                <tr key={f.key}>
-                  <th scope="row" className="sticky left-0 bg-surface text-left font-normal normal-case tracking-normal text-[14px] text-ink">{f.label}</th>
-                  {plans.map((p) => {
-                    const yes = p.level >= f.level;
-                    return <td key={p.id} className={`text-center ${p.best_value ? "bg-teal-subtle" : ""}`}>{yes ? <span className="inline-flex text-link"><Tick /><span className="sr-only">Included</span></span> : <span className="text-subtle" aria-label="Not included">·</span>}</td>;
-                  })}
-                </tr>))}
-              <tr><th scope="row" className="sticky left-0 bg-surface text-left font-normal normal-case tracking-normal text-[14px] text-ink">Access period</th>{plans.map((p) => <td key={p.id} className={`text-center text-xs ${p.best_value ? "bg-teal-subtle" : ""}`}>{p.is_lifetime ? "Lifetime" : `${p.duration_days} days`}</td>)}</tr>
-            </tbody>
-          </table>
-        </div>
-      </section>
-
-      <p className="text-xs text-subtle">Prices in USD. Giveaways, lotto selections, video sessions, consultations and support are provided by the BETVANTA team to eligible members. {RG_LINE}{env().DISCORD_INVITE_URL ? " Community access is through Discord." : ""}</p>
+      <p className="text-xs text-subtle text-center max-w-[80ch] mx-auto">Prices in US dollars. Each package is a one-time payment for its period, with no automatic renewal. Subscribe Now opens our payment assistant; access starts once your payment is verified. {RG_LINE}</p>
       <SubscribeAssistant {...assistant} />
     </div>
   );
